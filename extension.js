@@ -161,9 +161,9 @@ class Extension {
     }
 
     GetTitle(winid) {
-        let w = this._get_window_by_wid(winid);
+        let w = this._get_window_by_wid(winid).meta_window;
         if (w) {
-            return w.meta_window.get_title();
+            return w.get_title();
         } else {
             throw new Error('Not found');
         }
@@ -179,38 +179,50 @@ class Extension {
     }
 
     MoveResize(winid, x, y, width, height) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_window_by_wid(winid).meta_window;
 
         if (win) {
-            if (win.meta_window.maximized_horizontally || win.meta_window.maximized_vertically) {
-                win.meta_window.unmaximize(3);
+            if (win.minimized) {
+                win.unminimize();
             }
-
-            win.meta_window.move_resize_frame(1, x, y, width, height);
+            if (win.maximized_horizontally || win.maximized_vertically) {
+                win.unmaximize(3);
+            }
+            win.move_resize_frame(1, x, y, width, height);
         } else {
             throw new Error('Not found');
         }
     }
 
     Resize(winid, width, height) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_window_by_wid(winid).meta_window;
         if (win) {
-            if (win.meta_window.maximized_horizontally || win.meta_window.maximized_vertically) {
-                win.meta_window.unmaximize(3);
+
+            if (win.minimized) {
+                win.unminimize();
             }
-            win.meta_window.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
+
+            if (win.maximized_horizontally || win.maximized_vertically) {
+                win.unmaximize(3);
+            }
+            win.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
         } else {
             throw new Error('Not found');
         }
     }
 
     Move(winid, x, y) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_window_by_wid(winid).meta_window;
         if (win) {
-            if (win.meta_window.maximized_horizontally || win.meta_window.maximized_vertically) {
-                win.meta_window.unmaximize(3);
+
+            if (win.minimized) {
+                win.unminimize();
             }
-            win.meta_window.move_frame(1, x, y);
+
+            if (win.maximized_horizontally || win.maximized_vertically) {
+                win.unmaximize(3);
+            }
+            win.move_frame(1, x, y);
         } else {
             throw new Error('Not found');
         }
@@ -218,11 +230,16 @@ class Extension {
 
     Maximize(winid) {
         let win = this._get_window_by_wid(winid).meta_window;
+
         if (win) {
+            if (win.minimized) {
+                win.unminimize();
+            }
             win.maximize(3);
         } else {
             throw new Error('Not found');
         }
+        win.activate(0);
     }
 
     Minimize(winid) {
@@ -236,7 +253,7 @@ class Extension {
 
     Unmaximize(winid) {
         let win = this._get_window_by_wid(winid).meta_window;
-        if (win) {
+        if (win.maximized_horizontally || win.maximized_vertically) {
             win.unmaximize(3);
         } else {
             throw new Error('Not found');
@@ -245,8 +262,17 @@ class Extension {
 
     Unminimize(winid) {
         let win = this._get_window_by_wid(winid).meta_window;
+        if (win.minimized) {
+                win.unminimize();
+        } else {
+            throw new Error('Not found');
+        }
+    }
+
+    Raise(winid) {
+        let win = this._get_window_by_wid(winid).meta_window;
         if (win) {
-            win.unminimize();
+            win.raise();
         } else {
             throw new Error('Not found');
         }
