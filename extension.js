@@ -74,6 +74,16 @@ const MR_DBUS_IFACE = `
       <method name="Close">
          <arg type="u" direction="in" name="winid" />
       </method>
+      <method name="Raise">
+         <arg type="u" direction="in" name="winid" />
+      </method>
+      <method name="Stick">
+         <arg type="u" direction="in" name="winid" />
+      </method>
+      <method name="Unstick">
+         <arg type="u" direction="in" name="winid" />
+      </method>
+
    </interface>
 </node>`;
 
@@ -189,6 +199,7 @@ class Extension {
                 win.unmaximize(3);
             }
             win.move_resize_frame(1, x, y, width, height);
+            win.activate(0);
         } else {
             throw new Error('Not found');
         }
@@ -206,6 +217,7 @@ class Extension {
                 win.unmaximize(3);
             }
             win.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
+            win.activate(0);
         } else {
             throw new Error('Not found');
         }
@@ -223,6 +235,7 @@ class Extension {
                 win.unmaximize(3);
             }
             win.move_frame(1, x, y);
+            win.activate(0);
         } else {
             throw new Error('Not found');
         }
@@ -236,10 +249,10 @@ class Extension {
                 win.unminimize();
             }
             win.maximize(3);
+            win.activate(0);
         } else {
             throw new Error('Not found');
         }
-        win.activate(0);
     }
 
     Minimize(winid) {
@@ -255,6 +268,7 @@ class Extension {
         let win = this._get_window_by_wid(winid).meta_window;
         if (win.maximized_horizontally || win.maximized_vertically) {
             win.unmaximize(3);
+            win.activate(0);
         } else {
             throw new Error('Not found');
         }
@@ -277,7 +291,22 @@ class Extension {
             throw new Error('Not found');
         }
     }
-
+    Stick(winid) {
+        let win = this._get_window_by_wid(winid).meta_window;
+        if (win) {
+            win.stick();
+        } else {
+            throw new Error('Not found');
+        }
+    }
+    Unstick(winid) {
+        let win = this._get_window_by_wid(winid).meta_window;
+        if (win) {
+            win.unstick();
+        } else {
+            throw new Error('Not found');
+        }
+    }
     Activate(winid) {
         let win = this._get_window_by_wid(winid).meta_window;
         if (win) {
