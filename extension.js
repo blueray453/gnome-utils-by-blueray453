@@ -114,6 +114,7 @@ class Extension {
         win.forEach(function (w) {
             winJsonArr.push({
                 gtk_app_id: w.meta_window.get_gtk_application_id(),
+                sandbox_app_id: w.meta_window.get_sandboxed_app_id(),
                 gtk_bus_name: w.meta_window.get_gtk_unique_bus_name(),
                 gtk_obj_path: w.meta_window.get_gtk_window_object_path(),
                 wm_class: w.meta_window.get_wm_class(),
@@ -140,6 +141,10 @@ class Extension {
         // let monitor = global.display.get_monitor_geometry(currentmonitor);
         if (w) {
             return JSON.stringify({
+                gtk_app_id: w.meta_window.get_gtk_application_id(),
+                sandbox_app_id: w.meta_window.get_sandboxed_app_id(),
+                gtk_bus_name: w.meta_window.get_gtk_unique_bus_name(),
+                gtk_obj_path: w.meta_window.get_gtk_window_object_path(),
                 wm_class: w.meta_window.get_wm_class(),
                 wm_class_instance: w.meta_window.get_wm_class_instance(),
                 pid: w.meta_window.get_pid(),
@@ -166,7 +171,9 @@ class Extension {
                 role: w.meta_window.get_role(),
                 area: w.meta_window.get_work_area_current_monitor(),
                 area_all: w.meta_window.get_work_area_all_monitors(),
-                area_cust: w.meta_window.get_work_area_for_monitor(currentmonitor)
+                area_cust: w.meta_window.get_work_area_for_monitor(currentmonitor),
+                user_time: w.meta_window.get_user_time(),
+                flags: w.get_flags()
             });
         } else {
             throw new Error('Not found');
@@ -290,6 +297,7 @@ class Extension {
         let win = this._get_window_by_wid(winid).meta_window;
         if (win) {
             win.raise();
+            win.raise_and_make_recent();
         } else {
             throw new Error('Not found');
         }
