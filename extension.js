@@ -113,6 +113,9 @@ class Extension {
         var winJsonArr = [];
         win.forEach(function (w) {
             winJsonArr.push({
+                gtk_app_id: w.meta_window.get_gtk_application_id(),
+                gtk_bus_name: w.meta_window.get_gtk_unique_bus_name(),
+                gtk_obj_path: w.meta_window.get_gtk_window_object_path(),
                 wm_class: w.meta_window.get_wm_class(),
                 wm_class_instance: w.meta_window.get_wm_class_instance(),
                 pid: w.meta_window.get_pid(),
