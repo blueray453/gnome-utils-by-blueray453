@@ -17,17 +17,18 @@
  */
 
 /* exported init */
-const {
-    Gio
-} = imports.gi;
+const { Gio, GLib, Shell } = imports.gi;
 
-const MR_DBUS_IFACE = `
+const ExtensionUtils = imports.misc.extensionUtils;
+const Me = ExtensionUtils.getCurrentExtension();
+
+const MR_DBUS_IFACE_WINDOWS = `
 <node>
    <interface name="org.gnome.Shell.Extensions.Windows">
-      <method name="List">
+      <method name="ListWindows">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="Details">
+      <method name="DetailsWindow">
          <arg type="u" direction="in" name="winid" />
          <arg type="s" direction="out" name="win" />
       </method>
@@ -87,17 +88,100 @@ const MR_DBUS_IFACE = `
    </interface>
 </node>`;
 
+const MR_DBUS_IFACE_APPS = `
+<node>
+   <interface name="org.gnome.Shell.Extensions.Apps">
+      <method name="ListApps">
+         <arg type="s" direction="out" name="app" />
+      </method>
+      <method name="ListRunningApps">
+         <arg type="s" direction="out" name="app" />
+      </method>
+   </interface>
+</node>`;
 
 class Extension {
     enable() {
-        this._dbus = Gio.DBusExportedObject.wrapJSObject(MR_DBUS_IFACE, this);
-        this._dbus.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/Windows');
+        this._dbus_windows = Gio.DBusExportedObject.wrapJSObject(MR_DBUS_IFACE_WINDOWS, this);
+        this._dbus_windows.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/Windows');
+
+        this._dbus_apps = Gio.DBusExportedObject.wrapJSObject(MR_DBUS_IFACE_APPS, this);
+        this._dbus_apps.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/Apps');
+
+        this._connection = Gio.DBus.session;
+
+        // var interface = Gio.DBusObject.get_interface("org.gtk.gio.DesktopAppInfo").get_info().lookup_signal("Launched");
+
+        this.handlerId = this._connection.signal_subscribe(null, "org.gtk.gio.DesktopAppInfo", "Launched", "/org/gtk/gio/DesktopAppInfo", null, 0, _parseSignal);
+
+        function _parseSignal(connection, sender, path, iface, signal, params) {
+
+            log("Calling _parseSignal");
+
+            const app_path = params.get_child_value(0).get_bytestring();
+            const app = Gio.DesktopAppInfo.new_from_filename(String.fromCharCode(...app_path));
+            const app_id = app.get_id();
+            const app_pid = params.get_child_value(2).get_int64();
+            const opened_file_path = params.get_child_value(3).get_strv();
+
+            // const variantString = params.print(true);
+            // log("variantString : " + variantString);
+            // log("variantString unpack : " + params.unpack());
+            // log("variantString deep unpack : " + params.deepUnpack());
+            // log("variantString recursive unpack : " + params.recursiveUnpack());
+
+            log("app_path : " + app_path);
+            log("app_id : " + app_id);
+            log("app_pid : " + app_pid);
+            log("app_path : " + app_path);
+            // log("apppath type : " + typeof apppath);
+            log("opened_file_path : " + opened_file_path);
+
+            // const appx = Gio.DesktopAppInfo.new_from_filename(String.fromCharCode(...apppath));
+            // const appxid = appx.get_id();
+
+            // log("appxid : " + appxid);
+
+            // let deskapps = Gio.DesktopAppInfo.new(appxid);
+            // log("deskapps : " + deskapps.get_filename());
+            // log("deskapps display name : " + deskapps.get_display_name());
+
+            // get_display_name is a function of AppInfo which is DesktopAppInfo inherited
+
+
+
+            // let shellapps = Shell.AppSystem.get_default().lookup_app(appxid).get_windows();
+            // shellapps.forEach(function (w) {
+            //     log("window id : " + w.get_id());
+            // })
+
+            let shellapps = Shell.AppSystem.get_default().lookup_app(app_id).get_windows();
+            shellapps.forEach(function (w) {
+                log("window id : " + w.get_id());
+            })
+
+            if (opened_file_path) {
+                const file_path = GLib.build_filenamev([GLib.get_home_dir(), 'opened-files.log']);
+                const file = Gio.File.new_for_path(file_path);
+                // const outputStreamCreate = file.create(Gio.FileCreateFlags.NONE, null);
+                const outputStreamAppend = file.append_to(Gio.FileCreateFlags.NONE, null);
+                var to_write = app_id + ' ' + app_pid + ' ' + opened_file_path + '\n'
+                const bytesWritten = outputStreamAppend.write_all(to_write, null);
+            }
+        }
     }
 
     disable() {
-        this._dbus.flush();
-        this._dbus.unexport();
-        delete this._dbus;
+        this._dbus_windows.flush();
+        this._dbus_windows.unexport();
+        delete this._dbus_windows;
+
+        this._dbus_apps.flush();
+        this._dbus_apps.unexport();
+        delete this._dbus_apps;
+
+        this._connection.signal_unsubscribe(this.handlerId);
+        log(`disabling ${Me.metadata.name}`);
     }
 
     _get_window_by_wid(winid) {
@@ -105,7 +189,14 @@ class Extension {
         return win;
     }
 
-    List() {
+    ListApps() {
+
+                    // let apps = Gio.AppInfo.get_all();
+            // apps.forEach(function (w) {
+            //     log("app name : " + w.get_display_name());
+            //     log("app id : " + w.get_id());
+            // })
+
         let win = global.get_window_actors();
 
         let workspaceManager = global.workspace_manager;
@@ -134,7 +225,72 @@ class Extension {
         return JSON.stringify(winJsonArr);
     }
 
-    Details(winid) {
+    ListRunningApps() {
+
+        // let runningshellapps = Shell.AppSystem.get_default().get_running();
+        // runningshellapps.forEach(function (w) {
+        //     log("running app id : " + w.get_id());
+        // })
+
+        let win = global.get_window_actors();
+
+        let workspaceManager = global.workspace_manager;
+
+        var winJsonArr = [];
+        win.forEach(function (w) {
+            winJsonArr.push({
+                gtk_app_id: w.meta_window.get_gtk_application_id(),
+                sandbox_app_id: w.meta_window.get_sandboxed_app_id(),
+                gtk_bus_name: w.meta_window.get_gtk_unique_bus_name(),
+                gtk_obj_path: w.meta_window.get_gtk_window_object_path(),
+                wm_class: w.meta_window.get_wm_class(),
+                wm_class_instance: w.meta_window.get_wm_class_instance(),
+                pid: w.meta_window.get_pid(),
+                id: w.meta_window.get_id(),
+                frame_type: w.meta_window.get_frame_type(),
+                window_type: w.meta_window.get_window_type(),
+                width: w.get_width(),
+                height: w.get_height(),
+                x: w.get_x(),
+                y: w.get_y(),
+                focus: w.meta_window.has_focus(),
+                in_current_workspace: w.meta_window.located_on_workspace(workspaceManager.get_active_workspace())
+            });
+        })
+        return JSON.stringify(winJsonArr);
+    }
+
+
+    ListWindows() {
+        let win = global.get_window_actors();
+
+        let workspaceManager = global.workspace_manager;
+
+        var winJsonArr = [];
+        win.forEach(function (w) {
+            winJsonArr.push({
+                gtk_app_id: w.meta_window.get_gtk_application_id(),
+                sandbox_app_id: w.meta_window.get_sandboxed_app_id(),
+                gtk_bus_name: w.meta_window.get_gtk_unique_bus_name(),
+                gtk_obj_path: w.meta_window.get_gtk_window_object_path(),
+                wm_class: w.meta_window.get_wm_class(),
+                wm_class_instance: w.meta_window.get_wm_class_instance(),
+                pid: w.meta_window.get_pid(),
+                id: w.meta_window.get_id(),
+                frame_type: w.meta_window.get_frame_type(),
+                window_type: w.meta_window.get_window_type(),
+                width: w.get_width(),
+                height: w.get_height(),
+                x: w.get_x(),
+                y: w.get_y(),
+                focus: w.meta_window.has_focus(),
+                in_current_workspace: w.meta_window.located_on_workspace(workspaceManager.get_active_workspace())
+            });
+        })
+        return JSON.stringify(winJsonArr);
+    }
+
+    DetailsWindow(winid) {
         let w = this._get_window_by_wid(winid);
         let workspaceManager = global.workspace_manager;
         let currentmonitor = global.display.get_current_monitor();
@@ -339,5 +495,6 @@ class Extension {
 }
 
 function init() {
+    log(`initializing ${Me.metadata.name}`);
     return new Extension();
 }
