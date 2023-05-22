@@ -22,6 +22,8 @@ const { Gio, GLib, Shell } = imports.gi;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/Windows org.gnome.Shell.Extensions.Windows.ListWindows | jq .
+
 const MR_DBUS_IFACE_WINDOWS = `
 <node>
    <interface name="org.gnome.Shell.Extensions.Windows">
@@ -87,6 +89,8 @@ const MR_DBUS_IFACE_WINDOWS = `
 
    </interface>
 </node>`;
+
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/Apps org.gnome.Shell.Extensions.Apps.ListApps | jq .
 
 const MR_DBUS_IFACE_APPS = `
 <node>
@@ -197,32 +201,16 @@ class Extension {
             //     log("app id : " + w.get_id());
             // })
 
-        let win = global.get_window_actors();
+        let apps = Gio.AppInfo.get_all();
 
-        let workspaceManager = global.workspace_manager;
-
-        var winJsonArr = [];
-        win.forEach(function (w) {
-            winJsonArr.push({
-                gtk_app_id: w.meta_window.get_gtk_application_id(),
-                sandbox_app_id: w.meta_window.get_sandboxed_app_id(),
-                gtk_bus_name: w.meta_window.get_gtk_unique_bus_name(),
-                gtk_obj_path: w.meta_window.get_gtk_window_object_path(),
-                wm_class: w.meta_window.get_wm_class(),
-                wm_class_instance: w.meta_window.get_wm_class_instance(),
-                pid: w.meta_window.get_pid(),
-                id: w.meta_window.get_id(),
-                frame_type: w.meta_window.get_frame_type(),
-                window_type: w.meta_window.get_window_type(),
-                width: w.get_width(),
-                height: w.get_height(),
-                x: w.get_x(),
-                y: w.get_y(),
-                focus: w.meta_window.has_focus(),
-                in_current_workspace: w.meta_window.located_on_workspace(workspaceManager.get_active_workspace())
+        var appsJsonArr = [];
+        apps.forEach(function (a) {
+            appsJsonArr.push({
+                app_name: a.get_display_name(),
+                app_id: a.get_id(),
             });
         })
-        return JSON.stringify(winJsonArr);
+        return JSON.stringify(appsJsonArr);
     }
 
     ListRunningApps() {
