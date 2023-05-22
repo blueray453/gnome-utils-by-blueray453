@@ -38,6 +38,9 @@ const MR_DBUS_IFACE_WINDOWS = `
          <arg type="u" direction="in" name="winid" />
          <arg type="s" direction="out" name="win" />
       </method>
+      <method name="GetFocusedWindow">
+         <arg type="s" direction="out" name="win" />
+      </method>
       <method name="MoveToWorkspace">
          <arg type="u" direction="in" name="winid" />
          <arg type="u" direction="in" name="workspaceNum" />
@@ -195,12 +198,6 @@ class Extension {
 
     ListApps() {
 
-                    // let apps = Gio.AppInfo.get_all();
-            // apps.forEach(function (w) {
-            //     log("app name : " + w.get_display_name());
-            //     log("app id : " + w.get_id());
-            // })
-
         let apps = Gio.AppInfo.get_all();
 
         var appsJsonArr = [];
@@ -215,17 +212,29 @@ class Extension {
 
     ListRunningApps() {
 
-        // let runningshellapps = Shell.AppSystem.get_default().get_running();
-        // runningshellapps.forEach(function (w) {
-        //     log("running app id : " + w.get_id());
-        // })
+        let apps = Shell.AppSystem.get_default().get_running();
 
-        let win = global.get_window_actors();
+        var appsJsonArr = [];
+        apps.forEach(function (a) {
+            appsJsonArr.push({
+                app_name: a.get_name(),
+                app_id: a.get_id(),
+                app_pids: a.get_pids(),
+                app_windows: a.get_windows(),
+            });
+        })
+
+        return JSON.stringify(appsJsonArr);
+    }
+
+    GetFocusedWindow() {
+        let w = global.get_window_actors().find(w => w.meta_window.has_focus() == true);
 
         let workspaceManager = global.workspace_manager;
 
-        var winJsonArr = [];
-        win.forEach(function (w) {
+        if (w) {
+            var winJsonArr = [];
+
             winJsonArr.push({
                 gtk_app_id: w.meta_window.get_gtk_application_id(),
                 sandbox_app_id: w.meta_window.get_sandboxed_app_id(),
@@ -244,10 +253,14 @@ class Extension {
                 focus: w.meta_window.has_focus(),
                 in_current_workspace: w.meta_window.located_on_workspace(workspaceManager.get_active_workspace())
             });
-        })
-        return JSON.stringify(winJsonArr);
-    }
 
+            return JSON.stringify(winJsonArr);
+
+        } else {
+            throw new Error('Not found');
+        }
+
+    }
 
     ListWindows() {
         let win = global.get_window_actors();
