@@ -94,6 +94,7 @@ const MR_DBUS_IFACE_WINDOWS = `
 </node>`;
 
 // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/Apps org.gnome.Shell.Extensions.Apps.ListApps | jq .
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/Apps org.gnome.Shell.Extensions.Apps.DetailsApp string:'org.gnome.Evince.desktop' | jq .
 
 const MR_DBUS_IFACE_APPS = `
 <node>
@@ -103,6 +104,10 @@ const MR_DBUS_IFACE_APPS = `
       </method>
       <method name="ListRunningApps">
          <arg type="s" direction="out" name="app" />
+      </method>
+      <method name="DetailsApp">
+         <arg type="s" direction="in" name="app" />
+         <arg type="s" direction="out" name="win" />
       </method>
    </interface>
 </node>`;
@@ -123,7 +128,10 @@ class Extension {
 
         function _parseSignal(connection, sender, path, iface, signal, params) {
 
-            log("Calling _parseSignal");
+            // log("Calling _parseSignal");
+
+
+            let focused_window_id = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window.get_id();
 
             const app_path = params.get_child_value(0).get_bytestring();
             const app = Gio.DesktopAppInfo.new_from_filename(String.fromCharCode(...app_path));
@@ -137,42 +145,19 @@ class Extension {
             // log("variantString deep unpack : " + params.deepUnpack());
             // log("variantString recursive unpack : " + params.recursiveUnpack());
 
-            log("app_path : " + app_path);
-            log("app_id : " + app_id);
-            log("app_pid : " + app_pid);
-            log("app_path : " + app_path);
-            // log("apppath type : " + typeof apppath);
-            log("opened_file_path : " + opened_file_path);
-
-            // const appx = Gio.DesktopAppInfo.new_from_filename(String.fromCharCode(...apppath));
-            // const appxid = appx.get_id();
-
-            // log("appxid : " + appxid);
-
-            // let deskapps = Gio.DesktopAppInfo.new(appxid);
-            // log("deskapps : " + deskapps.get_filename());
-            // log("deskapps display name : " + deskapps.get_display_name());
-
-            // get_display_name is a function of AppInfo which is DesktopAppInfo inherited
-
-
-
-            // let shellapps = Shell.AppSystem.get_default().lookup_app(appxid).get_windows();
-            // shellapps.forEach(function (w) {
-            //     log("window id : " + w.get_id());
-            // })
-
-            let shellapps = Shell.AppSystem.get_default().lookup_app(app_id).get_windows();
-            shellapps.forEach(function (w) {
-                log("window id : " + w.get_id());
-            })
+            // log("app_path : " + app_path);
+            // log("app_id : " + app_id);
+            // log("app_pid : " + app_pid);
+            // log("app_path : " + app_path);
+            // // log("apppath type : " + typeof apppath);
+            // log("opened_file_path : " + opened_file_path);
 
             if (opened_file_path) {
                 const file_path = GLib.build_filenamev([GLib.get_home_dir(), 'opened-files.log']);
                 const file = Gio.File.new_for_path(file_path);
                 // const outputStreamCreate = file.create(Gio.FileCreateFlags.NONE, null);
                 const outputStreamAppend = file.append_to(Gio.FileCreateFlags.NONE, null);
-                var to_write = app_id + ' ' + app_pid + ' ' + opened_file_path + '\n'
+                var to_write = focused_window_id + ' ' + app_id + ' ' + app_pid + ' ' + opened_file_path + '\n'
                 const bytesWritten = outputStreamAppend.write_all(to_write, null);
             }
         }
@@ -216,15 +201,54 @@ class Extension {
 
         var appsJsonArr = [];
         apps.forEach(function (a) {
+            // var windows = a.get_windows();
+            // log("windows : " + windows);
+
+            // if (windows){
+            //     windows.forEach(function (w) {
+            //         log("window id : " + w.get_id());
+            //     });
+            // }
             appsJsonArr.push({
                 app_name: a.get_name(),
                 app_id: a.get_id(),
-                app_pids: a.get_pids(),
-                app_windows: a.get_windows(),
+                app_pids: a.get_pids()
             });
+
         })
 
         return JSON.stringify(appsJsonArr);
+    }
+
+    DetailsApp(app_id) {
+        let desktop_apps = Gio.DesktopAppInfo.new(app_id);
+        let shell_apps = Shell.AppSystem.get_default().lookup_app(app_id);
+
+        // get_display_name is a function of AppInfo which is DesktopAppInfo inherited
+
+        // log("Details app windows : " + shell_apps.get_windows());
+
+        let windows_array = [];
+
+        shell_apps.get_windows().forEach(function (w) {
+            // log("window id : " + w.get_id());
+            windows_array.push(w.get_id());
+        })
+
+        if (app_id) {
+            return JSON.stringify({
+                app_name: desktop_apps.get_name(),
+                app_file_name: desktop_apps.get_filename(),
+                app_display_name: desktop_apps.get_display_name(),
+                app_id: desktop_apps.get_id(),
+                app_pids: shell_apps.get_pids(),
+                app_windows_number: shell_apps.get_n_windows(),
+                app_windows: windows_array,
+                state: shell_apps.get_state()
+            });
+        } else {
+            throw new Error('Not found');
+        }
     }
 
     GetFocusedWindow() {
