@@ -130,8 +130,7 @@ class Extension {
 
             // log("Calling _parseSignal");
 
-
-            let focused_window_id = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window.get_id();
+            // let focused_window_id = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window.get_id();
 
             const app_path = params.get_child_value(0).get_bytestring();
             const app = Gio.DesktopAppInfo.new_from_filename(String.fromCharCode(...app_path));
