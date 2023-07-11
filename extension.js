@@ -189,6 +189,7 @@ class Extension {
             appsJsonArr.push({
                 app_name: a.get_display_name(),
                 app_id: a.get_id(),
+                app_icon: a.get_icon(),
             });
         })
         return JSON.stringify(appsJsonArr);
@@ -211,7 +212,8 @@ class Extension {
             appsJsonArr.push({
                 app_name: a.get_name(),
                 app_id: a.get_id(),
-                app_pids: a.get_pids()
+                app_pids: a.get_pids(),
+                app_icon: a.get_icon()
             });
 
         })
@@ -241,6 +243,7 @@ class Extension {
                 app_display_name: desktop_apps.get_display_name(),
                 app_id: desktop_apps.get_id(),
                 app_pids: shell_apps.get_pids(),
+                app_icon: shell_apps.get_icon(),
                 app_windows_number: shell_apps.get_n_windows(),
                 app_windows: windows_array,
                 state: shell_apps.get_state()
@@ -361,6 +364,15 @@ class Extension {
     }
 
     GetTitle(winid) {
+        let w = this._get_window_by_wid(winid).meta_window;
+        if (w) {
+            return w.get_title();
+        } else {
+            throw new Error('Not found');
+        }
+    }
+
+    GetIconByWid(winid) {
         let w = this._get_window_by_wid(winid).meta_window;
         if (w) {
             return w.get_title();
