@@ -95,6 +95,7 @@ const MR_DBUS_IFACE_WINDOWS = `
 
 // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/Apps org.gnome.Shell.Extensions.Apps.ListApps | jq .
 // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/Apps org.gnome.Shell.Extensions.Apps.DetailsApp string:'org.gnome.Evince.desktop' | jq .
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/Apps org.gnome.Shell.Extensions.Apps.DetailsApp string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
 
 const MR_DBUS_IFACE_APPS = `
 <node>
@@ -189,7 +190,7 @@ class Extension {
             appsJsonArr.push({
                 app_name: a.get_display_name(),
                 app_id: a.get_id(),
-                app_icon: a.get_icon(),
+                app_icon: a.get_icon().to_string(),
             });
         })
         return JSON.stringify(appsJsonArr);
@@ -213,7 +214,7 @@ class Extension {
                 app_name: a.get_name(),
                 app_id: a.get_id(),
                 app_pids: a.get_pids(),
-                app_icon: a.get_icon()
+                app_icons: a.get_icon().to_string()
             });
 
         })
@@ -243,7 +244,7 @@ class Extension {
                 app_display_name: desktop_apps.get_display_name(),
                 app_id: desktop_apps.get_id(),
                 app_pids: shell_apps.get_pids(),
-                app_icon: shell_apps.get_icon(),
+                app_icon: shell_apps.get_icon().to_string(),
                 app_windows_number: shell_apps.get_n_windows(),
                 app_windows: windows_array,
                 state: shell_apps.get_state()
