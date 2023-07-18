@@ -22,16 +22,8 @@ const { Gio } = imports.gi;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
-// dbus - send--print - reply=literal--session--dest = org.gnome.Shell / org / gnome / Shell / Extensions / GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ListWindows | jq.
-
-// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/Windows org.gnome.Shell.Extensions.Windows.ListWindows | jq .
-
 const appFunctions = Me.imports.appFunctions;
 const windowFunctions = Me.imports.windowFunctions;
-
-// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/Apps org.gnome.Shell.Extensions.Apps.ListApps | jq .
-// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/Apps org.gnome.Shell.Extensions.Apps.DetailsApp string:'org.gnome.Evince.desktop' | jq .
-// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/Apps org.gnome.Shell.Extensions.Apps.DetailsApp string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
 
 class Extension {
 
@@ -39,7 +31,7 @@ class Extension {
     GetFocusedWindow = windowFunctions.GetFocusedWindow;
     DetailsWindow = windowFunctions.DetailsWindow;
     GetTitle = windowFunctions.GetTitle;
-    GetIconByWid = windowFunctions.GetIconByWid;
+    GetIconFromWinID = windowFunctions.GetIconFromWinID;
     MoveToWorkspace = windowFunctions.MoveToWorkspace;
     MoveResize = windowFunctions.MoveResize;
     Resize = windowFunctions.Resize;
@@ -55,11 +47,19 @@ class Extension {
     Close = windowFunctions.Close;
 
     ListApps = appFunctions.ListApps;
-    ListApps = appFunctions.ListRunningApps;
-    ListApps = appFunctions.DetailsApp;
+    ListRunningApps = appFunctions.ListRunningApps;
+    DetailsApp = appFunctions.DetailsApp;
+    GetIconFromAppID = appFunctions.GetIconFromAppID;
+    GetAppFromWMClass = appFunctions.GetAppFromWMClass;
+    GetIconFromWMClass = appFunctions.GetIconFromWMClass;
+    GetDefaultAppForType = appFunctions.GetDefaultAppForType;
+    GetTypeOfFile = appFunctions.GetTypeOfFile;
+    GetIconOfFile = appFunctions.GetIconOfFile;
 
     enable() {
-        console.debug(`enabling ${Me.metadata.name}`);
+
+        log(`enabling ${Me.metadata.name}`);
+
         this._dbus_windows = Gio.DBusExportedObject.wrapJSObject(windowFunctions.MR_DBUS_IFACE_WINDOWS, this);
         this._dbus_windows.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
 
@@ -68,7 +68,7 @@ class Extension {
     }
 
     disable() {
-        console.debug(`disabling ${Me.metadata.name}`);
+        log(`disabling ${Me.metadata.name}`);
         this._dbus_windows.flush();
         this._dbus_windows.unexport();
         delete this._dbus_windows;
@@ -76,12 +76,10 @@ class Extension {
         this._dbus_apps.flush();
         this._dbus_apps.unexport();
         delete this._dbus_apps;
-
-        log(`disabling ${Me.metadata.name}`);
     }
 }
 
 function init(meta) {
-    console.debug(`initializing ${meta.metadata.name}`);
+    log(`initializing ${meta.metadata.name}`);
     return new Extension();
 }

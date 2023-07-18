@@ -1,5 +1,7 @@
 const { Gio, GLib, Shell } = imports.gi;
 
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ListWindows | jq .
+
 var MR_DBUS_IFACE_WINDOWS = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWindows">
@@ -19,19 +21,19 @@ var MR_DBUS_IFACE_WINDOWS = `
       </method>
       <method name="MoveToWorkspace">
          <arg type="u" direction="in" name="winid" />
-         <arg type="u" direction="in" name="workspaceNum" />
+         <arg type="i" direction="in" name="workspaceNum" />
       </method>
       <method name="MoveResize">
          <arg type="u" direction="in" name="winid" />
          <arg type="i" direction="in" name="x" />
          <arg type="i" direction="in" name="y" />
-         <arg type="u" direction="in" name="width" />
-         <arg type="u" direction="in" name="height" />
+         <arg type="i" direction="in" name="width" />
+         <arg type="i" direction="in" name="height" />
       </method>
       <method name="Resize">
          <arg type="u" direction="in" name="winid" />
-         <arg type="u" direction="in" name="width" />
-         <arg type="u" direction="in" name="height" />
+         <arg type="i" direction="in" name="width" />
+         <arg type="i" direction="in" name="height" />
       </method>
       <method name="Move">
          <arg type="u" direction="in" name="winid" />
@@ -64,6 +66,10 @@ var MR_DBUS_IFACE_WINDOWS = `
       </method>
       <method name="Unstick">
          <arg type="u" direction="in" name="winid" />
+      </method>
+      <method name="GetIconFromWinID">
+         <arg type="u" direction="in" name="winid" />
+         <arg type="s" direction="out" name="icon" />
       </method>
 
    </interface>
@@ -133,13 +139,13 @@ function GetFocusedWindow() {
 
 }
 
-function _get_window_by_wid(winid) {
+let _get_window_by_wid = function (winid) {
     let win = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
     return win;
 }
 
 function DetailsWindow(winid) {
-    let w = this._get_window_by_wid(winid);
+    let w = _get_window_by_wid(winid);
     let workspaceManager = global.workspace_manager;
     let currentmonitor = global.display.get_current_monitor();
     // let monitor = global.display.get_monitor_geometry(currentmonitor);
@@ -184,8 +190,10 @@ function DetailsWindow(winid) {
     }
 }
 
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetTitle uint32:3931313482
+
 function GetTitle(winid) {
-    let w = this._get_window_by_wid(winid).meta_window;
+    let w = _get_window_by_wid(winid).meta_window;
     if (w) {
         return w.get_title();
     } else {
@@ -193,17 +201,10 @@ function GetTitle(winid) {
     }
 }
 
-function GetIconByWid(winid) {
-    let w = this._get_window_by_wid(winid).meta_window;
-    if (w) {
-        return w.get_title();
-    } else {
-        throw new Error('Not found');
-    }
-}
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveToWorkspace uint32:4121447925 int32:2
 
 function MoveToWorkspace(winid, workspaceNum) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
     if (win) {
         win.change_workspace_by_index(workspaceNum, false);
     } else {
@@ -211,8 +212,10 @@ function MoveToWorkspace(winid, workspaceNum) {
     }
 }
 
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
+
 function MoveResize(winid, x, y, width, height) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
 
     if (win) {
         if (win.minimized) {
@@ -229,7 +232,7 @@ function MoveResize(winid, x, y, width, height) {
 }
 
 function Resize(winid, width, height) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
     if (win) {
 
         if (win.minimized) {
@@ -247,7 +250,7 @@ function Resize(winid, width, height) {
 }
 
 function Move(winid, x, y) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
     if (win) {
 
         if (win.minimized) {
@@ -265,7 +268,7 @@ function Move(winid, x, y) {
 }
 
 function Maximize(winid) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
 
     if (win) {
         if (win.minimized) {
@@ -279,7 +282,7 @@ function Maximize(winid) {
 }
 
 function Minimize(winid) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
     if (win) {
         win.minimize();
     } else {
@@ -288,7 +291,7 @@ function Minimize(winid) {
 }
 
 function Unmaximize(winid) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
     if (win.maximized_horizontally || win.maximized_vertically) {
         win.unmaximize(3);
         win.activate(0);
@@ -298,7 +301,7 @@ function Unmaximize(winid) {
 }
 
 function Unminimize(winid) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
     if (win.minimized) {
         win.unminimize();
     } else {
@@ -307,7 +310,7 @@ function Unminimize(winid) {
 }
 
 function Raise(winid) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
     if (win) {
         win.raise();
         win.raise_and_make_recent();
@@ -316,7 +319,7 @@ function Raise(winid) {
     }
 }
 function Stick(winid) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
     if (win) {
         win.stick();
     } else {
@@ -324,7 +327,7 @@ function Stick(winid) {
     }
 }
 function Unstick(winid) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
     if (win) {
         win.unstick();
     } else {
@@ -332,7 +335,7 @@ function Unstick(winid) {
     }
 }
 function Activate(winid) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
     if (win) {
         win.activate(0);
     } else {
@@ -341,11 +344,19 @@ function Activate(winid) {
 }
 
 function Close(winid) {
-    let win = this._get_window_by_wid(winid).meta_window;
+    let win = _get_window_by_wid(winid).meta_window;
     if (win) {
         win.kill();
         // win.delete(Math.floor(Date.now() / 1000));
     } else {
         throw new Error('Not found');
     }
+}
+
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetIconFromWinID uint32:44129093
+
+function GetIconFromWinID(winid) {
+    let wmclass = _get_window_by_wid(winid).meta_window.get_wm_class();
+    let app_id = Shell.AppSystem.get_default().lookup_startup_wmclass(wmclass).get_id();
+    return Shell.AppSystem.get_default().lookup_app(app_id).get_icon().to_string();
 }
