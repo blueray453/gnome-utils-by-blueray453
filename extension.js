@@ -55,6 +55,7 @@ class Extension {
     GetDefaultAppForType = appFunctions.GetDefaultAppForType;
     GetTypeOfFile = appFunctions.GetTypeOfFile;
     GetIconOfFile = appFunctions.GetIconOfFile;
+    GetIconForType = appFunctions.GetIconForType;
 
     enable() {
 

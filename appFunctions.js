@@ -6,7 +6,6 @@ const { Gio, GLib, Shell } = imports.gi;
 
 // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.DetailsApp string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
 
-
 var MR_DBUS_IFACE_APPS = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsApps">
@@ -44,6 +43,10 @@ var MR_DBUS_IFACE_APPS = `
          <arg type="s" direction="in" name="path" />
          <arg type="s" direction="out" name="icon" />
       </method>
+      <method name="GetIconForType">
+         <arg type="s" direction="in" name="type" />
+         <arg type="s" direction="out" name="icon" />
+      </method>
    </interface>
 </node>`;
 
@@ -56,7 +59,7 @@ function ListApps() {
         let icon_val = "";
 
         if (a.get_icon()) {
-            icon_val = a.get_icon().to_string()
+            icon_val = a.get_icon().to_string();
         }
         appsJsonArr.push({
             app_name: a.get_display_name(),
@@ -76,7 +79,7 @@ function ListRunningApps() {
         let icon_val = "";
 
         if (a.get_icon()) {
-            icon_val = a.get_icon().to_string()
+            icon_val = a.get_icon().to_string();
         }
         // var windows = a.get_windows();
         // log("windows : " + windows);
@@ -117,7 +120,7 @@ function DetailsApp(app_id) {
         let icon_val = "";
 
         if (shell_apps.get_icon()) {
-            icon_val = shell_apps.get_icon().to_string()
+            icon_val = shell_apps.get_icon().to_string();
         }
         return JSON.stringify({
             app_name: desktop_apps.get_name(),
@@ -160,7 +163,16 @@ function GetIconFromWMClass(wmclass) {
 function GetIconOfFile(path) {
     let file = Gio.File.new_for_path(path);
     let fileInfo = file.query_info('*', Gio.FileQueryInfoFlags.NONE, null);
-    return fileInfo.get_icon().get_names()[0];
+    let icons = fileInfo.get_icon().get_names();
+
+    if (typeof icons[1] === 'undefined') {
+        // does not exist
+        return icons[0];
+    }
+    else {
+        return icons[1];
+    }
+
 }
 
 // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetTypeOfFile string:"/home/ismail/Desktop/xgeticon-1.0.tar.bz2"
@@ -176,4 +188,20 @@ function GetTypeOfFile(path) {
 
 function GetDefaultAppForType(type) {
     return Gio.AppInfo.get_default_for_type(type, true).get_id();
+}
+
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetIconForType string:"application/x-bzip-compressed-tar"
+function GetIconForType(type) {
+    let icons = Gio.content_type_get_icon(type).get_names();
+
+
+
+    if (typeof icons[1] === 'undefined') {
+        // image_file = icon_theme.lookup_icon(icons[0], 32, 0).get_filename();
+        // print("Mimetype {0} can use icon file {1}".format(type, image_file))
+        return icons[0];
+    }
+    else {
+        return icons[1];
+    }
 }
