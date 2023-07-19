@@ -10,6 +10,10 @@ var MR_DBUS_IFACE = `
          <arg type="u" direction="in" name="winid" />
          <arg type="i" direction="in" name="workspace_num" />
       </method>
+      <method name="MoveWindowToWorkspaceAndFocus">
+         <arg type="u" direction="in" name="winid" />
+         <arg type="i" direction="in" name="workspace_num" />
+      </method>
       <method name="GetWorkspaces">
          <arg type="s" direction="out" name="workspaces" />
       </method>
@@ -40,6 +44,16 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         } else {
             throw new Error('Not found');
         }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveWindowToWorkspaceAndFocus uint32:1903985885 int32:4
+
+    MoveWindowToWorkspaceAndFocus(winid, workspace) {
+        let win = global.get_window_actors().find(w => w.meta_window.get_id() == winid).meta_window;
+        let metaWorkspace = global.workspace_manager.get_workspace_by_index(workspace);
+        win.change_workspace_by_index(workspace, false);
+        metaWorkspace.activate_with_focus(win, global.get_current_time());
+        // win.activate_with_workspace(global.get_current_time(), metaWorkspace);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetWorkspaces | jq .
@@ -83,7 +97,6 @@ var WorkspaceFunctions = class WorkspaceFunctions {
             all_windows_of_workspaces: all_windows_of_workspaces,
             all_normal_windows_of_workspaces: all_normal_windows_of_workspaces
         });
-
     }
 }
 
@@ -125,7 +138,7 @@ var WorkspaceFunctions = class WorkspaceFunctions {
     // // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetWorkspaces
 
     // MoveWindowToWorkspace() {
-    //     activate_with_workspace(global.get_current_time(), workspace)
+    //
     // }
 
 
