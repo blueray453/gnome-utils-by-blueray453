@@ -23,60 +23,40 @@ const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
 const appFunctions = Me.imports.appFunctions;
+const iconFunctions = Me.imports.iconFunctions;
 const windowFunctions = Me.imports.windowFunctions;
 
 class Extension {
-
-    ListWindows = windowFunctions.ListWindows;
-    GetFocusedWindow = windowFunctions.GetFocusedWindow;
-    DetailsWindow = windowFunctions.DetailsWindow;
-    GetTitle = windowFunctions.GetTitle;
-    GetIconFromWinID = windowFunctions.GetIconFromWinID;
-    MoveToWorkspace = windowFunctions.MoveToWorkspace;
-    MoveResize = windowFunctions.MoveResize;
-    Resize = windowFunctions.Resize;
-    Move = windowFunctions.Move;
-    Maximize = windowFunctions.Maximize;
-    Minimize = windowFunctions.Minimize;
-    Unmaximize = windowFunctions.Unmaximize;
-    Unminimize = windowFunctions.Unminimize;
-    Raise = windowFunctions.Raise;
-    Stick = windowFunctions.Stick;
-    Unstick = windowFunctions.Unstick;
-    Activate = windowFunctions.Activate;
-    Close = windowFunctions.Close;
-
-    ListApps = appFunctions.ListApps;
-    ListRunningApps = appFunctions.ListRunningApps;
-    DetailsApp = appFunctions.DetailsApp;
-    GetIconFromAppID = appFunctions.GetIconFromAppID;
-    GetAppFromWMClass = appFunctions.GetAppFromWMClass;
-    GetIconFromWMClass = appFunctions.GetIconFromWMClass;
-    GetDefaultAppForType = appFunctions.GetDefaultAppForType;
-    GetTypeOfFile = appFunctions.GetTypeOfFile;
-    GetIconOfFile = appFunctions.GetIconOfFile;
-    GetIconForType = appFunctions.GetIconForType;
 
     enable() {
 
         log(`enabling ${Me.metadata.name}`);
 
-        this._dbus_windows = Gio.DBusExportedObject.wrapJSObject(windowFunctions.MR_DBUS_IFACE_WINDOWS, this);
+        this._dbus_apps = Gio.DBusExportedObject.wrapJSObject(appFunctions.MR_DBUS_IFACE, new appFunctions.AppFunctions());
+        this._dbus_apps.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsApps');
+
+        this._dbus_icons = Gio.DBusExportedObject.wrapJSObject(iconFunctions.MR_DBUS_IFACE, new iconFunctions.IconFunctions());
+        this._dbus_icons.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsIcons');
+
+        this._dbus_windows = Gio.DBusExportedObject.wrapJSObject(windowFunctions.MR_DBUS_IFACE, new windowFunctions.WindowFunctions());
         this._dbus_windows.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
 
-        this._dbus_apps = Gio.DBusExportedObject.wrapJSObject(appFunctions.MR_DBUS_IFACE_APPS, this);
-        this._dbus_apps.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsApps');
     }
 
     disable() {
         log(`disabling ${Me.metadata.name}`);
-        this._dbus_windows.flush();
-        this._dbus_windows.unexport();
-        delete this._dbus_windows;
 
         this._dbus_apps.flush();
         this._dbus_apps.unexport();
         delete this._dbus_apps;
+
+        this._dbus_icons.flush();
+        this._dbus_icons.unexport();
+        delete this._dbus_icons;
+
+        this._dbus_windows.flush();
+        this._dbus_windows.unexport();
+        delete this._dbus_windows;
     }
 }
 
