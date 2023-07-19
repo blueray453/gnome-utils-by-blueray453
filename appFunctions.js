@@ -1,37 +1,16 @@
 const { Gio, GLib, Shell } = imports.gi;
 
-// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.ListApps | jq .
-
-// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.DetailsApp string:'org.gnome.Evince.desktop' | jq .
-
-// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.DetailsApp string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
-
 var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsApps">
-      <method name="DetailsApp">
+      <method name="GetAppDetails">
          <arg type="s" direction="in" name="appid" />
          <arg type="s" direction="out" name="app" />
       </method>
-      <method name="GetAppFromWMClass">
-         <arg type="s" direction="in" name="wmclass" />
+      <method name="GetAppFromFocusedWindow">
          <arg type="s" direction="out" name="app" />
       </method>
-      <method name="GetAppOfFocusedWindow">
-         <arg type="s" direction="out" name="app" />
-      </method>
-      <method name="GetDefaultAppForMimeType">
-         <arg type="s" direction="in" name="type" />
-         <arg type="s" direction="out" name="app" />
-      </method>
-      <method name="GetMimeTypeOfFile">
-         <arg type="s" direction="in" name="path" />
-         <arg type="s" direction="out" name="file_type" />
-      </method>
-      <method name="ListApps">
-         <arg type="s" direction="out" name="app" />
-      </method>
-      <method name="ListRunningApps">
+      <method name="GetRunningApps">
          <arg type="s" direction="out" name="app" />
       </method>
    </interface>
@@ -43,7 +22,9 @@ var AppFunctions = class AppFunctions {
         return app;
     }
 
-    DetailsApp(app_id) {
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppDetails string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
+
+    GetAppDetails(app_id) {
         let desktop_apps = Gio.DesktopAppInfo.new(app_id);
         let shell_apps = Shell.AppSystem.get_default().lookup_app(app_id);
 
@@ -82,58 +63,18 @@ var AppFunctions = class AppFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppFromWMClass string:"Alacritty"
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppFromFocusedWindow
 
-    GetAppFromWMClass(wmclass) {
-        return Shell.AppSystem.get_default().lookup_startup_wmclass(wmclass).get_id();
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppOfFocusedWindow
-
-    GetAppOfFocusedWindow() {
+    GetAppFromFocusedWindow() {
         let w = global.get_window_actors().find(w => w.meta_window.has_focus() == true);
         let wmclass = w.meta_window.get_wm_class();
         return Gio.AppInfo.get_all().find(a => a.get_startup_wm_class() == wmclass).get_id();
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetDefaultAppForMimeType string:"application/x-bzip-compressed-tar"
 
-    GetDefaultAppForMimeType(type) {
-        return Gio.AppInfo.get_default_for_type(type, true).get_id();
-    }
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetRunningApps string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
 
-
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetMimeTypeOfFile string:"/home/ismail/Desktop/xgeticon-1.0.tar.bz2"
-
-    GetMimeTypeOfFile(path) {
-        let file = Gio.File.new_for_path(path);
-        // https://lazka.github.io/pgi-docs/Gio-2.0/constants.html
-        // file.query_info('standard::icon,standard::content-type,standard::size,time::modified', Gio.FileQueryInfoFlags.NONE, null);
-        let fileInfo = file.query_info('*', Gio.FileQueryInfoFlags.NONE, null);
-        return fileInfo.get_content_type();
-    }
-
-    ListApps() {
-        let apps = Gio.AppInfo.get_all();
-
-        var appsJsonArr = [];
-        apps.forEach(function (a) {
-            let icon_val = "";
-
-            if (a.get_icon()) {
-                icon_val = a.get_icon().to_string();
-            }
-            appsJsonArr.push({
-                app_name: a.get_display_name(),
-                app_id: a.get_id(),
-                app_icon: icon_val
-            });
-        })
-        return JSON.stringify(appsJsonArr);
-    }
-
-    ListRunningApps() {
+    GetRunningApps() {
         let apps = Shell.AppSystem.get_default().get_running();
 
         var appsJsonArr = [];

@@ -1,6 +1,6 @@
 const { Gio, GLib, Shell } = imports.gi;
 
-// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ListWindows | jq .
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq .
 
 var MR_DBUS_IFACE = `
 <node>
@@ -11,10 +11,6 @@ var MR_DBUS_IFACE = `
             <method name="Close">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="DetailsWindow">
-         <arg type="u" direction="in" name="winid" />
-         <arg type="s" direction="out" name="win" />
-      </method>
       <method name="GetFocusedWindow">
          <arg type="s" direction="out" name="win" />
       </method>
@@ -22,7 +18,11 @@ var MR_DBUS_IFACE = `
          <arg type="u" direction="in" name="winid" />
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="ListWindows">
+      <method name="GetWindowDetails">
+         <arg type="u" direction="in" name="winid" />
+         <arg type="s" direction="out" name="win" />
+      </method>
+      <method name="GetWindows">
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="Maximize">
@@ -92,52 +92,6 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    DetailsWindow(winid) {
-        let w = this._get_window_by_wid(winid);
-        let workspaceManager = global.workspace_manager;
-        let currentmonitor = global.display.get_current_monitor();
-        // let monitor = global.display.get_monitor_geometry(currentmonitor);
-        if (w) {
-            return JSON.stringify({
-                gtk_app_id: w.meta_window.get_gtk_application_id(),
-                sandbox_app_id: w.meta_window.get_sandboxed_app_id(),
-                gtk_bus_name: w.meta_window.get_gtk_unique_bus_name(),
-                gtk_obj_path: w.meta_window.get_gtk_window_object_path(),
-                wm_class: w.meta_window.get_wm_class(),
-                wm_class_instance: w.meta_window.get_wm_class_instance(),
-                pid: w.meta_window.get_pid(),
-                id: w.meta_window.get_id(),
-                width: w.get_width(),
-                height: w.get_height(),
-                x: w.get_x(),
-                y: w.get_y(),
-                focus: w.meta_window.has_focus(),
-                in_current_workspace: w.meta_window.located_on_workspace(workspaceManager.get_active_workspace()),
-                moveable: w.meta_window.allows_move(),
-                resizeable: w.meta_window.allows_resize(),
-                canclose: w.meta_window.can_close(),
-                canmaximize: w.meta_window.can_maximize(),
-                maximized: w.meta_window.get_maximized(),
-                canminimize: w.meta_window.can_minimize(),
-                canshade: w.meta_window.can_shade(),
-                display: w.meta_window.get_display(),
-                frame_bounds: w.meta_window.get_frame_bounds(),
-                frame_type: w.meta_window.get_frame_type(),
-                window_type: w.meta_window.get_window_type(),
-                layer: w.meta_window.get_layer(),
-                monitor: w.meta_window.get_monitor(),
-                role: w.meta_window.get_role(),
-                area: w.meta_window.get_work_area_current_monitor(),
-                area_all: w.meta_window.get_work_area_all_monitors(),
-                area_cust: w.meta_window.get_work_area_for_monitor(currentmonitor),
-                user_time: w.meta_window.get_user_time(),
-                flags: w.get_flags()
-            });
-        } else {
-            throw new Error('Not found');
-        }
-    }
-
     GetFocusedWindow() {
         let w = global.get_window_actors().find(w => w.meta_window.has_focus() == true);
 
@@ -183,7 +137,53 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    ListWindows() {
+    GetWindowDetails(winid) {
+        let w = this._get_window_by_wid(winid);
+        let workspaceManager = global.workspace_manager;
+        let currentmonitor = global.display.get_current_monitor();
+        // let monitor = global.display.get_monitor_geometry(currentmonitor);
+        if (w) {
+            return JSON.stringify({
+                gtk_app_id: w.meta_window.get_gtk_application_id(),
+                sandbox_app_id: w.meta_window.get_sandboxed_app_id(),
+                gtk_bus_name: w.meta_window.get_gtk_unique_bus_name(),
+                gtk_obj_path: w.meta_window.get_gtk_window_object_path(),
+                wm_class: w.meta_window.get_wm_class(),
+                wm_class_instance: w.meta_window.get_wm_class_instance(),
+                pid: w.meta_window.get_pid(),
+                id: w.meta_window.get_id(),
+                width: w.get_width(),
+                height: w.get_height(),
+                x: w.get_x(),
+                y: w.get_y(),
+                focus: w.meta_window.has_focus(),
+                in_current_workspace: w.meta_window.located_on_workspace(workspaceManager.get_active_workspace()),
+                moveable: w.meta_window.allows_move(),
+                resizeable: w.meta_window.allows_resize(),
+                canclose: w.meta_window.can_close(),
+                canmaximize: w.meta_window.can_maximize(),
+                maximized: w.meta_window.get_maximized(),
+                canminimize: w.meta_window.can_minimize(),
+                canshade: w.meta_window.can_shade(),
+                display: w.meta_window.get_display(),
+                frame_bounds: w.meta_window.get_frame_bounds(),
+                frame_type: w.meta_window.get_frame_type(),
+                window_type: w.meta_window.get_window_type(),
+                layer: w.meta_window.get_layer(),
+                monitor: w.meta_window.get_monitor(),
+                role: w.meta_window.get_role(),
+                area: w.meta_window.get_work_area_current_monitor(),
+                area_all: w.meta_window.get_work_area_all_monitors(),
+                area_cust: w.meta_window.get_work_area_for_monitor(currentmonitor),
+                user_time: w.meta_window.get_user_time(),
+                flags: w.get_flags()
+            });
+        } else {
+            throw new Error('Not found');
+        }
+    }
+
+    GetWindows() {
         let win = global.get_window_actors();
 
         let workspaceManager = global.workspace_manager;
