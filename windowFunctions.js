@@ -11,6 +11,9 @@ var MR_DBUS_IFACE = `
             <method name="Close">
          <arg type="u" direction="in" name="winid" />
       </method>
+      <method name="Focus">
+         <arg type="u" direction="in" name="winid" />
+      </method>
       <method name="GetFocusedWindow">
          <arg type="s" direction="out" name="win" />
       </method>
@@ -74,12 +77,18 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Activate(winid) {
-        let win = this._get_window_by_wid(winid).meta_window;
-        if (win) {
-            win.activate(0);
-        } else {
-            throw new Error('Not found');
-        }
+
+        let metaWorkspace = global.workspace_manager.get_active_workspace();
+        // Here 0 instead of global.get_current_time() will also work
+        metaWorkspace.activate_with_focus(win, global.get_current_time());
+
+        // let win = this._get_window_by_wid(winid).meta_window;
+        // if (win) {
+        //     // Here 0 instead of global.get_current_time() will also work
+        //     win.activate(global.get_current_time());
+        // } else {
+        //     throw new Error('Not found');
+        // }
     }
 
     Close(winid) {
@@ -87,6 +96,16 @@ var WindowFunctions = class WindowFunctions {
         if (win) {
             win.kill();
             // win.delete(Math.floor(Date.now() / 1000));
+        } else {
+            throw new Error('Not found');
+        }
+    }
+
+    Focus(winid) {
+        let win = this._get_window_by_wid(winid).meta_window;
+        if (win) {
+            // Here 0 instead of global.get_current_time() will also work
+            win.focus(global.get_current_time());
         } else {
             throw new Error('Not found');
         }

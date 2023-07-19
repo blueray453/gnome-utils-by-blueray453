@@ -52,6 +52,7 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         let win = global.get_window_actors().find(w => w.meta_window.get_id() == winid).meta_window;
         let metaWorkspace = global.workspace_manager.get_workspace_by_index(workspace);
         win.change_workspace_by_index(workspace, false);
+        // Here 0 instead of global.get_current_time() will also work
         metaWorkspace.activate_with_focus(win, global.get_current_time());
         // win.activate_with_workspace(global.get_current_time(), metaWorkspace);
     }

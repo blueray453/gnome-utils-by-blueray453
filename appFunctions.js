@@ -102,7 +102,7 @@ var AppFunctions = class AppFunctions {
         return app.get_id();
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetRunningApps string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetRunningApps | jq .
 
     GetRunningApps() {
         let apps = Shell.AppSystem.get_default().get_running();
