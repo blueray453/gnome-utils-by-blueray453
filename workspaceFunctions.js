@@ -21,23 +21,31 @@ var WorkspaceFunctions = class WorkspaceFunctions {
 
         let number_of_workspaces = global.workspace_manager.n_workspaces;
         let name_of_workspaces = [];
-        let windows_of_workspaces = [];
+        let all_windows_of_workspaces = [];
+        let all_normal_windows_of_workspaces = [];
 
         for (let wks = 0; wks < number_of_workspaces; ++wks) {
 
             name_of_workspaces.push(Meta.prefs_get_workspace_name(wks));
             let metaWorkspace = global.workspace_manager.get_workspace_by_index(wks);
-            let windows = [];
-            metaWorkspace.list_windows().map(w => windows.push(w.get_id()));
+            let all_windows = [];
 
-            windows_of_workspaces.push({ [wks]: windows });
+            metaWorkspace.list_windows().map(w => all_windows.push(w.get_id()));
 
+            all_windows_of_workspaces.push({ [wks]: all_windows });
+
+            let all_normal_windows = [];
+
+            metaWorkspace.list_windows().filter(w => w.get_window_type() == 0).map(w => all_normal_windows.push(w.get_id()));
+
+            all_normal_windows_of_workspaces.push({ [wks]: all_normal_windows });
         }
 
         return JSON.stringify({
             number_of_workspaces: number_of_workspaces,
             name_of_workspaces: name_of_workspaces,
-            windows_of_workspaces: windows_of_workspaces
+            all_windows_of_workspaces: all_windows_of_workspaces,
+            all_normal_windows_of_workspaces: all_normal_windows_of_workspaces
         });
 
     }
