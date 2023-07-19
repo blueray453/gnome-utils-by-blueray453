@@ -16,10 +16,13 @@ var IconFunctions = class IconFunctions {
 
     GetIconFromWinID(winid) {
 
-        let win = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
-        let wmclass = win.meta_window.get_wm_class();
-        let app_id = Shell.AppSystem.get_default().lookup_startup_wmclass(wmclass).get_id();
-        return Shell.AppSystem.get_default().lookup_app(app_id).get_icon().to_string();
+        let w = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
+      //   let wmclass = win.meta_window.get_wm_class();
+      //   let app_id = Shell.AppSystem.get_default().lookup_startup_wmclass(wmclass).get_id();
+      //   return Shell.AppSystem.get_default().lookup_app(app_id).get_icon().to_string();
+       let tracker = Shell.WindowTracker.get_default();
+       let app = tracker.get_window_app(w.meta_window);
+       return app.get_icon().to_string();
     }
 
 }

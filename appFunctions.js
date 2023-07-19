@@ -7,8 +7,16 @@ var MR_DBUS_IFACE = `
          <arg type="s" direction="in" name="appid" />
          <arg type="s" direction="out" name="app" />
       </method>
+      <method name="GetAppFromPID">
+         <arg type="u" direction="in" name="pid" />
+         <arg type="s" direction="out" name="app" />
+      </method>
       <method name="GetAppFromFocusedWindow">
          <arg type="s" direction="out" name="app" />
+      </method>
+      <method name="GetAppFromWinID">
+         <arg type="u" direction="in" name="winid" />
+         <arg type="s" direction="out" name="icon" />
       </method>
       <method name="GetRunningApps">
          <arg type="s" direction="out" name="app" />
@@ -63,14 +71,36 @@ var AppFunctions = class AppFunctions {
         }
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppFromPID uint32:3931313482
+
+    GetAppFromPID(pid) {
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_app_from_pid(pid);
+        return app.get_id();
+    }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppFromFocusedWindow
 
     GetAppFromFocusedWindow() {
         let w = global.get_window_actors().find(w => w.meta_window.has_focus() == true);
-        let wmclass = w.meta_window.get_wm_class();
-        return Gio.AppInfo.get_all().find(a => a.get_startup_wm_class() == wmclass).get_id();
+        // let wmclass = w.meta_window.get_wm_class();
+        // return Gio.AppInfo.get_all().find(a => a.get_startup_wm_class() == wmclass).get_id();
+
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(w.meta_window);
+        return app.get_id();
     }
 
+    GetAppFromWinID(winid) {
+
+        let w = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
+        //   let wmclass = win.meta_window.get_wm_class();
+        //   let app_id = Shell.AppSystem.get_default().lookup_startup_wmclass(wmclass).get_id();
+        //   return Shell.AppSystem.get_default().lookup_app(app_id).get_icon().to_string();
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(w.meta_window);
+        return app.get_id();
+    }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetRunningApps string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
 
