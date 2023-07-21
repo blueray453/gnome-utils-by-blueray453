@@ -121,7 +121,7 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | jq.
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | jq .
 
     GetFocusedWindow() {
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
@@ -163,6 +163,8 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowDetails uint32:740651535
+
     GetWindowDetails(winid) {
         let win_actor = this._get_window_actor_by_wid(winid);
         let win = this._get_window_by_wid(winid);
@@ -170,50 +172,52 @@ var WindowFunctions = class WindowFunctions {
         let display = global.display;
         // let monitor = global.display.get_monitor_geometry(currentmonitor);
 
-        let is_sticky = !w.is_skip_taskbar() && win.is_on_all_workspaces();
-
         if (win && win_actor) {
+
+            let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
+
             return JSON.stringify({
                 width: win_actor.get_width(),
                 height: win_actor.get_height(),
                 flags: win_actor.get_flags(),
-                area_all:  win.get_work_area_all_monitors(),
-                area_cust:  win.get_work_area_for_monitor(display.get_current_monitor()),
-                area:  win.get_work_area_current_monitor(),
-                canclose:  win.can_close(),
-                canmaximize:  win.can_maximize(),
-                canminimize:  win.can_minimize(),
-                canshade:  win.can_shade(),
-                description:  win.get_description(),
-                display:  win.get_display(),
-                focus:  win.has_focus(),
-                frame_bounds:  win.get_frame_bounds(),
-                frame_type:  win.get_frame_type(),
-                gtk_app_id:  win.get_gtk_application_id(),
-                id:  win.get_id(),
-                in_current_workspace:  win.located_on_workspace(workspaceManager.get_active_workspace()),
-                is_above:  win.is_above(),
-                is_fullscreen:  win.is_fullscreen(),
-                is_always_on_all_workspaces:  win.is_always_on_all_workspaces(),
-                is_skip_taskbar:  win.is_skip_taskbar(),
+                area_all: win.get_work_area_all_monitors(),
+                area_cust: win.get_work_area_for_monitor(display.get_current_monitor()),
+                area: win.get_work_area_current_monitor(),
+                canclose: win.can_close(),
+                canmaximize: win.can_maximize(),
+                canminimize: win.can_minimize(),
+                canshade: win.can_shade(),
+                description: win.get_description(),
+                display: win.get_display(),
+                focus: win.has_focus(),
+                frame_bounds: win.get_frame_bounds(),
+                frame_type: win.get_frame_type(),
+                gtk_app_id: win.get_gtk_application_id(),
+                id: win.get_id(),
+                in_current_workspace: win.located_on_workspace(workspaceManager.get_active_workspace()),
+                is_above: win.is_above(),
+                is_fullscreen: win.is_fullscreen(),
+                is_on_all_workspaces: win.is_on_all_workspaces(),
+                is_always_on_all_workspaces: win.is_always_on_all_workspaces(),
+                is_skip_taskbar: win.is_skip_taskbar(),
                 is_sticky: is_sticky,
-                layer:  win.get_layer(),
-                maximized:  win.get_maximized(),
-                monitor:  win.get_monitor(),
-                moveable:  win.allows_move(),
-                pid:  win.get_pid(),
-                resizeable:  win.allows_resize(),
-                role:  win.get_role(),
-                root_ancestor:  win.find_root_ancestor(),
-                sandbox_app_id:  win.get_sandboxed_app_id(),
-                title:  win.get_title(),
-                user_time:  win.get_user_time(),
-                window_type:  win.get_window_type(),
-                wm_class_instance:  win.get_wm_class_instance(),
-                wm_class:  win.get_wm_class(),
-                workspace:  win.get_workspace().index(),
-                x: win.get_x(),
-                y: win.get_y(),
+                layer: win.get_layer(),
+                maximized: win.get_maximized(),
+                monitor: win.get_monitor(),
+                moveable: win.allows_move(),
+                pid: win.get_pid(),
+                resizeable: win.allows_resize(),
+                role: win.get_role(),
+                root_ancestor: win.find_root_ancestor(),
+                sandbox_app_id: win.get_sandboxed_app_id(),
+                title: win.get_title(),
+                user_time: win.get_user_time(),
+                window_type: win.get_window_type(),
+                wm_class_instance: win.get_wm_class_instance(),
+                wm_class: win.get_wm_class(),
+                workspace: win.get_workspace().index(),
+                x: win_actor.get_x(),
+                y: win_actor.get_y(),
             });
         } else {
             throw new Error('Not found');
