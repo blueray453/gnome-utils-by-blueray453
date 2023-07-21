@@ -14,9 +14,9 @@ var IconFunctions = class IconFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsIcons org.gnome.Shell.Extensions.GnomeUtilsIcons.GetIconFromWinID uint32:44129093
 
-    GetIconFromWinID(winid) {
+   GetIconFromWinID(winid) {
 
-        let w = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
+       let w = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
       //   let wmclass = win.meta_window.get_wm_class();
       //   let app_id = Shell.AppSystem.get_default().lookup_startup_wmclass(wmclass).get_id();
       //   return Shell.AppSystem.get_default().lookup_app(app_id).get_icon().to_string();

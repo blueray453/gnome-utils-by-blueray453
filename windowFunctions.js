@@ -1,4 +1,4 @@
-const { Gio, GLib, Shell } = imports.gi;
+const { Meta, Gio, GLib, Shell } = imports.gi;
 
 // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq .
 
@@ -23,6 +23,12 @@ var MR_DBUS_IFACE = `
       </method>
       <method name="GetWindowDetails">
          <arg type="u" direction="in" name="winid" />
+         <arg type="s" direction="out" name="win" />
+      </method>
+      <method name="GetWindowsNormal">
+         <arg type="s" direction="out" name="win" />
+      </method>
+      <method name="GetWindowsNormalCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="GetWindows">
@@ -71,16 +77,20 @@ var MR_DBUS_IFACE = `
 
 var WindowFunctions = class WindowFunctions {
 
-    _get_window_by_wid = function (winid) {
+    _get_window_actor_by_wid = function (winid) {
         let win = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
         return win;
     }
 
-    Activate(winid) {
+    _get_window_by_wid = function (winid) {
+        let win = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
+        return win.get_meta_window();
+    }
 
+    Activate(winid) {
         let metaWorkspace = global.workspace_manager.get_active_workspace();
         // Here 0 instead of global.get_current_time() will also work
-        metaWorkspace.activate_with_focus(win, global.get_current_time());
+        metaWorkspace.activate_with_focus(winid, global.get_current_time());
 
         // let win = this._get_window_by_wid(winid).meta_window;
         // if (win) {
@@ -92,7 +102,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Close(winid) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
         if (win) {
             win.kill();
             // win.delete(Math.floor(Date.now() / 1000));
@@ -102,7 +112,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Focus(winid) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
         if (win) {
             // Here 0 instead of global.get_current_time() will also work
             win.focus(global.get_current_time());
@@ -111,31 +121,28 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
+// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | jq.
+
     GetFocusedWindow() {
-        let w = global.get_window_actors().find(w => w.meta_window.has_focus() == true);
+        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
 
-        let workspaceManager = global.workspace_manager;
+        let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
 
-        if (w) {
+        if (win) {
             var winJsonArr = [];
 
             winJsonArr.push({
-                gtk_app_id: w.meta_window.get_gtk_application_id(),
-                sandbox_app_id: w.meta_window.get_sandboxed_app_id(),
-                gtk_bus_name: w.meta_window.get_gtk_unique_bus_name(),
-                gtk_obj_path: w.meta_window.get_gtk_window_object_path(),
-                wm_class: w.meta_window.get_wm_class(),
-                wm_class_instance: w.meta_window.get_wm_class_instance(),
-                pid: w.meta_window.get_pid(),
-                id: w.meta_window.get_id(),
-                frame_type: w.meta_window.get_frame_type(),
-                window_type: w.meta_window.get_window_type(),
-                width: w.get_width(),
-                height: w.get_height(),
-                x: w.get_x(),
-                y: w.get_y(),
-                focus: w.meta_window.has_focus(),
-                in_current_workspace: w.meta_window.located_on_workspace(workspaceManager.get_active_workspace())
+                description: win.get_description(),
+                id: win.get_id(),
+                is_sticky: is_sticky,
+                layer: win.get_layer(),
+                pid: win.get_pid(),
+                root_ancestor: win.find_root_ancestor(),
+                title: win.get_title(),
+                window_type: win.get_window_type(),
+                wm_class_instance: win.get_wm_class_instance(),
+                wm_class: win.get_wm_class(),
+                workspace: win.get_workspace().index()
             });
 
             return JSON.stringify(winJsonArr);
@@ -148,7 +155,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetTitle uint32:3931313482
 
     GetTitle(winid) {
-        let w = this._get_window_by_wid(winid).meta_window;
+        let w = this._get_window_by_wid(winid);
         if (w) {
             return w.get_title();
         } else {
@@ -157,82 +164,151 @@ var WindowFunctions = class WindowFunctions {
     }
 
     GetWindowDetails(winid) {
-        let w = this._get_window_by_wid(winid);
+        let win_actor = this._get_window_actor_by_wid(winid);
+        let win = this._get_window_by_wid(winid);
         let workspaceManager = global.workspace_manager;
-        let currentmonitor = global.display.get_current_monitor();
+        let display = global.display;
         // let monitor = global.display.get_monitor_geometry(currentmonitor);
-        if (w) {
+
+        let is_sticky = !w.is_skip_taskbar() && win.is_on_all_workspaces();
+
+        if (win && win_actor) {
             return JSON.stringify({
-                gtk_app_id: w.meta_window.get_gtk_application_id(),
-                sandbox_app_id: w.meta_window.get_sandboxed_app_id(),
-                gtk_bus_name: w.meta_window.get_gtk_unique_bus_name(),
-                gtk_obj_path: w.meta_window.get_gtk_window_object_path(),
-                wm_class: w.meta_window.get_wm_class(),
-                wm_class_instance: w.meta_window.get_wm_class_instance(),
-                pid: w.meta_window.get_pid(),
-                id: w.meta_window.get_id(),
-                width: w.get_width(),
-                height: w.get_height(),
-                x: w.get_x(),
-                y: w.get_y(),
-                focus: w.meta_window.has_focus(),
-                in_current_workspace: w.meta_window.located_on_workspace(workspaceManager.get_active_workspace()),
-                moveable: w.meta_window.allows_move(),
-                resizeable: w.meta_window.allows_resize(),
-                canclose: w.meta_window.can_close(),
-                canmaximize: w.meta_window.can_maximize(),
-                maximized: w.meta_window.get_maximized(),
-                canminimize: w.meta_window.can_minimize(),
-                canshade: w.meta_window.can_shade(),
-                display: w.meta_window.get_display(),
-                frame_bounds: w.meta_window.get_frame_bounds(),
-                frame_type: w.meta_window.get_frame_type(),
-                window_type: w.meta_window.get_window_type(),
-                layer: w.meta_window.get_layer(),
-                monitor: w.meta_window.get_monitor(),
-                role: w.meta_window.get_role(),
-                area: w.meta_window.get_work_area_current_monitor(),
-                area_all: w.meta_window.get_work_area_all_monitors(),
-                area_cust: w.meta_window.get_work_area_for_monitor(currentmonitor),
-                user_time: w.meta_window.get_user_time(),
-                flags: w.get_flags()
+                width: win_actor.get_width(),
+                height: win_actor.get_height(),
+                flags: win_actor.get_flags(),
+                area_all:  win.get_work_area_all_monitors(),
+                area_cust:  win.get_work_area_for_monitor(display.get_current_monitor()),
+                area:  win.get_work_area_current_monitor(),
+                canclose:  win.can_close(),
+                canmaximize:  win.can_maximize(),
+                canminimize:  win.can_minimize(),
+                canshade:  win.can_shade(),
+                description:  win.get_description(),
+                display:  win.get_display(),
+                focus:  win.has_focus(),
+                frame_bounds:  win.get_frame_bounds(),
+                frame_type:  win.get_frame_type(),
+                gtk_app_id:  win.get_gtk_application_id(),
+                id:  win.get_id(),
+                in_current_workspace:  win.located_on_workspace(workspaceManager.get_active_workspace()),
+                is_above:  win.is_above(),
+                is_fullscreen:  win.is_fullscreen(),
+                is_always_on_all_workspaces:  win.is_always_on_all_workspaces(),
+                is_skip_taskbar:  win.is_skip_taskbar(),
+                is_sticky: is_sticky,
+                layer:  win.get_layer(),
+                maximized:  win.get_maximized(),
+                monitor:  win.get_monitor(),
+                moveable:  win.allows_move(),
+                pid:  win.get_pid(),
+                resizeable:  win.allows_resize(),
+                role:  win.get_role(),
+                root_ancestor:  win.find_root_ancestor(),
+                sandbox_app_id:  win.get_sandboxed_app_id(),
+                title:  win.get_title(),
+                user_time:  win.get_user_time(),
+                window_type:  win.get_window_type(),
+                wm_class_instance:  win.get_wm_class_instance(),
+                wm_class:  win.get_wm_class(),
+                workspace:  win.get_workspace().index(),
+                x: win.get_x(),
+                y: win.get_y(),
             });
         } else {
             throw new Error('Not found');
         }
     }
 
-    GetWindows() {
-        let win = global.get_window_actors();
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsNormal | jq .
+
+    GetWindowsNormal() {
+        let wins = global.get_window_actors().filter(w => w.meta_window.get_window_type() == 0).map(w => w.meta_window);
+
+        var winJsonArr = [];
+        wins.forEach(function (win) {
+
+            let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
+
+            winJsonArr.push({
+                description:  win.get_description(),
+                focus:  win.has_focus(),
+                id:  win.get_id(),
+                is_sticky: is_sticky,
+                layer:  win.get_layer(),
+                pid:  win.get_pid(),
+                root_ancestor:  win.find_root_ancestor(),
+                title:  win.get_title(),
+                window_type:  win.get_window_type(),
+                wm_class_instance:  win.get_wm_class_instance(),
+                wm_class:  win.get_wm_class(),
+                workspace:  win.get_workspace().index()
+            });
+        })
+        return JSON.stringify(winJsonArr);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsNormalCurrentWorkspace | jq .
+
+    GetWindowsNormalCurrentWorkspace() {
 
         let workspaceManager = global.workspace_manager;
 
+        let wins = global.get_window_actors().filter(w => w.meta_window.get_window_type() == 0 && w.meta_window.located_on_workspace(workspaceManager.get_active_workspace())).map(w => w.meta_window);
+
         var winJsonArr = [];
-        win.forEach(function (w) {
+        wins.forEach(function (win) {
+
+            let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
+
             winJsonArr.push({
-                gtk_app_id: w.meta_window.get_gtk_application_id(),
-                sandbox_app_id: w.meta_window.get_sandboxed_app_id(),
-                gtk_bus_name: w.meta_window.get_gtk_unique_bus_name(),
-                gtk_obj_path: w.meta_window.get_gtk_window_object_path(),
-                wm_class: w.meta_window.get_wm_class(),
-                wm_class_instance: w.meta_window.get_wm_class_instance(),
-                pid: w.meta_window.get_pid(),
-                id: w.meta_window.get_id(),
-                frame_type: w.meta_window.get_frame_type(),
-                window_type: w.meta_window.get_window_type(),
-                width: w.get_width(),
-                height: w.get_height(),
-                x: w.get_x(),
-                y: w.get_y(),
-                focus: w.meta_window.has_focus(),
-                in_current_workspace: w.meta_window.located_on_workspace(workspaceManager.get_active_workspace())
+                description:  win.get_description(),
+                focus:  win.has_focus(),
+                id:  win.get_id(),
+                is_sticky: is_sticky,
+                layer:  win.get_layer(),
+                pid:  win.get_pid(),
+                root_ancestor:  win.find_root_ancestor(),
+                title:  win.get_title(),
+                window_type:  win.get_window_type(),
+                wm_class_instance:  win.get_wm_class_instance(),
+                wm_class:  win.get_wm_class(),
+                workspace:  win.get_workspace().index()
+            });
+        })
+        return JSON.stringify(winJsonArr);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq
+
+    GetWindows() {
+        let wins = global.get_window_actors().map(w => w.meta_window);
+
+        var winJsonArr = [];
+        wins.forEach(function (win) {
+
+            let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
+
+            winJsonArr.push({
+                description: win.get_description(),
+                focus: win.has_focus(),
+                id: win.get_id(),
+                is_sticky: is_sticky,
+                layer: win.get_layer(),
+                pid: win.get_pid(),
+                root_ancestor: win.find_root_ancestor(),
+                title: win.get_title(),
+                window_type: win.get_window_type(),
+                wm_class_instance: win.get_wm_class_instance(),
+                wm_class: win.get_wm_class(),
+                workspace: win.get_workspace().index()
             });
         })
         return JSON.stringify(winJsonArr);
     }
 
     Maximize(winid) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
 
         if (win) {
             if (win.minimized) {
@@ -246,7 +322,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Minimize(winid) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
         if (win) {
             win.minimize();
         } else {
@@ -255,7 +331,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Move(winid, x, y) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
         if (win) {
 
             if (win.minimized) {
@@ -275,7 +351,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
 
     MoveResize(winid, x, y, width, height) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
 
         if (win) {
             if (win.minimized) {
@@ -292,7 +368,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Raise(winid) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
         if (win) {
             win.raise();
             win.raise_and_make_recent();
@@ -302,7 +378,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Resize(winid, width, height) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
         if (win) {
 
             if (win.minimized) {
@@ -320,7 +396,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Stick(winid) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
         if (win) {
             win.stick();
         } else {
@@ -329,7 +405,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Unmaximize(winid) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
         if (win.maximized_horizontally || win.maximized_vertically) {
             win.unmaximize(3);
             win.activate(0);
@@ -339,7 +415,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Unminimize(winid) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
         if (win.minimized) {
             win.unminimize();
         } else {
@@ -348,7 +424,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Unstick(winid) {
-        let win = this._get_window_by_wid(winid).meta_window;
+        let win = this._get_window_by_wid(winid);
         if (win) {
             win.unstick();
         } else {
