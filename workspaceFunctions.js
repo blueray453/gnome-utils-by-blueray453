@@ -3,6 +3,9 @@ const { Gio, GLib, Shell, Meta } = imports.gi;
 var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWorkspaces">
+      <method name="GetCurrentWorkspace">
+         <arg type="i" direction="out" name="workspaces" />
+      </method>
       <method name="MoveFocusedWindowToWorkspace">
          <arg type="i" direction="in" name="workspace_num" />
       </method>
@@ -23,6 +26,13 @@ var MR_DBUS_IFACE = `
 var WorkspaceFunctions = class WorkspaceFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveFocusedWindowToWorkspace int32:3
+    GetCurrentWorkspace() {
+
+        let workspaceManager = global.workspace_manager;
+        return workspaceManager.get_active_workspace().index();
+
+    }
+
 
     MoveFocusedWindowToWorkspace(workspaceNum) {
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
@@ -67,45 +77,50 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         //     windows: global.screen.get_active_workspace().list_windows(),
         // });
 
+        let workspaceManager = global.workspace_manager;
+        let workspace_names = []
+        let current_workspace = Meta.prefs_get_workspace_name(workspaceManager.get_active_workspace().index());
         let number_of_workspaces = global.workspace_manager.n_workspaces;
-        let name_of_workspaces = [];
-        let all_windows_of_workspaces = [];
-        let all_normal_windows_of_workspaces = [];
+        let all_windows_of_workspaces = {};
+        let all_normal_windows_of_workspaces = {};
         let sticky_windows = [];
 
         for (let wks = 0; wks < number_of_workspaces; ++wks) {
 
-            name_of_workspaces.push(Meta.prefs_get_workspace_name(wks));
+            // let temp = ;
+
+            workspace_names.push(Meta.prefs_get_workspace_name(wks));
+
+            // let workspace_name = wks+'_'+Meta.prefs_get_workspace_name(wks);
+            let workspace_name = Meta.prefs_get_workspace_name(wks);
+
             let metaWorkspace = global.workspace_manager.get_workspace_by_index(wks);
             let all_windows = [];
 
             metaWorkspace.list_windows().map(w => all_windows.push(w.get_id()));
 
-            all_windows_of_workspaces.push({ [wks]: all_windows });
+            // all_windows_of_workspaces.push({ [wks]: all_windows });
+            all_windows_of_workspaces[workspace_name] = all_windows;
 
             let all_normal_windows = [];
 
             metaWorkspace.list_windows().filter(w => w.get_window_type() == 0).map(w => all_normal_windows.push(w.get_id()));
 
-            all_normal_windows_of_workspaces.push({ [wks]: all_normal_windows });
+            // all_normal_windows_of_workspaces.push({ [wks]: all_normal_windows });
+            all_normal_windows_of_workspaces[workspace_name] = all_normal_windows;
 
             metaWorkspace.list_windows().filter(w => w.get_window_type() == 0 && !w.is_skip_taskbar() && w.is_on_all_workspaces()).map(w => sticky_windows.push(w.get_id()));
         }
 
         return JSON.stringify({
+            workspace_names: workspace_names,
             number_of_workspaces: number_of_workspaces,
-            name_of_workspaces: name_of_workspaces,
+            current_workspace: current_workspace,
             all_windows_of_workspaces: all_windows_of_workspaces,
             all_normal_windows_of_workspaces: all_normal_windows_of_workspaces
         });
     }
 }
-
-
-
-
-
-
 
 
 

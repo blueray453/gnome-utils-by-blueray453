@@ -17,6 +17,13 @@ var MR_DBUS_IFACE = `
       <method name="GetFocusedWindow">
          <arg type="s" direction="out" name="win" />
       </method>
+      <method name="GetIconFromWinID">
+         <arg type="u" direction="in" name="winid" />
+         <arg type="s" direction="out" name="icon" />
+      </method>
+      <method name="GetSelection">
+         <arg type="s" direction="out" name="selection" />
+      </method>
       <method name="GetTitle">
          <arg type="u" direction="in" name="winid" />
          <arg type="s" direction="out" name="win" />
@@ -87,12 +94,15 @@ var WindowFunctions = class WindowFunctions {
         return win.get_meta_window();
     }
 
-    Activate(winid) {
-        let metaWorkspace = global.workspace_manager.get_active_workspace();
-        // Here 0 instead of global.get_current_time() will also work
-        metaWorkspace.activate_with_focus(winid, global.get_current_time());
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Activate uint32:44129093
 
-        // let win = this._get_window_by_wid(winid).meta_window;
+    Activate(winid) {
+        // let metaWorkspace = global.workspace_manager.get_active_workspace();
+        let win = this._get_window_by_wid(winid);
+        let win_workspace = win.get_workspace();
+        // Here 0 instead of global.get_current_time() will also work
+        win_workspace.activate_with_focus(win, global.get_current_time());
+
         // if (win) {
         //     // Here 0 instead of global.get_current_time() will also work
         //     win.activate(global.get_current_time());
@@ -150,6 +160,33 @@ var WindowFunctions = class WindowFunctions {
         } else {
             throw new Error('Not found');
         }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetIconFromWinID uint32:44129093
+
+    GetIconFromWinID(winid) {
+
+        let win = this._get_window_by_wid(winid);
+        //   let wmclass = win.meta_window.get_wm_class();
+        //   let app_id = Shell.AppSystem.get_default().lookup_startup_wmclass(wmclass).get_id();
+        //   return Shell.AppSystem.get_default().lookup_app(app_id).get_icon().to_string();
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(win);
+        return app.get_icon().to_string();
+    }
+
+    GetSelection() {
+        // Not Done
+        // https://github.com/awamper/gpaste-integration
+        // https://github.com/lsnow/translate-clipboard
+        // https://github.com/tuberry/light-dict
+        // https://github.com/eexpress/gs-clip-translator
+        let display = global.display;
+        let selection = display.get_selection();
+        // https://stackoverflow.com/a/10548059/1772898
+        St.Clipboard.get_default().set_text(St.ClipboardType.PRIMARY, selection);
+
+        return selection;
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetTitle uint32:3931313482
