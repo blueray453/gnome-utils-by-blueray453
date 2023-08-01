@@ -59,6 +59,9 @@ var MR_DBUS_IFACE = `
          <arg type="i" direction="in" name="width" />
          <arg type="i" direction="in" name="height" />
       </method>
+      <method name="MoveWindowToCurrentWorkspace">
+         <arg type="u" direction="in" name="winid" />
+      </method>
       <method name="Raise">
          <arg type="u" direction="in" name="winid" />
       </method>
@@ -403,6 +406,23 @@ var WindowFunctions = class WindowFunctions {
             }
             win.move_resize_frame(1, x, y, width, height);
             win.activate(0);
+        } else {
+            throw new Error('Not found');
+        }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToCurrentWorkspace uint32:44129093
+
+    MoveWindowToCurrentWorkspace(winid) {
+        let win = this._get_window_by_wid(winid);
+        if (win) {
+            let workspaceManager = global.workspace_manager;
+            // Meta.WorkspaceManager
+            let current_workspace = workspaceManager.get_active_workspace();
+            // Meta.Workspace
+            win.change_workspace(current_workspace);
+            // let metaWorkspace = workspaceManager.get_workspace_by_index(workspace);
+            current_workspace.activate_with_focus(win, global.get_current_time());
         } else {
             throw new Error('Not found');
         }
