@@ -35,6 +35,9 @@ var MR_DBUS_IFACE = `
       <method name="GetWindowsNormal">
          <arg type="s" direction="out" name="win" />
       </method>
+      <method name="GetWindowsNormalCurrentWorkspaceCurrentApplication">
+         <arg type="s" direction="out" name="win" />
+      </method>
       <method name="GetWindowsNormalCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
       </method>
@@ -292,6 +295,31 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsNormalCurrentWorkspaceCurrentApplication | jq .
+
+    GetWindowsNormalCurrentWorkspaceCurrentApplication(){
+
+        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        // let wmclass = w.meta_window.get_wm_class();
+        // return Gio.AppInfo.get_all().find(a => a.get_startup_wm_class() == wmclass).get_id();
+
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(win);
+
+        let windows_array = [];
+
+        app.get_windows().forEach(function (w) {
+            // log("window id : " + w.get_id());
+            if (w.get_window_type() == 0)
+            {
+                windows_array.push(w.get_id());
+            }
+        })
+
+        return JSON.stringify(windows_array);
+
+    }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsNormalCurrentWorkspace | jq .
 
     GetWindowsNormalCurrentWorkspace() {
@@ -417,11 +445,8 @@ var WindowFunctions = class WindowFunctions {
         let win = this._get_window_by_wid(winid);
         if (win) {
             let workspaceManager = global.workspace_manager;
-            // Meta.WorkspaceManager
             let current_workspace = workspaceManager.get_active_workspace();
-            // Meta.Workspace
             win.change_workspace(current_workspace);
-            // let metaWorkspace = workspaceManager.get_workspace_by_index(workspace);
             current_workspace.activate_with_focus(win, global.get_current_time());
         } else {
             throw new Error('Not found');

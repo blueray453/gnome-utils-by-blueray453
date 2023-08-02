@@ -82,12 +82,12 @@ var AppFunctions = class AppFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppFromFocusedWindow
 
     GetAppFromFocusedWindow() {
-        let w = global.get_window_actors().find(w => w.meta_window.has_focus() == true);
+        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true);
         // let wmclass = w.meta_window.get_wm_class();
         // return Gio.AppInfo.get_all().find(a => a.get_startup_wm_class() == wmclass).get_id();
 
         let tracker = Shell.WindowTracker.get_default();
-        let app = tracker.get_window_app(w.meta_window);
+        let app = tracker.get_window_app(win.meta_window);
         return app.get_id();
     }
 
