@@ -523,74 +523,90 @@ var WindowFunctions = class WindowFunctions {
 
         let workspaceManager = global.workspace_manager;
 
-        // const file_path = GLib.build_filenamev([GLib.get_home_dir(), 'align-windows.txt']);
-        const file_path_state = GLib.build_filenamev([GLib.get_home_dir(), 'align-windows-state.txt']);
-        // const file = Gio.File.new_for_path(file_path);
-        const file_state = Gio.File.new_for_path(file_path_state);
-
-        // try {
-        //     file.delete(null);
-        // } catch (e) {
-        //     logError(e);
-        // }
-
-        // const outputStreamAppend = file.append_to(Gio.FileCreateFlags.NONE, null);
-
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
 
         let tracker = Shell.WindowTracker.get_default();
         let app = tracker.get_window_app(win);
-
-        let number_of_windows = 0;
 
         let windows_array = [];
 
         app.get_windows().forEach(function (w) {
             if (w.get_window_type() == 0 && w.located_on_workspace(workspaceManager.get_active_workspace())) {
                 windows_array.push(w.get_id());
-                // outputStreamAppend.write_all(w.get_id() + '\n', null);
-                number_of_windows = number_of_windows + 1;
+
             }
         });
 
-        let work_area = win.get_work_area_current_monitor();
-        let work_area_width = work_area.width;
-        let work_area_height = work_area.height;
-
-        // log(`Work area width ${work_area_width}`);
-        // log(`Work area height ${work_area_height}`);
+        let number_of_windows = windows_array.length;
 
         let windows_per_container = 3;
 
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
 
+        const file_path = GLib.build_filenamev([GLib.get_home_dir(), 'align-windows-state.txt']);
+        const file = Gio.File.new_for_path(file_path);
+
+        let state = 0;
+
+        try {
+            const [ok, contents, etag] = file.load_contents(null);
+            const decoder = new TextDecoder('utf-8');
+            const contentsString = decoder.decode(contents);
+            let lines = contentsString.split(/\n/);
+
+            for (let i = 0; i < lines.length; i++) {
+
+                if (lines[i].length > 0) {
+                    state = lines[i];
+                }
+
+            }
+        } catch (e) {
+            logError(e);
+        }
+
+        try {
+            file.delete(null);
+        } catch (e) {
+            logError(e);
+        }
+
+        if (state >= number_of_states) {
+            state = 0;
+        }
+
+        let work_area = win.get_work_area_current_monitor();
+        let work_area_width = work_area.width;
+        let work_area_height = work_area.height;
+
         let window_height = work_area_height;
         let window_width = work_area_width / windows_per_container;
 
-        let all_x=[];
+        let all_x = [];
 
         for (let n = 0; n < windows_per_container; n++) {
             all_x[n] = window_width * n;
         }
 
-        // const [ok, contents, etag] = file.load_contents(null);
 
-        // const decoder = new TextDecoder('utf-8');
-        // const contentsString = decoder.decode(contents);
-
-        // let lines = contentsString.split(/\n/);
-
-        for (let i = 0; i < windows_array.length; i++) {
-                let win = this._get_window_by_wid(windows_array[i]);
-                if (win.minimized) {
-                    win.unminimize();
-                }
-                if (win.maximized_horizontally || win.maximized_vertically) {
-                    win.unmaximize(3);
-                }
-                win.move_resize_frame(1, 0, 0, window_width, window_height);
-                win.activate(0);
+        for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
+            let win = this._get_window_by_wid(windows_array[i]);
+            if (win.minimized) {
+                win.unminimize();
+            }
+            if (win.maximized_horizontally || win.maximized_vertically) {
+                win.unmaximize(3);
+            }
+            win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
+            win.activate(0);
         }
+
+        // Write value to file
+        const stream = file.append_to(Gio.FileCreateFlags.NONE, null);
+
+        let buffer = parseInt(state) + 1;
+
+        stream.write(buffer.toString(), null);
     }
 
     Unmaximize(winid) {
