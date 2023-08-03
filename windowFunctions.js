@@ -588,6 +588,14 @@ var WindowFunctions = class WindowFunctions {
             all_x[n] = window_width * n;
         }
 
+        for (let i = 0; i < windows_array.length ; i++){
+            let win = this._get_window_by_wid(windows_array[i]);
+            if (win) {
+                win.minimize();
+            } else {
+                throw new Error('Not found');
+            }
+        }
 
         for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
             let win = this._get_window_by_wid(windows_array[i]);
