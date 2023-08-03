@@ -53,6 +53,8 @@ var MR_DBUS_IFACE = `
       <method name="Minimize">
          <arg type="u" direction="in" name="winid" />
       </method>
+      <method name="MinimizeOtherWindowsNormalCurrentWorkspaceCurrentApplication">
+      </method>
       <method name="Move">
          <arg type="u" direction="in" name="winid" />
          <arg type="i" direction="in" name="x" />
@@ -427,6 +429,24 @@ var WindowFunctions = class WindowFunctions {
         } else {
             throw new Error('Not found');
         }
+    }
+
+    MinimizeOtherWindowsNormalCurrentWorkspaceCurrentApplication() {
+        let workspaceManager = global.workspace_manager;
+
+        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(win);
+
+        app.get_windows().forEach(function (w) {
+            if (w.get_window_type() == 0 && w.located_on_workspace(workspaceManager.get_active_workspace())) {
+
+                if (win!=w){
+                    w.minimize();
+                }
+            }
+        });
     }
 
     Move(winid, x, y) {
