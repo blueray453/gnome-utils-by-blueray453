@@ -581,8 +581,6 @@ var WindowFunctions = class WindowFunctions {
         // let lines = contentsString.split(/\n/);
 
         for (let i = 0; i < windows_array.length; i++) {
-
-
                 let win = this._get_window_by_wid(windows_array[i]);
                 if (win.minimized) {
                     win.unminimize();
@@ -592,7 +590,6 @@ var WindowFunctions = class WindowFunctions {
                 }
                 win.move_resize_frame(1, 0, 0, window_width, window_height);
                 win.activate(0);
-
         }
     }
 
