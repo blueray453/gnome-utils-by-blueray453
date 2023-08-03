@@ -8,8 +8,12 @@ var MR_DBUS_IFACE = `
       <method name="Activate">
          <arg type="u" direction="in" name="winid" />
       </method>
-    <method name="Close">
+      <method name="ActivateOtherWindowsNormalCurrentWorkspaceCurrentApplication">
+      </method>
+      <method name="Close">
          <arg type="u" direction="in" name="winid" />
+      </method>
+      <method name="CloseOtherWindowsNormalCurrentWorkspaceCurrentApplication">
       </method>
       <method name="Focus">
          <arg type="u" direction="in" name="winid" />
@@ -124,6 +128,22 @@ var WindowFunctions = class WindowFunctions {
         // }
     }
 
+    ActivateOtherWindowsNormalCurrentWorkspaceCurrentApplication() {
+        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        let win_workspace = win.get_workspace();
+
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(win);
+
+        app.get_windows().forEach(function (w) {
+            if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
+                if (win != w) {
+                    win_workspace.activate_with_focus(w, global.get_current_time());
+                }
+            }
+        });
+    }
+
     Close(winid) {
         let win = this._get_window_by_wid(winid);
         if (win) {
@@ -133,6 +153,23 @@ var WindowFunctions = class WindowFunctions {
             throw new Error('Not found');
         }
     }
+
+    CloseOtherWindowsNormalCurrentWorkspaceCurrentApplication() {
+        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        let win_workspace = win.get_workspace();
+
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(win);
+
+        app.get_windows().forEach(function (w) {
+            if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
+                if (win != w) {
+                    w.kill();
+                }
+            }
+        });
+    }
+
 
     Focus(winid) {
         let win = this._get_window_by_wid(winid);
@@ -432,16 +469,15 @@ var WindowFunctions = class WindowFunctions {
     }
 
     MinimizeOtherWindowsNormalCurrentWorkspaceCurrentApplication() {
-        let workspaceManager = global.workspace_manager;
-
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+
+        let win_workspace = win.get_workspace();
 
         let tracker = Shell.WindowTracker.get_default();
         let app = tracker.get_window_app(win);
 
         app.get_windows().forEach(function (w) {
-            if (w.get_window_type() == 0 && w.located_on_workspace(workspaceManager.get_active_workspace())) {
-
+            if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
                 if (win!=w){
                     w.minimize();
                 }
@@ -541,9 +577,9 @@ var WindowFunctions = class WindowFunctions {
 
     TileWindowsNormalCurrentWorkspaceCurrentApplication() {
 
-        let workspaceManager = global.workspace_manager;
-
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+
+        let win_workspace = win.get_workspace();
 
         let tracker = Shell.WindowTracker.get_default();
         let app = tracker.get_window_app(win);
@@ -551,7 +587,7 @@ var WindowFunctions = class WindowFunctions {
         let windows_array = [];
 
         app.get_windows().forEach(function (w) {
-            if (w.get_window_type() == 0 && w.located_on_workspace(workspaceManager.get_active_workspace())) {
+            if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
                 windows_array.push(w.get_id());
 
             }
