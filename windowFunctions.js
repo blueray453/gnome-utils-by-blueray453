@@ -147,7 +147,7 @@ var WindowFunctions = class WindowFunctions {
     Close(winid) {
         let win = this._get_window_by_wid(winid);
         if (win) {
-            win.kill();
+            win.delete();
             // win.delete(Math.floor(Date.now() / 1000));
         } else {
             throw new Error('Not found');
@@ -164,7 +164,7 @@ var WindowFunctions = class WindowFunctions {
         app.get_windows().forEach(function (w) {
             if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
                 if (win != w) {
-                    w.kill();
+                    w.delete();
                 }
             }
         });
