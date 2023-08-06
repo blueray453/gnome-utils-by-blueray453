@@ -8,7 +8,7 @@ var MR_DBUS_IFACE = `
       <method name="Activate">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="ActivateOtherWindowsNormalCurrentWorkspaceCurrentApplication">
+      <method name="AlignWindowsNormalCurrentWorkspaceCurrentApplication">
       </method>
       <method name="Close">
          <arg type="u" direction="in" name="winid" />
@@ -85,13 +85,13 @@ var MR_DBUS_IFACE = `
       <method name="Stick">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="TileWindowsNormalCurrentWorkspaceCurrentApplication">
-      </method>
       <method name="Unmaximize">
          <arg type="u" direction="in" name="winid" />
       </method>
       <method name="Unminimize">
          <arg type="u" direction="in" name="winid" />
+      </method>
+      <method name="UnminimizeOtherWindowsNormalCurrentWorkspaceCurrentApplication">
       </method>
       <method name="Unstick">
          <arg type="u" direction="in" name="winid" />
@@ -128,26 +128,110 @@ var WindowFunctions = class WindowFunctions {
         // }
     }
 
-    ActivateOtherWindowsNormalCurrentWorkspaceCurrentApplication() {
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsNormalCurrentWorkspaceCurrentApplication | jq .
+
+    AlignWindowsNormalCurrentWorkspaceCurrentApplication() {
+
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+
         let win_workspace = win.get_workspace();
 
         let tracker = Shell.WindowTracker.get_default();
         let app = tracker.get_window_app(win);
 
+        let windows_array = [];
+
         app.get_windows().forEach(function (w) {
             if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
-                if (win != w) {
-                    win_workspace.activate_with_focus(w, global.get_current_time());
-                }
+                windows_array.push(w.get_id());
+
             }
         });
+
+        let number_of_windows = windows_array.length;
+
+        let windows_per_container = 3;
+
+        let number_of_states = Math.ceil(number_of_windows / windows_per_container);
+
+        const file_path = GLib.build_filenamev([GLib.get_home_dir(), 'align-windows-state.txt']);
+        const file = Gio.File.new_for_path(file_path);
+
+        let state = 0;
+
+        try {
+            const [ok, contents, etag] = file.load_contents(null);
+            const decoder = new TextDecoder('utf-8');
+            const contentsString = decoder.decode(contents);
+            let lines = contentsString.split(/\n/);
+
+            for (let i = 0; i < lines.length; i++) {
+
+                if (lines[i].length > 0) {
+                    state = lines[i];
+                }
+
+            }
+        } catch (e) {
+            logError(e);
+        }
+
+        try {
+            file.delete(null);
+        } catch (e) {
+            logError(e);
+        }
+
+        if (state >= number_of_states) {
+            state = 0;
+        }
+
+        let work_area = win.get_work_area_current_monitor();
+        let work_area_width = work_area.width;
+        let work_area_height = work_area.height;
+
+        let window_height = work_area_height;
+        let window_width = work_area_width / windows_per_container;
+
+        let all_x = [];
+
+        for (let n = 0; n < windows_per_container; n++) {
+            all_x[n] = window_width * n;
+        }
+
+        for (let i = 0; i < windows_array.length; i++) {
+            let win = this._get_window_by_wid(windows_array[i]);
+            if (win) {
+                win.minimize();
+            } else {
+                throw new Error('Not found');
+            }
+        }
+
+        for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
+            let win = this._get_window_by_wid(windows_array[i]);
+            if (win.minimized) {
+                win.unminimize();
+            }
+            if (win.maximized_horizontally || win.maximized_vertically) {
+                win.unmaximize(3);
+            }
+            win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
+            win.activate(0);
+        }
+
+        // Write value to file
+        const stream = file.append_to(Gio.FileCreateFlags.NONE, null);
+
+        let buffer = parseInt(state) + 1;
+
+        stream.write(buffer.toString(), null);
     }
 
     Close(winid) {
         let win = this._get_window_by_wid(winid);
         if (win) {
-            win.delete();
+            win.delete(global.get_current_time());
             // win.delete(Math.floor(Date.now() / 1000));
         } else {
             throw new Error('Not found');
@@ -155,19 +239,26 @@ var WindowFunctions = class WindowFunctions {
     }
 
     CloseOtherWindowsNormalCurrentWorkspaceCurrentApplication() {
+
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+
         let win_workspace = win.get_workspace();
+        let win_wm_class = win.get_wm_class();
 
-        let tracker = Shell.WindowTracker.get_default();
-        let app = tracker.get_window_app(win);
+        global.get_window_actors().map(w => w.meta_window).filter(w => w.get_wm_class() == win_wm_class && w.get_window_type() == 0 && w.located_on_workspace(win_workspace) && win != w).map(w => w.delete(global.get_current_time()));
+        // let win_workspace = win.get_workspace();
 
-        app.get_windows().forEach(function (w) {
-            if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
-                if (win != w) {
-                    w.delete();
-                }
-            }
-        });
+
+        // let tracker = Shell.WindowTracker.get_default();
+        // let app = tracker.get_window_app(win);
+
+        // app.get_windows().forEach(function (w) {
+        //     if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
+        //         if (win != w) {
+        //             w.delete();
+        //         }
+        //     }
+        // });
     }
 
 
@@ -472,17 +563,24 @@ var WindowFunctions = class WindowFunctions {
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
 
         let win_workspace = win.get_workspace();
+        let win_wm_class = win.get_wm_class();
 
-        let tracker = Shell.WindowTracker.get_default();
-        let app = tracker.get_window_app(win);
+        global.get_window_actors().map(w => w.meta_window).filter(w => w.get_wm_class() == win_wm_class && w.get_window_type() == 0 && w.located_on_workspace(win_workspace) && win != w).map(w => w.minimize());
 
-        app.get_windows().forEach(function (w) {
-            if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
-                if (win!=w){
-                    w.minimize();
-                }
-            }
-        });
+        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+
+        // let win_workspace = win.get_workspace();
+
+        // let tracker = Shell.WindowTracker.get_default();
+        // let app = tracker.get_window_app(win);
+
+        // app.get_windows().forEach(function (w) {
+        //     if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
+        //         if (win!=w){
+        //             w.minimize();
+        //         }
+        //     }
+        // });
     }
 
     Move(winid, x, y) {
@@ -573,106 +671,6 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.TileWindowsNormalCurrentWorkspaceCurrentApplication | jq .
-
-    TileWindowsNormalCurrentWorkspaceCurrentApplication() {
-
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-
-        let win_workspace = win.get_workspace();
-
-        let tracker = Shell.WindowTracker.get_default();
-        let app = tracker.get_window_app(win);
-
-        let windows_array = [];
-
-        app.get_windows().forEach(function (w) {
-            if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
-                windows_array.push(w.get_id());
-
-            }
-        });
-
-        let number_of_windows = windows_array.length;
-
-        let windows_per_container = 3;
-
-        let number_of_states = Math.ceil(number_of_windows / windows_per_container);
-
-        const file_path = GLib.build_filenamev([GLib.get_home_dir(), 'align-windows-state.txt']);
-        const file = Gio.File.new_for_path(file_path);
-
-        let state = 0;
-
-        try {
-            const [ok, contents, etag] = file.load_contents(null);
-            const decoder = new TextDecoder('utf-8');
-            const contentsString = decoder.decode(contents);
-            let lines = contentsString.split(/\n/);
-
-            for (let i = 0; i < lines.length; i++) {
-
-                if (lines[i].length > 0) {
-                    state = lines[i];
-                }
-
-            }
-        } catch (e) {
-            logError(e);
-        }
-
-        try {
-            file.delete(null);
-        } catch (e) {
-            logError(e);
-        }
-
-        if (state >= number_of_states) {
-            state = 0;
-        }
-
-        let work_area = win.get_work_area_current_monitor();
-        let work_area_width = work_area.width;
-        let work_area_height = work_area.height;
-
-        let window_height = work_area_height;
-        let window_width = work_area_width / windows_per_container;
-
-        let all_x = [];
-
-        for (let n = 0; n < windows_per_container; n++) {
-            all_x[n] = window_width * n;
-        }
-
-        for (let i = 0; i < windows_array.length ; i++){
-            let win = this._get_window_by_wid(windows_array[i]);
-            if (win) {
-                win.minimize();
-            } else {
-                throw new Error('Not found');
-            }
-        }
-
-        for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
-            let win = this._get_window_by_wid(windows_array[i]);
-            if (win.minimized) {
-                win.unminimize();
-            }
-            if (win.maximized_horizontally || win.maximized_vertically) {
-                win.unmaximize(3);
-            }
-            win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
-            win.activate(0);
-        }
-
-        // Write value to file
-        const stream = file.append_to(Gio.FileCreateFlags.NONE, null);
-
-        let buffer = parseInt(state) + 1;
-
-        stream.write(buffer.toString(), null);
-    }
-
     Unmaximize(winid) {
         let win = this._get_window_by_wid(winid);
         if (win.maximized_horizontally || win.maximized_vertically) {
@@ -690,6 +688,29 @@ var WindowFunctions = class WindowFunctions {
         } else {
             throw new Error('Not found');
         }
+    }
+
+    UnminimizeOtherWindowsNormalCurrentWorkspaceCurrentApplication() {
+
+        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+
+        let win_workspace = win.get_workspace();
+        let win_wm_class = win.get_wm_class();
+
+        global.get_window_actors().map(w => w.meta_window).filter(w => w.get_wm_class() == win_wm_class && w.get_window_type() == 0 && w.located_on_workspace(win_workspace) && win != w).map(w => w.unminimize());
+        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        // let win_workspace = win.get_workspace();
+
+        // let tracker = Shell.WindowTracker.get_default();
+        // let app = tracker.get_window_app(win);
+
+        // app.get_windows().forEach(function (w) {
+        //     if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
+        //         if (win != w) {
+        //             win.unminimize();
+        //         }
+        //     }
+        // });
     }
 
     Unstick(winid) {
