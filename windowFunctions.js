@@ -8,12 +8,12 @@ var MR_DBUS_IFACE = `
       <method name="Activate">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="AlignWindowsNormalCurrentWorkspaceCurrentWMClass">
+      <method name="AlignNormalWindowsCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Close">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="CloseOtherWindowsNormalCurrentWorkspaceCurrentWMClass">
+      <method name="CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Focus">
          <arg type="u" direction="in" name="winid" />
@@ -42,13 +42,13 @@ var MR_DBUS_IFACE = `
       <method name="GetWindows">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetWindowsNormal">
+      <method name="GetNormalWindows">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetWindowsNormalCurrentWorkspace">
+      <method name="GetNormalWindowsCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetWindowsNormalCurrentWorkspaceCurrentWMClass">
+      <method name="GetNormalWindowsCurrentWorkspaceCurrentWMClass">
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="Maximize">
@@ -57,7 +57,7 @@ var MR_DBUS_IFACE = `
       <method name="Minimize">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="MinimizeOtherWindowsNormalCurrentWorkspaceCurrentWMClass">
+      <method name="MinimizeOtherNormalWindowsCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Move">
          <arg type="u" direction="in" name="winid" />
@@ -91,7 +91,7 @@ var MR_DBUS_IFACE = `
       <method name="Unminimize">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="UnminimizeOtherWindowsNormalCurrentWorkspaceCurrentWMClass">
+      <method name="UnminimizeOtherNormalWindowsCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Unstick">
          <arg type="u" direction="in" name="winid" />
@@ -101,7 +101,18 @@ var MR_DBUS_IFACE = `
 
 var WindowFunctions = class WindowFunctions {
 
-    close_other_windows_normal_current_workspace_current_wm_class = function () {
+    _get_normal_windows_current_workspace_current_wm_class = function () {
+
+        let win = global.display.get_focus_window();
+
+        let win_workspace = win.get_workspace();
+        let win_wm_class = win.get_wm_class();
+
+        return global.display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class);
+
+    }
+
+    _get_other_normal_windows_current_workspace_current_wm_class = function () {
         let win = global.display.get_focus_window();
 
         let win_workspace = win.get_workspace();
@@ -148,19 +159,16 @@ var WindowFunctions = class WindowFunctions {
         // }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsNormalCurrentWorkspaceCurrentWMClass | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
 
-    AlignWindowsNormalCurrentWorkspaceCurrentWMClass() {
+    AlignNormalWindowsCurrentWorkspaceCurrentWMClass() {
 
-        let win = global.display.get_focus_window();
-        let win_workspace = win.get_workspace();
-        let win_wm_class = win.get_wm_class();
-
-        let windows_array = [];
-
-        global.display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class).map(w => windows_array.push(w));
+        let windows_array = this._get_normal_windows_current_workspace_current_wm_class();
 
         let number_of_windows = windows_array.length;
+
+        // log(`windows array ${windows_array}`);
+        // log(`number_of_windows is ${number_of_windows}`);
 
         let windows_per_container = 3;
 
@@ -198,7 +206,7 @@ var WindowFunctions = class WindowFunctions {
             state = 0;
         }
 
-        let work_area = win.get_work_area_current_monitor();
+        let work_area = windows_array[0].get_work_area_current_monitor();
         let work_area_width = work_area.width;
         let work_area_height = work_area.height;
 
@@ -213,6 +221,7 @@ var WindowFunctions = class WindowFunctions {
 
         for (let i = 0; i < windows_array.length; i++) {
             let win = windows_array[i];
+            // log(`win is ${win}`);
             if (win) {
                 win.minimize();
             } else {
@@ -250,28 +259,9 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    CloseOtherWindowsNormalCurrentWorkspaceCurrentWMClass() {
-
-        let wins = this.close_other_windows_normal_current_workspace_current_wm_class();
-
-        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-
+    CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
+        let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
         wins.map(w => w.delete(global.get_current_time()));
-
-        // global.get_window_actors().map(w => w.meta_window).filter(w => w.get_wm_class() == win_wm_class && w.get_window_type() == 0 && w.located_on_workspace(win_workspace) && win != w).map(w => w.delete(global.get_current_time()));
-        // let win_workspace = win.get_workspace();
-
-
-        // let tracker = Shell.WindowTracker.get_default();
-        // let app = tracker.get_window_app(win);
-
-        // app.get_windows().forEach(function (w) {
-        //     if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
-        //         if (win != w) {
-        //             w.delete();
-        //         }
-        //     }
-        // });
     }
 
 
@@ -467,9 +457,9 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsNormal | jq .
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindows | jq .
 
-    GetWindowsNormal() {
+    GetNormalWindows() {
 
         let wins = global.display.get_tab_list(Meta.TabList.NORMAL, null);
 
@@ -498,9 +488,9 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsNormalCurrentWorkspace | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspace | jq .
 
-    GetWindowsNormalCurrentWorkspace() {
+    GetNormalWindowsCurrentWorkspace() {
 
         let workspaceManager = global.workspace_manager;
 
@@ -531,30 +521,13 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
-    GetWindowsNormalCurrentWorkspaceCurrentWMClass(){
+    GetNormalWindowsCurrentWorkspaceCurrentWMClass(){
 
-        let win = global.display.get_focus_window();
-
-        let win_workspace = win.get_workspace();
-        let win_wm_class = win.get_wm_class();
+        let wins = this._get_normal_windows_current_workspace_current_wm_class();
 
         let windows_array = [];
 
-        global.display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class).map(w => windows_array.push(w.get_id()));
-
-        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-        // let wmclass = w.meta_window.get_wm_class();
-        // return Gio.AppInfo.get_all().find(a => a.get_startup_wm_class() == wmclass).get_id();
-
-        // this._get_app_by_wid(win);
-
-        // app.get_windows().forEach(function (w) {
-        //     // log("window id : " + w.get_id());
-        //     if (w.get_window_type() == 0)
-        //     {
-        //         windows_array.push(w.get_id());
-        //     }
-        // })
+        wins.map(w => windows_array.push(w.get_id()));
 
         return JSON.stringify(windows_array);
 
@@ -583,13 +556,10 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    MinimizeOtherWindowsNormalCurrentWorkspaceCurrentWMClass() {
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+    MinimizeOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
+        let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
 
-        let win_workspace = win.get_workspace();
-        let win_wm_class = win.get_wm_class();
-
-        global.get_window_actors().map(w => w.meta_window).filter(w => w.get_wm_class() == win_wm_class && w.get_window_type() == 0 && w.located_on_workspace(win_workspace) && win != w).map(w => w.minimize());
+        wins.map(w => w.minimize());
 
         // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
 
@@ -714,14 +684,10 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    UnminimizeOtherWindowsNormalCurrentWorkspaceCurrentWMClass() {
+    UnminimizeOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
+        let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
 
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-
-        let win_workspace = win.get_workspace();
-        let win_wm_class = win.get_wm_class();
-
-        global.get_window_actors().map(w => w.meta_window).filter(w => w.get_wm_class() == win_wm_class && w.get_window_type() == 0 && w.located_on_workspace(win_workspace) && win != w).map(w => {
+        wins.map(w => {
             w.unminimize();
             w.raise();
         });
