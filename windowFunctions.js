@@ -697,7 +697,10 @@ var WindowFunctions = class WindowFunctions {
         let win_workspace = win.get_workspace();
         let win_wm_class = win.get_wm_class();
 
-        global.get_window_actors().map(w => w.meta_window).filter(w => w.get_wm_class() == win_wm_class && w.get_window_type() == 0 && w.located_on_workspace(win_workspace) && win != w).map(w => w.unminimize());
+        global.get_window_actors().map(w => w.meta_window).filter(w => w.get_wm_class() == win_wm_class && w.get_window_type() == 0 && w.located_on_workspace(win_workspace) && win != w).map(w => {
+            w.unminimize();
+            w.raise();
+        });
         // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
         // let win_workspace = win.get_workspace();
 
