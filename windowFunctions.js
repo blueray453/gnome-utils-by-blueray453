@@ -101,13 +101,19 @@ var MR_DBUS_IFACE = `
 
 var WindowFunctions = class WindowFunctions {
 
+    _get_app_by_win = function (win) {
+        let tracker = global.get_window_tracker().get_default();
+        let app = tracker.get_window_app(win);
+        return app;
+
+    }
     _get_window_actor_by_wid = function (winid) {
-        let win = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
+        let win = global.get_window_actors().find(w => w.get_meta_window().get_id() == winid);
         return win;
     }
 
     _get_window_by_wid = function (winid) {
-        let win = global.display.list_all_windows().find(w => w.get_id() == winid);
+        let win = global.get_display().list_all_windows().find(w => w.get_id() == winid);
         // let win = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
         // return win.get_meta_window();
         return win;
@@ -134,12 +140,10 @@ var WindowFunctions = class WindowFunctions {
 
     AlignWindowsNormalCurrentWorkspaceCurrentApplication() {
 
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-
+        let win = global.display.get_focus_window();
         let win_workspace = win.get_workspace();
 
-        let tracker = Shell.WindowTracker.get_default();
-        let app = tracker.get_window_app(win);
+        let app = this._get_app_by_win(win);
 
         let windows_array = [];
 
@@ -319,8 +323,7 @@ var WindowFunctions = class WindowFunctions {
         //   let wmclass = win.meta_window.get_wm_class();
         //   let app_id = Shell.AppSystem.get_default().lookup_startup_wmclass(wmclass).get_id();
         //   return Shell.AppSystem.get_default().lookup_app(app_id).get_icon().to_string();
-        let tracker = Shell.WindowTracker.get_default();
-        let app = tracker.get_window_app(win);
+        this._get_app_by_wid(win);
         return app.get_icon().to_string();
     }
 
@@ -530,22 +533,26 @@ var WindowFunctions = class WindowFunctions {
 
         let win = global.display.get_focus_window();
 
+        let win_workspace = win.get_workspace();
+        let win_wm_class = win.get_wm_class();
+
+        let windows_array = [];
+
+        global.display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class).map(w => windows_array.push(w.get_id()));
+
         // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
         // let wmclass = w.meta_window.get_wm_class();
         // return Gio.AppInfo.get_all().find(a => a.get_startup_wm_class() == wmclass).get_id();
 
-        let tracker = Shell.WindowTracker.get_default();
-        let app = tracker.get_window_app(win);
+        // this._get_app_by_wid(win);
 
-        let windows_array = [];
-
-        app.get_windows().forEach(function (w) {
-            // log("window id : " + w.get_id());
-            if (w.get_window_type() == 0)
-            {
-                windows_array.push(w.get_id());
-            }
-        })
+        // app.get_windows().forEach(function (w) {
+        //     // log("window id : " + w.get_id());
+        //     if (w.get_window_type() == 0)
+        //     {
+        //         windows_array.push(w.get_id());
+        //     }
+        // })
 
         return JSON.stringify(windows_array);
 
