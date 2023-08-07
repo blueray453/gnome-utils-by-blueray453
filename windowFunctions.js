@@ -101,12 +101,24 @@ var MR_DBUS_IFACE = `
 
 var WindowFunctions = class WindowFunctions {
 
+    close_other_windows_normal_current_workspace_current_wm_class = function () {
+        let win = global.display.get_focus_window();
+
+        let win_workspace = win.get_workspace();
+        let win_wm_class = win.get_wm_class();
+
+        // retrieve window list for all workspaces
+        return global.display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class && win != w);
+
+    }
+
     _get_app_by_win = function (win) {
         let tracker = global.get_window_tracker().get_default();
         let app = tracker.get_window_app(win);
         return app;
 
     }
+
     _get_window_actor_by_wid = function (winid) {
         let win = global.get_window_actors().find(w => w.get_meta_window().get_id() == winid);
         return win;
@@ -240,15 +252,11 @@ var WindowFunctions = class WindowFunctions {
 
     CloseOtherWindowsNormalCurrentWorkspaceCurrentWMClass() {
 
+        let wins = this.close_other_windows_normal_current_workspace_current_wm_class();
+
         // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
 
-        let win = global.display.get_focus_window();
-
-        let win_workspace = win.get_workspace();
-        let win_wm_class = win.get_wm_class();
-
-        // retrieve window list for all workspaces
-        global.display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class && win != w).map(w => w.delete(global.get_current_time()));
+        wins.map(w => w.delete(global.get_current_time()));
 
         // global.get_window_actors().map(w => w.meta_window).filter(w => w.get_wm_class() == win_wm_class && w.get_window_type() == 0 && w.located_on_workspace(win_workspace) && win != w).map(w => w.delete(global.get_current_time()));
         // let win_workspace = win.get_workspace();
