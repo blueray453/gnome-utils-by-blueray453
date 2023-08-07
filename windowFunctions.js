@@ -8,12 +8,12 @@ var MR_DBUS_IFACE = `
       <method name="Activate">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="AlignWindowsNormalCurrentWorkspaceCurrentApplication">
+      <method name="AlignWindowsNormalCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Close">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="CloseOtherWindowsNormalCurrentWorkspaceCurrentApplication">
+      <method name="CloseOtherWindowsNormalCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Focus">
          <arg type="u" direction="in" name="winid" />
@@ -48,7 +48,7 @@ var MR_DBUS_IFACE = `
       <method name="GetWindowsNormalCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetWindowsNormalCurrentWorkspaceCurrentApplication">
+      <method name="GetWindowsNormalCurrentWorkspaceCurrentWMClass">
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="Maximize">
@@ -57,7 +57,7 @@ var MR_DBUS_IFACE = `
       <method name="Minimize">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="MinimizeOtherWindowsNormalCurrentWorkspaceCurrentApplication">
+      <method name="MinimizeOtherWindowsNormalCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Move">
          <arg type="u" direction="in" name="winid" />
@@ -91,7 +91,7 @@ var MR_DBUS_IFACE = `
       <method name="Unminimize">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="UnminimizeOtherWindowsNormalCurrentWorkspaceCurrentApplication">
+      <method name="UnminimizeOtherWindowsNormalCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Unstick">
          <arg type="u" direction="in" name="winid" />
@@ -136,23 +136,17 @@ var WindowFunctions = class WindowFunctions {
         // }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsNormalCurrentWorkspaceCurrentApplication | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsNormalCurrentWorkspaceCurrentWMClass | jq .
 
-    AlignWindowsNormalCurrentWorkspaceCurrentApplication() {
+    AlignWindowsNormalCurrentWorkspaceCurrentWMClass() {
 
         let win = global.display.get_focus_window();
         let win_workspace = win.get_workspace();
-
-        let app = this._get_app_by_win(win);
+        let win_wm_class = win.get_wm_class();
 
         let windows_array = [];
 
-        app.get_windows().forEach(function (w) {
-            if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
-                windows_array.push(w.get_id());
-
-            }
-        });
+        global.display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class).map(w => windows_array.push(w));
 
         let number_of_windows = windows_array.length;
 
@@ -206,7 +200,7 @@ var WindowFunctions = class WindowFunctions {
         }
 
         for (let i = 0; i < windows_array.length; i++) {
-            let win = this._get_window_by_wid(windows_array[i]);
+            let win = windows_array[i];
             if (win) {
                 win.minimize();
             } else {
@@ -215,7 +209,7 @@ var WindowFunctions = class WindowFunctions {
         }
 
         for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
-            let win = this._get_window_by_wid(windows_array[i]);
+            let win = windows_array[i];
             if (win.minimized) {
                 win.unminimize();
             }
@@ -244,7 +238,7 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    CloseOtherWindowsNormalCurrentWorkspaceCurrentApplication() {
+    CloseOtherWindowsNormalCurrentWorkspaceCurrentWMClass() {
 
         // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
 
@@ -529,7 +523,7 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
-    GetWindowsNormalCurrentWorkspaceCurrentApplication(){
+    GetWindowsNormalCurrentWorkspaceCurrentWMClass(){
 
         let win = global.display.get_focus_window();
 
@@ -581,7 +575,7 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    MinimizeOtherWindowsNormalCurrentWorkspaceCurrentApplication() {
+    MinimizeOtherWindowsNormalCurrentWorkspaceCurrentWMClass() {
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
 
         let win_workspace = win.get_workspace();
@@ -712,7 +706,7 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    UnminimizeOtherWindowsNormalCurrentWorkspaceCurrentApplication() {
+    UnminimizeOtherWindowsNormalCurrentWorkspaceCurrentWMClass() {
 
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
 
