@@ -240,12 +240,17 @@ var WindowFunctions = class WindowFunctions {
 
     CloseOtherWindowsNormalCurrentWorkspaceCurrentApplication() {
 
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+
+        let win = global.display.get_focus_window();
 
         let win_workspace = win.get_workspace();
         let win_wm_class = win.get_wm_class();
 
-        global.get_window_actors().map(w => w.meta_window).filter(w => w.get_wm_class() == win_wm_class && w.get_window_type() == 0 && w.located_on_workspace(win_workspace) && win != w).map(w => w.delete(global.get_current_time()));
+        // retrieve window list for all workspaces
+        global.display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class && win != w).map(w => w.delete(global.get_current_time()));
+
+        // global.get_window_actors().map(w => w.meta_window).filter(w => w.get_wm_class() == win_wm_class && w.get_window_type() == 0 && w.located_on_workspace(win_workspace) && win != w).map(w => w.delete(global.get_current_time()));
         // let win_workspace = win.get_workspace();
 
 
@@ -275,7 +280,8 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | jq .
 
     GetFocusedWindow() {
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        let win = global.display.get_focus_window();
 
         let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
 
@@ -429,7 +435,10 @@ var WindowFunctions = class WindowFunctions {
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsNormal | jq .
 
     GetWindowsNormal() {
-        let wins = global.get_window_actors().filter(w => w.meta_window.get_window_type() == 0).map(w => w.meta_window);
+
+        let wins = global.display.get_tab_list(Meta.TabList.NORMAL, null);
+
+        // let wins = global.get_window_actors().filter(w => w.meta_window.get_window_type() == 0).map(w => w.meta_window);
 
         var winJsonArr = [];
         wins.forEach(function (win) {
@@ -456,7 +465,9 @@ var WindowFunctions = class WindowFunctions {
 
     GetWindowsNormalCurrentWorkspaceCurrentApplication(){
 
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        let win = global.display.get_focus_window();
+
+        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
         // let wmclass = w.meta_window.get_wm_class();
         // return Gio.AppInfo.get_all().find(a => a.get_startup_wm_class() == wmclass).get_id();
 
@@ -483,7 +494,9 @@ var WindowFunctions = class WindowFunctions {
 
         let workspaceManager = global.workspace_manager;
 
-        let wins = global.get_window_actors().filter(w => w.meta_window.get_window_type() == 0 && w.meta_window.located_on_workspace(workspaceManager.get_active_workspace())).map(w => w.meta_window);
+        let wins = global.display.get_tab_list(Meta.TabList.NORMAL, workspaceManager.get_active_workspace());
+
+        // let wins = global.get_window_actors().filter(w => w.meta_window.get_window_type() == 0 && w.meta_window.located_on_workspace(workspaceManager.get_active_workspace())).map(w => w.meta_window);
 
         var winJsonArr = [];
         wins.forEach(function (win) {
