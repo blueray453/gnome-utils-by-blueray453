@@ -110,7 +110,6 @@ var WindowFunctions = class WindowFunctions {
     }
 
     _get_normal_windows_current_workspace_current_wm_class = function () {
-
         let win = global.display.get_focus_window();
 
         let win_workspace = win.get_workspace();
@@ -155,11 +154,8 @@ var WindowFunctions = class WindowFunctions {
     AlignNormalWindowsCurrentWorkspaceCurrentWMClass() {
 
         let windows_array = this._get_normal_windows_current_workspace_current_wm_class();
-
         let number_of_windows = windows_array.length;
-
         let windows_per_container = 3;
-
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
 
         const file_path = GLib.build_filenamev([GLib.get_home_dir(), 'align-windows-state.txt']);
@@ -297,7 +293,6 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetIconFromWinID uint32:44129093
 
     GetIconFromWinID(winid) {
-
         let win = this._get_window_by_wid(winid);
         this._get_app_by_wid(win);
         return app.get_icon().to_string();
@@ -306,11 +301,8 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetMonitorWorkArea
 
     GetMonitorWorkArea() {
-
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-
         let work_area = win.get_work_area_current_monitor();
-
         var monitor = [];
 
         monitor.push({
@@ -324,7 +316,6 @@ var WindowFunctions = class WindowFunctions {
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindows | jq .
 
     GetNormalWindows() {
-
         let wins = global.display.get_tab_list(Meta.TabList.NORMAL, null);
 
         var winJsonArr = [];
@@ -353,7 +344,6 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspace | jq .
 
     GetNormalWindowsCurrentWorkspace() {
-
         let workspaceManager = global.workspace_manager;
 
         let wins = global.display.get_tab_list(Meta.TabList.NORMAL, workspaceManager.get_active_workspace());
@@ -382,7 +372,6 @@ var WindowFunctions = class WindowFunctions {
     }
 
     GetNormalWindowsCurrentWorkspaceCurrentWMClass() {
-
         let wins = this._get_normal_windows_current_workspace_current_wm_class();
 
         let windows_array = [];
