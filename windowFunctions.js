@@ -138,26 +138,16 @@ var WindowFunctions = class WindowFunctions {
 
     _get_window_by_wid = function (winid) {
         let win = global.get_display().list_all_windows().find(w => w.get_id() == winid);
-        // let win = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
-        // return win.get_meta_window();
         return win;
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Activate uint32:44129093
 
     Activate(winid) {
-        // let metaWorkspace = global.workspace_manager.get_active_workspace();
         let win = this._get_window_by_wid(winid);
         let win_workspace = win.get_workspace();
         // Here 0 instead of global.get_current_time() will also work
         win_workspace.activate_with_focus(win, global.get_current_time());
-
-        // if (win) {
-        //     // Here 0 instead of global.get_current_time() will also work
-        //     win.activate(global.get_current_time());
-        // } else {
-        //     throw new Error('Not found');
-        // }
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
@@ -167,9 +157,6 @@ var WindowFunctions = class WindowFunctions {
         let windows_array = this._get_normal_windows_current_workspace_current_wm_class();
 
         let number_of_windows = windows_array.length;
-
-        // log(`windows array ${windows_array}`);
-        // log(`number_of_windows is ${number_of_windows}`);
 
         let windows_per_container = 3;
 
@@ -279,7 +266,6 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | jq .
 
     GetFocusedWindow() {
-        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
         let win = global.display.get_focus_window();
 
         let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
@@ -313,9 +299,6 @@ var WindowFunctions = class WindowFunctions {
     GetIconFromWinID(winid) {
 
         let win = this._get_window_by_wid(winid);
-        //   let wmclass = win.meta_window.get_wm_class();
-        //   let app_id = Shell.AppSystem.get_default().lookup_startup_wmclass(wmclass).get_id();
-        //   return Shell.AppSystem.get_default().lookup_app(app_id).get_icon().to_string();
         this._get_app_by_wid(win);
         return app.get_icon().to_string();
     }
@@ -323,12 +306,6 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetMonitorWorkArea
 
     GetMonitorWorkArea() {
-
-        // let workspaceManager = global.workspace_manager;
-        // let active_workspace =  workspaceManager.get_active_workspace();
-
-        // let display = global.get_display();
-        // let work_area = active_workspace.get_work_area_for_monitor(display.get_current_monitor());
 
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
 
@@ -349,8 +326,6 @@ var WindowFunctions = class WindowFunctions {
     GetNormalWindows() {
 
         let wins = global.display.get_tab_list(Meta.TabList.NORMAL, null);
-
-        // let wins = global.get_window_actors().filter(w => w.meta_window.get_window_type() == 0).map(w => w.meta_window);
 
         var winJsonArr = [];
         wins.forEach(function (win) {
@@ -382,8 +357,6 @@ var WindowFunctions = class WindowFunctions {
         let workspaceManager = global.workspace_manager;
 
         let wins = global.display.get_tab_list(Meta.TabList.NORMAL, workspaceManager.get_active_workspace());
-
-        // let wins = global.get_window_actors().filter(w => w.meta_window.get_window_type() == 0 && w.meta_window.located_on_workspace(workspaceManager.get_active_workspace())).map(w => w.meta_window);
 
         var winJsonArr = [];
         wins.forEach(function (win) {
@@ -452,7 +425,6 @@ var WindowFunctions = class WindowFunctions {
         let win = this._get_window_by_wid(winid);
         let workspaceManager = global.workspace_manager;
         let display = global.display;
-        // let monitor = global.display.get_monitor_geometry(currentmonitor);
 
         if (win && win_actor) {
 
@@ -561,21 +533,6 @@ var WindowFunctions = class WindowFunctions {
         let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
 
         wins.map(w => w.minimize());
-
-        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-
-        // let win_workspace = win.get_workspace();
-
-        // let tracker = Shell.WindowTracker.get_default();
-        // let app = tracker.get_window_app(win);
-
-        // app.get_windows().forEach(function (w) {
-        //     if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
-        //         if (win!=w){
-        //             w.minimize();
-        //         }
-        //     }
-        // });
     }
 
     Move(winid, x, y) {
@@ -692,19 +649,6 @@ var WindowFunctions = class WindowFunctions {
             w.unminimize();
             w.raise();
         });
-        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-        // let win_workspace = win.get_workspace();
-
-        // let tracker = Shell.WindowTracker.get_default();
-        // let app = tracker.get_window_app(win);
-
-        // app.get_windows().forEach(function (w) {
-        //     if (w.get_window_type() == 0 && w.located_on_workspace(win_workspace)) {
-        //         if (win != w) {
-        //             win.unminimize();
-        //         }
-        //     }
-        // });
     }
 
     Unstick(winid) {
