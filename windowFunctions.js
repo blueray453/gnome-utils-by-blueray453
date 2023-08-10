@@ -124,6 +124,16 @@ var WindowFunctions = class WindowFunctions {
 
     }
 
+    _get_normal_windows_current_workspace_current_wm_class_sorted = function () {
+        let win = display.get_focus_window();
+
+        let win_workspace = win.get_workspace();
+        let win_wm_class = win.get_wm_class();
+
+        return display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class).sort((a, b) => a.get_id() - b.get_id());
+
+    }
+
     _get_other_normal_windows_current_workspace_current_wm_class = function () {
         let win = display.get_focus_window();
 
@@ -168,7 +178,7 @@ var WindowFunctions = class WindowFunctions {
 
 
 
-        let windows_array = this._get_normal_windows_current_workspace_current_wm_class();
+        let windows_array = this._get_normal_windows_current_workspace_current_wm_class_sorted();
         let number_of_windows = windows_array.length;
         let windows_per_container = 3;
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
