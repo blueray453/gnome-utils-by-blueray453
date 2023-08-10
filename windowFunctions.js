@@ -148,8 +148,8 @@ var WindowFunctions = class WindowFunctions {
     Activate(winid) {
         let win = this._get_window_by_wid(winid);
         let win_workspace = win.get_workspace();
-        // Here 0 instead of global.get_current_time() will also work
-        win_workspace.activate_with_focus(win, global.get_current_time());
+        // Here global.get_current_time() instead of 0 will also work
+        win_workspace.activate_with_focus(win, 0);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
@@ -239,7 +239,8 @@ var WindowFunctions = class WindowFunctions {
     Close(winid) {
         let win = this._get_window_by_wid(winid);
         if (win) {
-            win.delete(global.get_current_time());
+            // Here global.get_current_time() instead of 0 will also work
+            win.delete(0);
             // win.delete(Math.floor(Date.now() / 1000));
         } else {
             throw new Error('Not found');
@@ -248,15 +249,16 @@ var WindowFunctions = class WindowFunctions {
 
     CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
-        wins.map(w => w.delete(global.get_current_time()));
+        // Here global.get_current_time() instead of 0 will also work
+        wins.map(w => w.delete(0));
     }
 
 
     Focus(winid) {
         let win = this._get_window_by_wid(winid);
         if (win) {
-            // Here 0 instead of global.get_current_time() will also work
-            win.focus(global.get_current_time());
+            // Here global.get_current_time() instead of 0 will also work
+            win.focus(0);
         } else {
             throw new Error('Not found');
         }
@@ -566,7 +568,8 @@ var WindowFunctions = class WindowFunctions {
         if (win) {
             let current_workspace = workspaceManager.get_active_workspace();
             win.change_workspace(current_workspace);
-            current_workspace.activate_with_focus(win, global.get_current_time());
+            // Here global.get_current_time() instead of 0 will also work
+            current_workspace.activate_with_focus(win, 0);
         } else {
             throw new Error('Not found');
         }
