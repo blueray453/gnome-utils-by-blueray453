@@ -345,7 +345,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspace | jq .
 
     GetNormalWindowsCurrentWorkspace() {
-        let workspaceManager = global.workspace_manager;
+        let workspaceManager = global.get_workspace_manager();
 
         let wins = global.get_display().get_tab_list(Meta.TabList.NORMAL, workspaceManager.get_active_workspace());
 
@@ -413,7 +413,7 @@ var WindowFunctions = class WindowFunctions {
     GetWindowDetails(winid) {
         let win_actor = this._get_window_actor_by_wid(winid);
         let win = this._get_window_by_wid(winid);
-        let workspaceManager = global.workspace_manager;
+        let workspaceManager = global.get_workspace_manager();
         let display = global.get_display();
 
         if (win && win_actor) {
@@ -567,7 +567,7 @@ var WindowFunctions = class WindowFunctions {
     MoveWindowToCurrentWorkspace(winid) {
         let win = this._get_window_by_wid(winid);
         if (win) {
-            let workspaceManager = global.workspace_manager;
+            let workspaceManager = global.get_workspace_manager();
             let current_workspace = workspaceManager.get_active_workspace();
             win.change_workspace(current_workspace);
             current_workspace.activate_with_focus(win, global.get_current_time());
