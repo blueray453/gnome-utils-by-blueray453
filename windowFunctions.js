@@ -1,6 +1,8 @@
-const { Meta, Gio, GLib, Shell } = imports.gi;
-const workspaceManager = global.get_workspace_manager();
+const { Gio, GLib, Meta, Shell } = imports.gi;
 const display = global.get_display();
+
+// const workspaceManager = global.get_workspace_manager();
+const workspaceManager = display.get_workspace_manager();
 
 // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq .
 
@@ -155,6 +157,16 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
 
     AlignNormalWindowsCurrentWorkspaceCurrentWMClass() {
+
+
+        // global.set_persistent_state('align_windows_state', new GLib.Variant.new_int16(state + 1));
+
+        // let state = global.get_persistent_state('n', 'align_windows_state');
+        // if (state === null) {
+        //     global.set_persistent_state('align_windows_state', new GLib.Variant.new_int16(0));
+        // }
+
+
 
         let windows_array = this._get_normal_windows_current_workspace_current_wm_class();
         let number_of_windows = windows_array.length;
