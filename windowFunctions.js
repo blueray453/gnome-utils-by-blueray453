@@ -103,6 +103,7 @@ var MR_DBUS_IFACE = `
 var WindowFunctions = class WindowFunctions {
 
     _get_app_by_win = function (win) {
+        // let tracker = global.get_window_tracker().get_default();
         let tracker = Shell.WindowTracker.get_default();
         let app = tracker.get_window_app(win);
         return app;
