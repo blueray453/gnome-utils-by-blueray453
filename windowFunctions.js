@@ -168,47 +168,15 @@ var WindowFunctions = class WindowFunctions {
 
     AlignNormalWindowsCurrentWorkspaceCurrentWMClass() {
 
-
-        // global.set_persistent_state('align_windows_state', new GLib.Variant.new_int16(state + 1));
-
-        // let state = global.get_persistent_state('n', 'align_windows_state');
-        // if (state === null) {
-        //     global.set_persistent_state('align_windows_state', new GLib.Variant.new_int16(0));
-        // }
-
-
-
         let windows_array = this._get_normal_windows_current_workspace_current_wm_class_sorted();
         let number_of_windows = windows_array.length;
         let windows_per_container = 3;
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
 
-        const file_path = GLib.build_filenamev([GLib.get_home_dir(), 'align-windows-state.txt']);
-        const file = Gio.File.new_for_path(file_path);
+        let state = global.get_persistent_state('n', 'align_windows_state').get_int16();
 
-        let state = 0;
-
-        try {
-            const [ok, contents, etag] = file.load_contents(null);
-            const decoder = new TextDecoder('utf-8');
-            const contentsString = decoder.decode(contents);
-            let lines = contentsString.split(/\n/);
-
-            for (let i = 0; i < lines.length; i++) {
-
-                if (lines[i].length > 0) {
-                    state = lines[i];
-                }
-
-            }
-        } catch (e) {
-            logError(e);
-        }
-
-        try {
-            file.delete(null);
-        } catch (e) {
-            logError(e);
+        if (state === null) {
+            state = 0;
         }
 
         if (state >= number_of_states) {
@@ -250,12 +218,7 @@ var WindowFunctions = class WindowFunctions {
             win.activate(0);
         }
 
-        // Write value to file
-        const stream = file.append_to(Gio.FileCreateFlags.NONE, null);
-
-        let buffer = parseInt(state) + 1;
-
-        stream.write(buffer.toString(), null);
+        global.set_persistent_state('align_windows_state', GLib.Variant.new_int16(state + 1));
     }
 
     Close(winid) {
