@@ -1,8 +1,8 @@
 const { Gio, GLib, Meta, Shell } = imports.gi;
-const display = global.get_display();
+const Display = global.get_display();
 
-// const workspaceManager = global.get_workspace_manager();
-const workspaceManager = display.get_workspace_manager();
+// const WorkspaceManager = global.get_workspace_manager();
+const WorkspaceManager = Display.get_workspace_manager();
 
 // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq .
 
@@ -115,33 +115,33 @@ var WindowFunctions = class WindowFunctions {
     }
 
     _get_normal_windows_current_workspace_current_wm_class = function () {
-        let win = display.get_focus_window();
+        let win = Display.get_focus_window();
 
         let win_workspace = win.get_workspace();
         let win_wm_class = win.get_wm_class();
 
-        return display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class);
+        return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class);
 
     }
 
     _get_normal_windows_current_workspace_current_wm_class_sorted = function () {
-        let win = display.get_focus_window();
+        let win = Display.get_focus_window();
 
         let win_workspace = win.get_workspace();
         let win_wm_class = win.get_wm_class();
 
-        return display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class).sort((a, b) => a.get_id() - b.get_id());
+        return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class).sort((a, b) => a.get_id() - b.get_id());
 
     }
 
     _get_other_normal_windows_current_workspace_current_wm_class = function () {
-        let win = display.get_focus_window();
+        let win = Display.get_focus_window();
 
         let win_workspace = win.get_workspace();
         let win_wm_class = win.get_wm_class();
 
         // retrieve window list for all workspaces
-        return display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class && win != w);
+        return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class && win != w);
 
     }
 
@@ -151,7 +151,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     _get_window_by_wid = function (winid) {
-        let win = display.list_all_windows().find(w => w.get_id() == winid);
+        let win = Display.list_all_windows().find(w => w.get_id() == winid);
         return win;
     }
 
@@ -167,7 +167,6 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
 
     AlignNormalWindowsCurrentWorkspaceCurrentWMClass() {
-
         let windows_array = this._get_normal_windows_current_workspace_current_wm_class_sorted();
         let number_of_windows = windows_array.length;
         let windows_per_container = 3;
@@ -252,7 +251,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | jq .
 
     GetFocusedWindow() {
-        let win = display.get_focus_window();
+        let win = Display.get_focus_window();
 
         let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
 
@@ -306,7 +305,7 @@ var WindowFunctions = class WindowFunctions {
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindows | jq .
 
     GetNormalWindows() {
-        let wins = display.get_tab_list(Meta.TabList.NORMAL, null);
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
 
         var winJsonArr = [];
         wins.forEach(function (win) {
@@ -334,7 +333,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspace | jq .
 
     GetNormalWindowsCurrentWorkspace() {
-        let wins = display.get_tab_list(Meta.TabList.NORMAL, workspaceManager.get_active_workspace());
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, WorkspaceManager.get_active_workspace());
 
         var winJsonArr = [];
         wins.forEach(function (win) {
@@ -376,7 +375,7 @@ var WindowFunctions = class WindowFunctions {
         // https://github.com/lsnow/translate-clipboard
         // https://github.com/tuberry/light-dict
         // https://github.com/eexpress/gs-clip-translator
-        let selection = display.get_selection();
+        let selection = Display.get_selection();
         // https://stackoverflow.com/a/10548059/1772898
         St.Clipboard.get_default().set_text(St.ClipboardType.PRIMARY, selection);
 
@@ -409,7 +408,7 @@ var WindowFunctions = class WindowFunctions {
                 height: win_actor.get_height(),
                 flags: win_actor.get_flags(),
                 area_all: win.get_work_area_all_monitors(),
-                area_cust: win.get_work_area_for_monitor(display.get_current_monitor()),
+                area_cust: win.get_work_area_for_monitor(Display.get_current_monitor()),
                 area: win.get_work_area_current_monitor(),
                 canclose: win.can_close(),
                 canmaximize: win.can_maximize(),
@@ -422,7 +421,7 @@ var WindowFunctions = class WindowFunctions {
                 frame_type: win.get_frame_type(),
                 gtk_app_id: win.get_gtk_application_id(),
                 id: win.get_id(),
-                in_current_workspace: win.located_on_workspace(workspaceManager.get_active_workspace()),
+                in_current_workspace: win.located_on_workspace(WorkspaceManager.get_active_workspace()),
                 is_above: win.is_above(),
                 is_fullscreen: win.is_fullscreen(),
                 is_on_all_workspaces: win.is_on_all_workspaces(),
@@ -551,7 +550,7 @@ var WindowFunctions = class WindowFunctions {
     MoveWindowToCurrentWorkspace(winid) {
         let win = this._get_window_by_wid(winid);
         if (win) {
-            let current_workspace = workspaceManager.get_active_workspace();
+            let current_workspace = WorkspaceManager.get_active_workspace();
             win.change_workspace(current_workspace);
             // Here global.get_current_time() instead of 0 will also work
             current_workspace.activate_with_focus(win, 0);
