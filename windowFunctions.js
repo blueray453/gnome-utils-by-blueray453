@@ -233,10 +233,14 @@ var WindowFunctions = class WindowFunctions {
 
     CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
-        // Here global.get_current_time() instead of 0 will also work
-        wins.map(w => w.delete(0));
+        wins.forEach(function (w) {
+            if (w.get_wm_class_instance() !== 'file_progress') {
+                // log(`closing: ${w.get_id()}`);
+                // log(`closing: ${w.get_wm_class_instance()}`);
+                w.delete(0);
+            }
+        })
     }
-
 
     Focus(winid) {
         let win = this._get_window_by_wid(winid);
@@ -399,9 +403,14 @@ var WindowFunctions = class WindowFunctions {
         let win_actor = this._get_window_actor_by_wid(winid);
         let win = this._get_window_by_wid(winid);
 
+        log(`win_actor: ${win_actor}`);
+        log(`win: ${win}`);
+
         if (win && win_actor) {
 
             let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
+
+            log(`is_sticky: ${is_sticky}`);
 
             return JSON.stringify({
                 width: win_actor.get_width(),
