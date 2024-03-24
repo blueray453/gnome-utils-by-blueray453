@@ -213,7 +213,11 @@ var WindowFunctions = class WindowFunctions {
             if (win.maximized_horizontally || win.maximized_vertically) {
                 win.unmaximize(3);
             }
-            win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
+
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
+                return GLib.SOURCE_REMOVE;
+            });
             win.activate(0);
         }
 
@@ -547,7 +551,10 @@ var WindowFunctions = class WindowFunctions {
             if (win.maximized_horizontally || win.maximized_vertically) {
                 win.unmaximize(3);
             }
-            win.move_resize_frame(1, x, y, width, height);
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                win.move_resize_frame(1, x, y, width, height);
+                return GLib.SOURCE_REMOVE;
+            });
             win.activate(0);
         } else {
             throw new Error('Not found');
@@ -589,7 +596,12 @@ var WindowFunctions = class WindowFunctions {
             if (win.maximized_horizontally || win.maximized_vertically) {
                 win.unmaximize(3);
             }
-            win.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
+
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                win.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
+                return GLib.SOURCE_REMOVE;
+            });
+
             win.activate(0);
         } else {
             throw new Error('Not found');
