@@ -1,4 +1,6 @@
-const { Gio, GLib, Shell } = imports.gi;
+const { Meta, St } = imports.gi;
+
+const Display = global.get_display();
 
 var MR_DBUS_IFACE = `
 <node>
@@ -21,11 +23,27 @@ var clipboardFunctions = class clipboardFunctions {
         // https://github.com/eexpress/gs-clip-translator
         let selection = Display.get_selection();
         // https://stackoverflow.com/a/10548059/1772898
-        St.Clipboard.get_default().set_text(St.ClipboardType.PRIMARY, selection);
 
-        return selection;
+        try {
+            let text = selection.get_text();
+            log(`Text of Selection is : ${error}`);
+
+        }
+        catch (error) {
+            log(`Error Text of Selection: ${error}`);
+        }
+
+        try {
+        let clipboard = St.Clipboard.get_default();
+
+            clipboard.set_text(St.ClipboardType.PRIMARY, selection);
+        }
+        catch (error) {
+            log(`Error GetSelection: ${error}`);
+        }
+        // return selection;
+        return "selection";
     }
-
 }
 
 
