@@ -25,6 +25,7 @@ const Me = ExtensionUtils.getCurrentExtension();
 const appFunctions = Me.imports.appFunctions;
 const windowFunctions = Me.imports.windowFunctions;
 const workspaceFunctions = Me.imports.workspaceFunctions;
+const clipboardFunctions = Me.imports.clipboardFunctions;
 
 class Extension {
 
@@ -40,6 +41,9 @@ class Extension {
 
         this._dbus_workspaces = Gio.DBusExportedObject.wrapJSObject(workspaceFunctions.MR_DBUS_IFACE, new workspaceFunctions.WorkspaceFunctions());
         this._dbus_workspaces.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces');
+
+        this._dbus_clipboard = Gio.DBusExportedObject.wrapJSObject(clipboardFunctions.MR_DBUS_IFACE, new clipboardFunctions.clipboardFunctions());
+        this._dbus_clipboard.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsClipboard');
 
     }
 
@@ -57,6 +61,10 @@ class Extension {
         this._dbus_workspaces.flush();
         this._dbus_workspaces.unexport();
         delete this._dbus_workspaces;
+
+        this._dbus_clipboard.flush();
+        this._dbus_clipboard.unexport();
+        delete this._dbus_clipboard;
     }
 }
 

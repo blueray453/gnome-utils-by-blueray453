@@ -41,9 +41,6 @@ var MR_DBUS_IFACE = `
       <method name="GetNormalWindowsCurrentWorkspaceCurrentWMClass">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetSelection">
-         <arg type="s" direction="out" name="selection" />
-      </method>
       <method name="GetTitle">
          <arg type="u" direction="in" name="winid" />
          <arg type="s" direction="out" name="win" />
@@ -383,19 +380,6 @@ var WindowFunctions = class WindowFunctions {
 
         return JSON.stringify(windows_array);
 
-    }
-
-    GetSelection() {
-        // Not Done
-        // https://github.com/awamper/gpaste-integration
-        // https://github.com/lsnow/translate-clipboard
-        // https://github.com/tuberry/light-dict
-        // https://github.com/eexpress/gs-clip-translator
-        let selection = Display.get_selection();
-        // https://stackoverflow.com/a/10548059/1772898
-        St.Clipboard.get_default().set_text(St.ClipboardType.PRIMARY, selection);
-
-        return selection;
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetTitle uint32:3931313482
