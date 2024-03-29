@@ -172,11 +172,18 @@ var WindowFunctions = class WindowFunctions {
         let windows_per_container = 3;
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
 
-        let state = global.get_persistent_state('n', 'align_windows_state').get_int16();
+        let state;
 
-        if (state === null) {
+        try {
+            state = global.get_persistent_state('n', 'align_windows_state').get_int16();
+        } catch (error) {
+            log(`Error : ${error}`);
+            // Set default value for persistent state
+            global.set_persistent_state('align_windows_state', GLib.Variant.new_int16(0));
             state = 0;
         }
+
+        log(`state : ${state}`);
 
         if (state >= number_of_states) {
             state = 0;
