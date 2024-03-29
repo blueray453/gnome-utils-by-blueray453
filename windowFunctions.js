@@ -177,13 +177,13 @@ var WindowFunctions = class WindowFunctions {
         try {
             state = global.get_persistent_state('n', 'align_windows_state').get_int16();
         } catch (error) {
-            log(`Error : ${error}`);
+            // log(`Error : ${error}`);
             // Set default value for persistent state
             global.set_persistent_state('align_windows_state', GLib.Variant.new_int16(0));
             state = 0;
         }
 
-        log(`state : ${state}`);
+        // log(`state : ${state}`);
 
         if (state >= number_of_states) {
             state = 0;
