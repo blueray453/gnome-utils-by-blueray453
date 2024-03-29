@@ -373,6 +373,7 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
     GetNormalWindowsCurrentWorkspaceCurrentWMClass() {
         let wins = this._get_normal_windows_current_workspace_current_wm_class();
 
@@ -499,6 +500,7 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Maximize uint32:3931313482
     Maximize(winid) {
         let win = this._get_window_by_wid(winid);
 
@@ -513,6 +515,7 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Minimize uint32:3931313482
     Minimize(winid) {
         let win = this._get_window_by_wid(winid);
         if (win) {
