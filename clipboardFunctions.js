@@ -24,23 +24,25 @@ var clipboardFunctions = class clipboardFunctions {
         let selection = Display.get_selection();
         // https://stackoverflow.com/a/10548059/1772898
 
-        try {
-            let text = selection.get_text();
-            log(`Text of Selection is : ${error}`);
+        log(`Selection: ${selection}`);
 
-        }
-        catch (error) {
-            log(`Error Text of Selection: ${error}`);
-        }
+        // try {
+        //     let text = selection.get_text();
+        //     log(`Text of Selection is : ${error}`);
 
-        try {
-        let clipboard = St.Clipboard.get_default();
+        // }
+        // catch (error) {
+        //     log(`Error Text of Selection: ${error}`);
+        // }
 
-            clipboard.set_text(St.ClipboardType.PRIMARY, selection);
-        }
-        catch (error) {
-            log(`Error GetSelection: ${error}`);
-        }
+        // try {
+        // let clipboard = St.Clipboard.get_default();
+
+        //     clipboard.set_text(St.ClipboardType.PRIMARY, selection);
+        // }
+        // catch (error) {
+        //     log(`Error GetSelection: ${error}`);
+        // }
         // return selection;
         return "selection";
     }
