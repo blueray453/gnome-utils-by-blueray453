@@ -222,10 +222,17 @@ var WindowFunctions = class WindowFunctions {
                 win.unmaximize(3);
             }
 
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            //     win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
+            //     return GLib.SOURCE_REMOVE;
+            // });
+
+            let actor = win.get_compositor_private();
+            let id = actor.connect('first-frame', _ => {
                 win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
-                return GLib.SOURCE_REMOVE;
+                actor.disconnect(id);
             });
+
             win.activate(0);
         }
 
@@ -549,10 +556,18 @@ var WindowFunctions = class WindowFunctions {
             if (win.maximized_horizontally || win.maximized_vertically) {
                 win.unmaximize(3);
             }
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            //     win.move_resize_frame(1, x, y, width, height);
+            //     return GLib.SOURCE_REMOVE;
+            // });
+
+
+            let actor = win.get_compositor_private();
+            let id = actor.connect('first-frame', _ => {
                 win.move_resize_frame(1, x, y, width, height);
-                return GLib.SOURCE_REMOVE;
+                actor.disconnect(id);
             });
+
             win.activate(0);
         } else {
             throw new Error('Not found');
@@ -567,11 +582,17 @@ var WindowFunctions = class WindowFunctions {
             let top = 0;
             let width = work_area.width / 2;
             let height = work_area.height;
-            win.move_resize_frame(true, left, top, width, height);
+            // win.move_resize_frame(true, left, top, width, height);
 
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            //     win.move_resize_frame(1, left, top, width, height);
+            //     return GLib.SOURCE_REMOVE;
+            // });
+
+            let actor = win.get_compositor_private();
+            let id = actor.connect('first-frame', _ => {
                 win.move_resize_frame(1, left, top, width, height);
-                return GLib.SOURCE_REMOVE;
+                actor.disconnect(id);
             });
         }
     }
@@ -584,11 +605,17 @@ var WindowFunctions = class WindowFunctions {
             let width = work_area.width / 2;
             let left = width;
             let height = work_area.height;
-            win.move_resize_frame(true, left, top, width, height);
+            // win.move_resize_frame(true, left, top, width, height);
 
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            //     win.move_resize_frame(1, left, top, width, height);
+            //     return GLib.SOURCE_REMOVE;
+            // });
+
+            let actor = win.get_compositor_private();
+            let id = actor.connect('first-frame', _ => {
                 win.move_resize_frame(1, left, top, width, height);
-                return GLib.SOURCE_REMOVE;
+                actor.disconnect(id);
             });
         }
     }
@@ -629,9 +656,15 @@ var WindowFunctions = class WindowFunctions {
                 win.unmaximize(3);
             }
 
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            //     win.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
+            //     return GLib.SOURCE_REMOVE;
+            // });
+
+            let actor = win.get_compositor_private();
+            let id = actor.connect('first-frame', _ => {
                 win.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
-                return GLib.SOURCE_REMOVE;
+                actor.disconnect(id);
             });
 
             win.activate(0);
