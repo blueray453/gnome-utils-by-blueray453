@@ -73,6 +73,10 @@ var MR_DBUS_IFACE = `
          <arg type="i" direction="in" name="width" />
          <arg type="i" direction="in" name="height" />
       </method>
+      <method name="MoveResizeFocusedWindowToLeftHalfWorkArea">
+      </method>
+      <method name="MoveResizeFocusedWindowToRightHalfWorkArea">
+      </method>
       <method name="MoveWindowToCurrentWorkspace">
          <arg type="u" direction="in" name="winid" />
       </method>
@@ -552,6 +556,40 @@ var WindowFunctions = class WindowFunctions {
             win.activate(0);
         } else {
             throw new Error('Not found');
+        }
+    }
+
+    MoveResizeFocusedWindowToLeftHalfWorkArea() {
+        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        let work_area = win.get_work_area_current_monitor();
+        if (win && work_area) {
+            let left = 0;
+            let top = 0;
+            let width = work_area.width / 2;
+            let height = work_area.height;
+            win.move_resize_frame(true, left, top, width, height);
+
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                win.move_resize_frame(1, left, top, width, height);
+                return GLib.SOURCE_REMOVE;
+            });
+        }
+    }
+
+    MoveResizeFocusedWindowToRightHalfWorkArea() {
+        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        let work_area = win.get_work_area_current_monitor();
+        if (win && work_area) {
+            let top = 0;
+            let width = work_area.width / 2;
+            let left = width;
+            let height = work_area.height;
+            win.move_resize_frame(true, left, top, width, height);
+
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                win.move_resize_frame(1, left, top, width, height);
+                return GLib.SOURCE_REMOVE;
+            });
         }
     }
 
