@@ -88,7 +88,9 @@ var WorkspaceFunctions = class WorkspaceFunctions {
 
             // let temp = ;
 
-            workspace_names.push(Meta.prefs_get_workspace_name(wks));
+            workspace_names.push({index: wks, name: Meta.prefs_get_workspace_name(wks)});
+
+
 
             // let workspace_name = wks+'_'+Meta.prefs_get_workspace_name(wks);
             let workspace_name = Meta.prefs_get_workspace_name(wks);
@@ -113,9 +115,9 @@ var WorkspaceFunctions = class WorkspaceFunctions {
 
         return JSON.stringify({
             workspace_names: workspace_names,
-            number_of_workspaces: number_of_workspaces,
-            current_workspace: current_workspace,
-            all_windows_of_workspaces: all_windows_of_workspaces,
+            // number_of_workspaces: number_of_workspaces,
+            // current_workspace: current_workspace,
+            // all_windows_of_workspaces: all_windows_of_workspaces,
             all_normal_windows_of_workspaces: all_normal_windows_of_workspaces
         });
     }
