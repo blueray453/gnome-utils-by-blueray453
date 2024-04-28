@@ -407,7 +407,9 @@ var WindowFunctions = class WindowFunctions {
         const classOrder = {
             "Fsearch": 1,
             "VSCodium": 2,
-            "firefox": 3
+            "firefox": 3,
+            "Nemo": 4,
+            "Alacritty": 5
         };
 
         wins.sort((winA, winB) => {
