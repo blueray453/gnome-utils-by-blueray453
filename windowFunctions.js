@@ -22,6 +22,9 @@ var MR_DBUS_IFACE = `
       <method name="Focus">
          <arg type="u" direction="in" name="winid" />
       </method>
+      <method name="FullScreen">
+         <arg type="u" direction="in" name="winid" />
+      </method>
       <method name="GetFocusedWindow">
          <arg type="s" direction="out" name="win" />
       </method>
@@ -259,6 +262,15 @@ var WindowFunctions = class WindowFunctions {
                 w.delete(0);
             }
         })
+    }
+
+    FullScreen(winid) {
+        let win = this._get_window_by_wid(winid);
+        let win_workspace = win.get_workspace();
+        // Here global.get_current_time() instead of 0 will also work
+        win.maximize(3);
+        win_workspace.activate_with_focus(win, 0);
+        // win.make_fullscreen();
     }
 
     Focus(winid) {
