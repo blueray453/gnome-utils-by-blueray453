@@ -15,7 +15,7 @@ var MR_DBUS_IFACE = `
       </method>
       <method name="getWorkspaceIndexByName">
          <arg type="s" direction="in" name="workspace_name" />
-         <arg type="i" direction="in" name="workspace_num" />
+         <arg type="i" direction="out" name="workspace_num" />
       </method>
       <method name="MoveWindowToWorkspaceAndFocus">
          <arg type="u" direction="in" name="winid" />
