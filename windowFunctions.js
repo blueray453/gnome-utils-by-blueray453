@@ -412,6 +412,14 @@ var WindowFunctions = class WindowFunctions {
         wins.sort((winA, winB) => {
             let orderA = classOrder[winA.wm_class] || Number.MAX_SAFE_INTEGER;
             let orderB = classOrder[winB.wm_class] || Number.MAX_SAFE_INTEGER;
+
+            // If both windows belong to the same class, sort based on user time
+            if (orderA === orderB) {
+                let userTimeA = winA.get_user_time();
+                let userTimeB = winB.get_user_time();
+                return userTimeB - userTimeA; // Sort in descending order of user time
+            }
+
             return orderA - orderB;
         });
 
@@ -423,11 +431,12 @@ var WindowFunctions = class WindowFunctions {
 
             let workspace_id = win.get_workspace().index();
             let workspace_name = Meta.prefs_get_workspace_name(workspace_id);
-
+            // time is buggy, need fix
             winJsonArr.push({
                 id: win.get_id(),
                 title: win.get_title(),
                 wm_class: win.get_wm_class(),
+                time: new Date(win.get_user_time()).toLocaleString(),
                 icon: icon,
                 workspace_id: workspace_id,
                 workspace_name: workspace_name
