@@ -55,7 +55,10 @@ var MR_DBUS_IFACE = `
       <method name="GetWindows">
          <arg type="s" direction="out" name="win" />
       </method>
-
+    <method name="GetWMClass">
+         <arg type="u" direction="in" name="winid" />
+         <arg type="s" direction="out" name="win" />
+      </method>
       <method name="Maximize">
          <arg type="u" direction="in" name="winid" />
       </method>
@@ -505,6 +508,18 @@ var WindowFunctions = class WindowFunctions {
             });
         })
         return JSON.stringify(winJsonArr);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWMClass uint32:3931313482
+    GetWMClass(winid) {
+        let w = this._get_window_by_wid(winid);
+
+        if (w) {
+            return win.get_wm_class();
+        } else {
+            throw new Error('Not found');
+        }
+
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Maximize uint32:3931313482
