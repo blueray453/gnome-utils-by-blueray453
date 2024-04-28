@@ -13,6 +13,10 @@ var MR_DBUS_IFACE = `
          <arg type="u" direction="in" name="winid" />
          <arg type="i" direction="in" name="workspace_num" />
       </method>
+      <method name="getWorkspaceIndexByName">
+         <arg type="s" direction="in" name="workspace_name" />
+         <arg type="i" direction="in" name="workspace_num" />
+      </method>
       <method name="MoveWindowToWorkspaceAndFocus">
          <arg type="u" direction="in" name="winid" />
          <arg type="i" direction="in" name="workspace_num" />
@@ -66,7 +70,28 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         // win.activate_with_workspace(global.get_current_time(), metaWorkspace);
     }
 
+    getWorkspaceIndexByName(workspaceName) {
+        // Get the total number of workspaces
+        let number_of_workspaces = global.workspace_manager.n_workspaces;
+
+        // Iterate through each workspace
+        for (let i = 0; i < number_of_workspaces; i++) {
+            // Get the workspace
+            const workspace = workspaceManager.get_workspace_by_index(i);
+
+            // Check if the workspace name matches
+            if (Meta.prefs_get_workspace_name(i) == workspaceName) {
+                // Return the index of the workspace
+                return i;
+            }
+        }
+        // Workspace not found
+        return -1;
+    }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetWorkspaces | jq .
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetWorkspaces | jq -r '.workspace_names[].name'
 
     GetWorkspaces() {
         // let w = global.workspace_manager;
