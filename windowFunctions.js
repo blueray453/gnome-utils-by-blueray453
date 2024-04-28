@@ -511,11 +511,12 @@ var WindowFunctions = class WindowFunctions {
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWMClass uint32:3931313482
+
     GetWMClass(winid) {
         let w = this._get_window_by_wid(winid);
 
         if (w) {
-            return win.get_wm_class();
+            return w.get_wm_class();
         } else {
             throw new Error('Not found');
         }
