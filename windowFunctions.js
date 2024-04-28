@@ -403,47 +403,40 @@ var WindowFunctions = class WindowFunctions {
     GetNormalWindowsForRofiSorted() {
         let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
 
-        let FsearchWins = [];
-        let VSCodiumWins = [];
-        let firefoxFWins = [];
-        let normalWins = [];
+        const classOrder = {
+            "Fsearch": 1,
+            "VSCodium": 2,
+            "firefox": 3
+        };
+
+        wins.sort((winA, winB) => {
+            let orderA = classOrder[winA.wm_class] || Number.MAX_SAFE_INTEGER;
+            let orderB = classOrder[winB.wm_class] || Number.MAX_SAFE_INTEGER;
+            return orderA - orderB;
+        });
+
+        var winJsonArr = [];
 
         wins.forEach((win) => {
             let app = this._get_app_by_win(win);
-            let wmClass = win.get_wm_class();
-
-            if (wmClass === "Fsearch") {
-                FsearchWins.push(win);
-            } else if (wmClass === "VSCodium") {
-                VSCodiumWins.push(win);
-            } else if (wmClass === "firefox") {
-                firefoxFWins.push(win);
-            } else {
-                normalWins.push(win);
-            }
-        });
-
-        // Concatenate all windows arrays in the desired order
-        let sortedWins = [...FsearchWins, ...VSCodiumWins, ...firefoxFWins, ...normalWins];
-
-        let sortedWindowsArray = sortedWins.map((win) => {
-            let app = this._get_app_by_win(win);
             let icon = app.get_icon().to_string();
-            let workspaceId = win.get_workspace().index();
-            let workspaceName = Meta.prefs_get_workspace_name(workspaceId);
 
-            return {
+            let workspace_id = win.get_workspace().index();
+            let workspace_name = Meta.prefs_get_workspace_name(workspace_id);
+
+            winJsonArr.push({
                 id: win.get_id(),
                 title: win.get_title(),
                 wm_class: win.get_wm_class(),
                 icon: icon,
-                workspace_id: workspaceId,
-                workspace_name: workspaceName
-            };
-        });
-
-        return JSON.stringify(sortedWindowsArray);
+                workspace_id: workspace_id,
+                workspace_name: workspace_name
+            });
+        })
+        return JSON.stringify(winJsonArr);
     }
+
+
 
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspace | jq .
