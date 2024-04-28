@@ -70,7 +70,11 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         // win.activate_with_workspace(global.get_current_time(), metaWorkspace);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.getWorkspaceIndexByName string:"Codium/Books" | awk '/int32/ {print $2}'
+
     getWorkspaceIndexByName(workspaceName) {
+
+        let workspaceManager = global.workspace_manager;
         // Get the total number of workspaces
         let number_of_workspaces = global.workspace_manager.n_workspaces;
 
