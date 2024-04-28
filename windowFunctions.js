@@ -41,6 +41,9 @@ var MR_DBUS_IFACE = `
       <method name="GetNormalWindowsForRofi">
          <arg type="s" direction="out" name="win" />
       </method>
+      <method name="GetNormalWindowsForRofiSorted">
+         <arg type="s" direction="out" name="win" />
+      </method>
       <method name="GetNormalWindowsCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
       </method>
@@ -396,6 +399,52 @@ var WindowFunctions = class WindowFunctions {
         })
         return JSON.stringify(winJsonArr);
     }
+
+    GetNormalWindowsForRofiSorted() {
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
+
+        let FsearchWins = [];
+        let VSCodiumWins = [];
+        let firefoxFWins = [];
+        let normalWins = [];
+
+        wins.forEach((win) => {
+            let app = this._get_app_by_win(win);
+            let wmClass = win.get_wm_class();
+
+            if (wmClass === "Fsearch") {
+                FsearchWins.push(win);
+            } else if (wmClass === "VSCodium") {
+                VSCodiumWins.push(win);
+            } else if (wmClass === "firefox") {
+                firefoxFWins.push(win);
+            } else {
+                normalWins.push(win);
+            }
+        });
+
+        // Concatenate all windows arrays in the desired order
+        let sortedWins = [...FsearchWins, ...VSCodiumWins, ...firefoxFWins, ...normalWins];
+
+        let sortedWindowsArray = sortedWins.map((win) => {
+            let app = this._get_app_by_win(win);
+            let icon = app.get_icon().to_string();
+            let workspaceId = win.get_workspace().index();
+            let workspaceName = Meta.prefs_get_workspace_name(workspaceId);
+
+            return {
+                id: win.get_id(),
+                title: win.get_title(),
+                wm_class: win.get_wm_class(),
+                icon: icon,
+                workspace_id: workspaceId,
+                workspace_name: workspaceName
+            };
+        });
+
+        return JSON.stringify(sortedWindowsArray);
+    }
+
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspace | jq .
 
