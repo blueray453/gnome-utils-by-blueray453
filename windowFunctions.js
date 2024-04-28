@@ -400,6 +400,7 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsForRofiSorted | jq .
     GetNormalWindowsForRofiSorted() {
         let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
 
