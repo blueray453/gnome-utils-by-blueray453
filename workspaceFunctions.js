@@ -77,7 +77,7 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         // });
 
         let workspaceManager = global.workspace_manager;
-        let workspace_names = []
+        let workspaces = []
         let current_workspace = Meta.prefs_get_workspace_name(workspaceManager.get_active_workspace().index());
         let number_of_workspaces = global.workspace_manager.n_workspaces;
         let all_windows_of_workspaces = {};
@@ -88,7 +88,7 @@ var WorkspaceFunctions = class WorkspaceFunctions {
 
             // let temp = ;
 
-            workspace_names.push({index: wks, name: Meta.prefs_get_workspace_name(wks)});
+            workspaces.push({index: wks, name: Meta.prefs_get_workspace_name(wks)});
 
 
 
@@ -114,7 +114,7 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         }
 
         return JSON.stringify({
-            workspace_names: workspace_names,
+            workspaces: workspaces,
             // number_of_workspaces: number_of_workspaces,
             // current_workspace: current_workspace,
             // all_windows_of_workspaces: all_windows_of_workspaces,
