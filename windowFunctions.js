@@ -38,6 +38,9 @@ var MR_DBUS_IFACE = `
       <method name="GetNormalWindows">
          <arg type="s" direction="out" name="win" />
       </method>
+      <method name="GetNormalWindowsForRofi">
+         <arg type="s" direction="out" name="win" />
+      </method>
       <method name="GetNormalWindowsCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
       </method>
@@ -363,6 +366,32 @@ var WindowFunctions = class WindowFunctions {
                 wm_class_instance: win.get_wm_class_instance(),
                 wm_class: win.get_wm_class(),
                 workspace: win.get_workspace().index()
+            });
+        })
+        return JSON.stringify(winJsonArr);
+    }
+
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsForRofi | jq .
+
+    GetNormalWindowsForRofi() {
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
+
+        var winJsonArr = [];
+
+        wins.forEach((win) => {
+            let app = this._get_app_by_win(win);
+            let icon = app.get_icon().to_string();
+
+            let workspace_id = win.get_workspace().index();
+            let workspace_name = Meta.prefs_get_workspace_name(workspace_id);
+
+            winJsonArr.push({
+                id: win.get_id(),
+                title: win.get_title(),
+                wm_class: win.get_wm_class(),
+                icon: icon,
+                workspace_id: workspace_id,
+                workspace_name: workspace_name
             });
         })
         return JSON.stringify(winJsonArr);
