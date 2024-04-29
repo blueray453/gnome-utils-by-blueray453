@@ -235,16 +235,16 @@ var WindowFunctions = class WindowFunctions {
                 win.unmaximize(3);
             }
 
-            // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            //     win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
-            //     return GLib.SOURCE_REMOVE;
-            // });
-
-            let actor = win.get_compositor_private();
-            let id = actor.connect('first-frame', _ => {
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
-                actor.disconnect(id);
+                return GLib.SOURCE_REMOVE;
             });
+
+            // let actor = win.get_compositor_private();
+            // let id = actor.connect('first-frame', _ => {
+            //     win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
+            //     actor.disconnect(id);
+            // });
 
             win.activate(0);
         }
