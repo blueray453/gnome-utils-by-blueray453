@@ -17,6 +17,9 @@ var MR_DBUS_IFACE = `
       <method name="Close">
          <arg type="u" direction="in" name="winid" />
       </method>
+      <method name="CloseDuplicateNemoWindows">
+      </method>
+      </method>
       <method name="CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Focus">
@@ -134,7 +137,6 @@ var WindowFunctions = class WindowFunctions {
         let win_wm_class = win.get_wm_class();
 
         return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class);
-
     }
 
     _get_normal_windows_current_workspace_current_wm_class_sorted = function () {
@@ -260,6 +262,29 @@ var WindowFunctions = class WindowFunctions {
         } else {
             throw new Error('Not found');
         }
+    }
+
+    CloseDuplicateNemoWindows() {
+
+        let current_workspace = workspaceManager.get_active_workspace();
+
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).filter(w => w.get_wm_class() == "Nemo");
+
+        let seen = {};
+        wins.forEach(win => {
+                let key = win.get_title();
+                if (!seen[key]) {
+                    seen[key] = win;
+                } else {
+                    // Compare timestamps
+                    if (win.get_user_time() < seen[key].get_user_time()) {
+                        win.delete(0);
+                    } else {
+                        seen[key].delete(0);
+                        seen[key] = win;
+                    }
+                }
+        });
     }
 
     CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
