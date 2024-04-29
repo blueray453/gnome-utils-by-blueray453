@@ -1,5 +1,7 @@
 const { Gio, GLib, Shell, Meta } = imports.gi;
 
+const WorkspaceManager = global.get_workspace_manager();
+
 var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWorkspaces">
@@ -29,11 +31,10 @@ var MR_DBUS_IFACE = `
 
 var WorkspaceFunctions = class WorkspaceFunctions {
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveFocusedWindowToWorkspace int32:3
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetCurrentWorkspace
     GetCurrentWorkspace() {
 
-        let workspaceManager = global.workspace_manager;
-        return workspaceManager.get_active_workspace().index();
+        return WorkspaceManager.get_active_workspace().index();
 
     }
 
@@ -74,14 +75,13 @@ var WorkspaceFunctions = class WorkspaceFunctions {
 
     getWorkspaceIndexByName(workspaceName) {
 
-        let workspaceManager = global.workspace_manager;
         // Get the total number of workspaces
         let number_of_workspaces = global.workspace_manager.n_workspaces;
 
         // Iterate through each workspace
         for (let i = 0; i < number_of_workspaces; i++) {
             // Get the workspace
-            const workspace = workspaceManager.get_workspace_by_index(i);
+            const workspace = WorkspaceManager.get_workspace_by_index(i);
 
             // Check if the workspace name matches
             if (Meta.prefs_get_workspace_name(i) == workspaceName) {
@@ -105,9 +105,8 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         //     windows: global.screen.get_active_workspace().list_windows(),
         // });
 
-        let workspaceManager = global.workspace_manager;
         let workspaces = []
-        let current_workspace = Meta.prefs_get_workspace_name(workspaceManager.get_active_workspace().index());
+        let current_workspace = Meta.prefs_get_workspace_name(WorkspaceManager.get_active_workspace().index());
         let number_of_workspaces = global.workspace_manager.n_workspaces;
         let all_windows_of_workspaces = {};
         let all_normal_windows_of_workspaces = {};
