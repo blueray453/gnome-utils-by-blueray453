@@ -19,7 +19,6 @@ var MR_DBUS_IFACE = `
       </method>
       <method name="CloseDuplicateNemoWindows">
       </method>
-      </method>
       <method name="CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Focus">
@@ -266,7 +265,7 @@ var WindowFunctions = class WindowFunctions {
 
     CloseDuplicateNemoWindows() {
 
-        let current_workspace = workspaceManager.get_active_workspace();
+        let current_workspace = WorkspaceManager.get_active_workspace();
 
         let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).filter(w => w.get_wm_class() == "Nemo");
 
