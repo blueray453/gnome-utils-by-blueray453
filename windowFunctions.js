@@ -272,7 +272,7 @@ var WindowFunctions = class WindowFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass | jq .
     AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass() {
-        let windows_array = this._get_normal_nemo_windows_current_workspace_current_wm_class();
+        let windows_array = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
         let persistent_state_key = "align_windows_state_nemo";
         let windows_per_container = 3;
 
@@ -290,27 +290,31 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    CloseDuplicateNemoWindows() {
-
-        let current_workspace = WorkspaceManager.get_active_workspace();
-
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).filter(w => w.get_wm_class() == "Nemo");
-
+    _close_duplicate_windows = function (wm_class) {
+        let wins = this._get_normal_windows_current_workspace_given_wm_class(wm_class);
         let seen = {};
         wins.forEach(win => {
-                let key = win.get_title();
-                if (!seen[key]) {
-                    seen[key] = win;
+            let key = win.get_title();
+            if (!seen[key]) {
+                seen[key] = win;
+            } else {
+                // Compare timestamps
+                if (win.get_user_time() < seen[key].get_user_time()) {
+                    win.delete(0);
                 } else {
-                    // Compare timestamps
-                    if (win.get_user_time() < seen[key].get_user_time()) {
-                        win.delete(0);
-                    } else {
-                        seen[key].delete(0);
-                        seen[key] = win;
-                    }
+                    seen[key].delete(0);
+                    seen[key] = win;
                 }
+            }
         });
+    }
+
+    CloseDuplicateNemoWindows() {
+        this._close_duplicate_windows("Nemo");
+    }
+
+    CloseDuplicateAlacrittyWindows() {
+        this._close_duplicate_windows("Alacritty");
     }
 
     CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
