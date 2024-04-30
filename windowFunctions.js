@@ -12,6 +12,8 @@ var MR_DBUS_IFACE = `
       <method name="Activate">
          <arg type="u" direction="in" name="winid" />
       </method>
+      <method name="AlignNormalAlacrittyWindowsCurrentWorkspaceCurrentWMClass">
+      </method>
       <method name="AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="AlignNormalWindowsCurrentWorkspaceCurrentWMClass">
@@ -253,6 +255,14 @@ var WindowFunctions = class WindowFunctions {
         return Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).filter(w => w.get_wm_class() == wm_class).sort((a, b) => a.get_id() - b.get_id());
     }
 
+    _get_normal_windows_given_wm_class = function (wm_class) {
+        return Display.get_tab_list(Meta.TabList.NORMAL, null).filter(w => w.get_wm_class() == wm_class);
+    }
+
+    _get_normal_windows_given_wm_class_sorted = function (wm_class) {
+        return Display.get_tab_list(Meta.TabList.NORMAL, null).filter(w => w.get_wm_class() == wm_class).sort((a, b) => a.get_id() - b.get_id());
+    }
+
     _get_other_normal_windows_current_workspace_current_wm_class = function () {
         let win = Display.get_focus_window();
 
@@ -283,9 +293,18 @@ var WindowFunctions = class WindowFunctions {
         win_workspace.activate_with_focus(win, 0);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalAlacrittyWindowsCurrentWorkspaceCurrentWMClass | jq .
+    AlignNormalAlacrittyWindows() {
+        let windows_array = this._get_normal_windows_given_wm_class_sorted("Alacritty");
+        let persistent_state_key = "align_windows_state_alacritty";
+        let windows_per_container = 3;
+        this._close_duplicate_windows("Alacritty");
+        this._align_windows(windows_array, windows_per_container, persistent_state_key);
+    }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass | jq .
-    AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass() {
-        let windows_array = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
+    AlignNormalNemoWindows() {
+        let windows_array = this._get_normal_windows_given_wm_class_sorted("Nemo");
         let persistent_state_key = "align_windows_state_nemo";
         let windows_per_container = 3;
         this._close_duplicate_windows("Nemo");
@@ -547,8 +566,6 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
-
-
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetTitle uint32:3931313482
 
     GetTitle(winid) {
@@ -719,7 +736,7 @@ var WindowFunctions = class WindowFunctions {
 
         let current_workspace = WorkspaceManager.get_active_workspace();
 
-        let windows_array = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
+        let windows_array = this._get_normal_windows_given_wm_class_sorted("Nemo");
 
         wins.forEach(win => {
             win.change_workspace(current_workspace);
