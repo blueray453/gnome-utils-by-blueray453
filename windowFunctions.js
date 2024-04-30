@@ -17,8 +17,6 @@ var MR_DBUS_IFACE = `
       <method name="Close">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="CloseDuplicateAlacrittyWindows">
-      </method>
       <method name="CloseDuplicateNemoWindows">
       </method>
       <method name="CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass">
@@ -307,10 +305,6 @@ var WindowFunctions = class WindowFunctions {
         } else {
             throw new Error('Not found');
         }
-    }
-
-    CloseDuplicateAlacrittyWindows() {
-        this._close_duplicate_windows("Alacritty");
     }
 
     CloseDuplicateNemoWindows() {
