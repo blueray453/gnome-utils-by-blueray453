@@ -123,74 +123,6 @@ var MR_DBUS_IFACE = `
 
 var WindowFunctions = class WindowFunctions {
 
-    _get_app_by_win = function (win) {
-        // let tracker = global.get_window_tracker().get_default();
-        let tracker = Shell.WindowTracker.get_default();
-        let app = tracker.get_window_app(win);
-        return app;
-
-    }
-
-    _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
-        let current_workspace = WorkspaceManager.get_active_workspace();
-        return Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).filter(w => w.get_wm_class() == wm_class);
-    }
-
-    _get_normal_windows_current_workspace_current_wm_class = function () {
-        let win = Display.get_focus_window();
-
-        let win_workspace = win.get_workspace();
-        let win_wm_class = win.get_wm_class();
-
-        return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class);
-    }
-    _get_normal_nemo_windows_current_workspace_current_wm_class = function () {
-        let current_workspace = WorkspaceManager.get_active_workspace();
-        let win_wm_class = "Nemo";
-
-        return Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).filter(w => w.get_wm_class() == win_wm_class);
-    }
-
-    _get_normal_windows_current_workspace_current_wm_class_sorted = function () {
-        let win = Display.get_focus_window();
-
-        let win_workspace = win.get_workspace();
-        let win_wm_class = win.get_wm_class();
-
-        return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class).sort((a, b) => a.get_id() - b.get_id());
-
-    }
-
-    _get_other_normal_windows_current_workspace_current_wm_class = function () {
-        let win = Display.get_focus_window();
-
-        let win_workspace = win.get_workspace();
-        let win_wm_class = win.get_wm_class();
-
-        // retrieve window list for all workspaces
-        return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class && win != w);
-
-    }
-
-    _get_window_actor_by_wid = function (winid) {
-        let win = global.get_window_actors().find(w => w.get_meta_window().get_id() == winid);
-        return win;
-    }
-
-    _get_window_by_wid = function (winid) {
-        let win = Display.list_all_windows().find(w => w.get_id() == winid);
-        return win;
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Activate uint32:44129093
-
-    Activate(winid) {
-        let win = this._get_window_by_wid(winid);
-        let win_workspace = win.get_workspace();
-        // Here global.get_current_time() instead of 0 will also work
-        win_workspace.activate_with_focus(win, 0);
-    }
-
     _align_windows = function (windows_array, windows_per_container, persistent_state_key) {
         let number_of_windows = windows_array.length;
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
@@ -261,35 +193,6 @@ var WindowFunctions = class WindowFunctions {
         global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(state + 1));
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
-    AlignNormalWindowsCurrentWorkspaceCurrentWMClass() {
-        let windows_array = this._get_normal_windows_current_workspace_current_wm_class_sorted();
-        let persistent_state_key = "align_windows_state_all_windows";
-        let windows_per_container = 3;
-
-        this._align_windows(windows_array, windows_per_container, persistent_state_key);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass | jq .
-    AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass() {
-        let windows_array = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
-        let persistent_state_key = "align_windows_state_nemo";
-        let windows_per_container = 3;
-        this._close_duplicate_windows("Nemo");
-        this._align_windows(windows_array, windows_per_container, persistent_state_key);
-    }
-
-    Close(winid) {
-        let win = this._get_window_by_wid(winid);
-        if (win) {
-            // Here global.get_current_time() instead of 0 will also work
-            win.delete(0);
-            // win.delete(Math.floor(Date.now() / 1000));
-        } else {
-            throw new Error('Not found');
-        }
-    }
-
     _close_duplicate_windows = function (wm_class) {
         let wins = this._get_normal_windows_current_workspace_given_wm_class(wm_class);
         let seen = {};
@@ -309,12 +212,108 @@ var WindowFunctions = class WindowFunctions {
         });
     }
 
-    CloseDuplicateNemoWindows() {
+    _get_app_by_win = function (win) {
+        // let tracker = global.get_window_tracker().get_default();
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(win);
+        return app;
+
+    }
+
+    _get_normal_windows_current_workspace_current_wm_class = function () {
+        let win = Display.get_focus_window();
+
+        let win_workspace = win.get_workspace();
+        let win_wm_class = win.get_wm_class();
+
+        return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class);
+    }
+
+
+    _get_normal_windows_current_workspace_current_wm_class_sorted = function () {
+        let win = Display.get_focus_window();
+
+        let win_workspace = win.get_workspace();
+        let win_wm_class = win.get_wm_class();
+
+        return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class).sort((a, b) => a.get_id() - b.get_id());
+    }
+
+    _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
+        let current_workspace = WorkspaceManager.get_active_workspace();
+        return Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).filter(w => w.get_wm_class() == wm_class);
+    }
+
+    _get_normal_windows_current_workspace_given_wm_class_sorted = function (wm_class) {
+        let current_workspace = WorkspaceManager.get_active_workspace();
+        return Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).filter(w => w.get_wm_class() == wm_class).sort((a, b) => a.get_id() - b.get_id());
+    }
+
+    _get_other_normal_windows_current_workspace_current_wm_class = function () {
+        let win = Display.get_focus_window();
+
+        let win_workspace = win.get_workspace();
+        let win_wm_class = win.get_wm_class();
+
+        // retrieve window list for all workspaces
+        return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class && win != w);
+
+    }
+
+    _get_window_actor_by_wid = function (winid) {
+        let win = global.get_window_actors().find(w => w.get_meta_window().get_id() == winid);
+        return win;
+    }
+
+    _get_window_by_wid = function (winid) {
+        let win = Display.list_all_windows().find(w => w.get_id() == winid);
+        return win;
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Activate uint32:44129093
+
+    Activate(winid) {
+        let win = this._get_window_by_wid(winid);
+        let win_workspace = win.get_workspace();
+        // Here global.get_current_time() instead of 0 will also work
+        win_workspace.activate_with_focus(win, 0);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass | jq .
+    AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass() {
+        let windows_array = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
+        let persistent_state_key = "align_windows_state_nemo";
+        let windows_per_container = 3;
         this._close_duplicate_windows("Nemo");
+        this._align_windows(windows_array, windows_per_container, persistent_state_key);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
+    AlignNormalWindowsCurrentWorkspaceCurrentWMClass() {
+        let windows_array = this._get_normal_windows_current_workspace_current_wm_class_sorted();
+        let persistent_state_key = "align_windows_state_all_windows";
+        let windows_per_container = 3;
+
+        this._align_windows(windows_array, windows_per_container, persistent_state_key);
+    }
+
+    Close(winid) {
+        let win = this._get_window_by_wid(winid);
+        if (win) {
+            // Here global.get_current_time() instead of 0 will also work
+            win.delete(0);
+            // win.delete(Math.floor(Date.now() / 1000));
+        } else {
+            throw new Error('Not found');
+        }
     }
 
     CloseDuplicateAlacrittyWindows() {
         this._close_duplicate_windows("Alacritty");
+    }
+
+    CloseDuplicateNemoWindows() {
+        this._close_duplicate_windows("Nemo");
     }
 
     CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
@@ -328,15 +327,6 @@ var WindowFunctions = class WindowFunctions {
         })
     }
 
-    FullScreen(winid) {
-        let win = this._get_window_by_wid(winid);
-        let win_workspace = win.get_workspace();
-        // Here global.get_current_time() instead of 0 will also work
-        win.maximize(3);
-        win_workspace.activate_with_focus(win, 0);
-        // win.make_fullscreen();
-    }
-
     Focus(winid) {
         let win = this._get_window_by_wid(winid);
         if (win) {
@@ -346,6 +336,16 @@ var WindowFunctions = class WindowFunctions {
             throw new Error('Not found');
         }
     }
+
+    FullScreen(winid) {
+        let win = this._get_window_by_wid(winid);
+        let win_workspace = win.get_workspace();
+        // Here global.get_current_time() instead of 0 will also work
+        win.maximize(3);
+        win_workspace.activate_with_focus(win, 0);
+        // win.make_fullscreen();
+    }
+
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | jq .
 
@@ -429,6 +429,46 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspace | jq .
+
+    GetNormalWindowsCurrentWorkspace() {
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, WorkspaceManager.get_active_workspace());
+
+        var winJsonArr = [];
+        wins.forEach(function (win) {
+
+            let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
+
+            winJsonArr.push({
+                description: win.get_description(),
+                focus: win.has_focus(),
+                id: win.get_id(),
+                is_sticky: is_sticky,
+                layer: win.get_layer(),
+                pid: win.get_pid(),
+                root_ancestor: win.find_root_ancestor(),
+                title: win.get_title(),
+                window_type: win.get_window_type(),
+                wm_class_instance: win.get_wm_class_instance(),
+                wm_class: win.get_wm_class(),
+                workspace: win.get_workspace().index()
+            });
+        })
+        return JSON.stringify(winJsonArr);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
+    GetNormalWindowsCurrentWorkspaceCurrentWMClass() {
+        let wins = this._get_normal_windows_current_workspace_current_wm_class();
+
+        let windows_array = [];
+
+        wins.map(w => windows_array.push(w.get_id()));
+
+        return JSON.stringify(windows_array);
+
+    }
+
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsForRofi | jq .
 
     GetNormalWindowsForRofi() {
@@ -504,47 +544,6 @@ var WindowFunctions = class WindowFunctions {
     }
 
 
-
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspace | jq .
-
-    GetNormalWindowsCurrentWorkspace() {
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, WorkspaceManager.get_active_workspace());
-
-        var winJsonArr = [];
-        wins.forEach(function (win) {
-
-            let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
-
-            winJsonArr.push({
-                description: win.get_description(),
-                focus: win.has_focus(),
-                id: win.get_id(),
-                is_sticky: is_sticky,
-                layer: win.get_layer(),
-                pid: win.get_pid(),
-                root_ancestor: win.find_root_ancestor(),
-                title: win.get_title(),
-                window_type: win.get_window_type(),
-                wm_class_instance: win.get_wm_class_instance(),
-                wm_class: win.get_wm_class(),
-                workspace: win.get_workspace().index()
-            });
-        })
-        return JSON.stringify(winJsonArr);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
-    GetNormalWindowsCurrentWorkspaceCurrentWMClass() {
-        let wins = this._get_normal_windows_current_workspace_current_wm_class();
-
-        let windows_array = [];
-
-        wins.map(w => windows_array.push(w.get_id()));
-
-        return JSON.stringify(windows_array);
-
-    }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetTitle uint32:3931313482
 
