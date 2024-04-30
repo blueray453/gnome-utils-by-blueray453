@@ -275,7 +275,7 @@ var WindowFunctions = class WindowFunctions {
         let windows_array = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
         let persistent_state_key = "align_windows_state_nemo";
         let windows_per_container = 3;
-
+        this._close_duplicate_windows("Nemo");
         this._align_windows(windows_array, windows_per_container, persistent_state_key);
     }
 
