@@ -80,6 +80,8 @@ var MR_DBUS_IFACE = `
          <arg type="i" direction="in" name="x" />
          <arg type="i" direction="in" name="y" />
       </method>
+      <method name="MoveAllNemoWindowsToCurrentWorkspace">
+      </method>
       <method name="MoveResize">
          <arg type="u" direction="in" name="winid" />
          <arg type="i" direction="in" name="x" />
@@ -137,6 +139,12 @@ var WindowFunctions = class WindowFunctions {
 
         return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class);
     }
+    _get_normal_nemo_windows_current_workspace_current_wm_class = function () {
+        let win_workspace = win.get_workspace();
+        let win_wm_class = "Nemo";
+
+        return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class);
+    }
 
     _get_normal_windows_current_workspace_current_wm_class_sorted = function () {
         let win = Display.get_focus_window();
@@ -182,6 +190,78 @@ var WindowFunctions = class WindowFunctions {
 
     AlignNormalWindowsCurrentWorkspaceCurrentWMClass() {
         let windows_array = this._get_normal_windows_current_workspace_current_wm_class_sorted();
+        let number_of_windows = windows_array.length;
+        let windows_per_container = 3;
+        let number_of_states = Math.ceil(number_of_windows / windows_per_container);
+
+        let state;
+
+        try {
+            state = global.get_persistent_state('n', 'align_windows_state').get_int16();
+        } catch (error) {
+            // log(`Error : ${error}`);
+            // Set default value for persistent state
+            global.set_persistent_state('align_windows_state', GLib.Variant.new_int16(0));
+            state = 0;
+        }
+
+        // log(`state : ${state}`);
+
+        if (state >= number_of_states) {
+            state = 0;
+        }
+
+        let work_area = windows_array[0].get_work_area_current_monitor();
+        let work_area_width = work_area.width;
+        let work_area_height = work_area.height;
+
+        let window_height = work_area_height;
+        let window_width = work_area_width / windows_per_container;
+
+        let all_x = [];
+
+        for (let n = 0; n < windows_per_container; n++) {
+            all_x[n] = window_width * n;
+        }
+
+        for (let i = 0; i < windows_array.length; i++) {
+            let win = windows_array[i];
+            // log(`win is ${win}`);
+            if (win) {
+                win.minimize();
+            } else {
+                throw new Error('Not found');
+            }
+        }
+
+        for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
+            let win = windows_array[i];
+            if (win.minimized) {
+                win.unminimize();
+            }
+            if (win.maximized_horizontally || win.maximized_vertically) {
+                win.unmaximize(3);
+            }
+
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
+                return GLib.SOURCE_REMOVE;
+            });
+
+            // let actor = win.get_compositor_private();
+            // let id = actor.connect('first-frame', _ => {
+            //     win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
+            //     actor.disconnect(id);
+            // });
+
+            win.activate(0);
+        }
+
+        global.set_persistent_state('align_windows_state', GLib.Variant.new_int16(state + 1));
+    }
+
+    AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass() {
+        let windows_array = this._get_normal_nemo_windows_current_workspace_current_wm_class();
         let number_of_windows = windows_array.length;
         let windows_per_container = 3;
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
@@ -679,6 +759,21 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllNemoWindowsToCurrentWorkspace
+
+    MoveAllNemoWindowsToCurrentWorkspace() {
+
+        let current_workspace = WorkspaceManager.get_active_workspace();
+
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).filter(w => w.get_wm_class() == "Nemo");
+        wins.forEach(win => {
+            win.change_workspace(current_workspace);
+            // current_workspace.activate_with_focus(win, 0);
+        });
+
+        this.AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass();
+    }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
 
     MoveResize(winid, x, y, width, height) {
@@ -695,7 +790,6 @@ var WindowFunctions = class WindowFunctions {
             //     win.move_resize_frame(1, x, y, width, height);
             //     return GLib.SOURCE_REMOVE;
             // });
-
 
             let actor = win.get_compositor_private();
             let id = actor.connect('first-frame', _ => {
