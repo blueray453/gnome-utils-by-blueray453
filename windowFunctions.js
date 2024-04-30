@@ -131,6 +131,11 @@ var WindowFunctions = class WindowFunctions {
 
     }
 
+    _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
+        let current_workspace = WorkspaceManager.get_active_workspace();
+        return Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).filter(w => w.get_wm_class() == wm_class);
+    }
+
     _get_normal_windows_current_workspace_current_wm_class = function () {
         let win = Display.get_focus_window();
 
