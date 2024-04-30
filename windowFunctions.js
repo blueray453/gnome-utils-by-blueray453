@@ -140,10 +140,10 @@ var WindowFunctions = class WindowFunctions {
         return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class);
     }
     _get_normal_nemo_windows_current_workspace_current_wm_class = function () {
-        let win_workspace = win.get_workspace();
+        let current_workspace = WorkspaceManager.get_active_workspace();
         let win_wm_class = "Nemo";
 
-        return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class);
+        return Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).filter(w => w.get_wm_class() == win_wm_class);
     }
 
     _get_normal_windows_current_workspace_current_wm_class_sorted = function () {
@@ -768,7 +768,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).filter(w => w.get_wm_class() == "Nemo");
         wins.forEach(win => {
             win.change_workspace(current_workspace);
-            // current_workspace.activate_with_focus(win, 0);
+            current_workspace.activate_with_focus(win, 0);
         });
 
         this.AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass();
