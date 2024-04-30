@@ -12,10 +12,6 @@ var MR_DBUS_IFACE = `
       <method name="Activate">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="AlignNormalAlacrittyWindows">
-      </method>
-      <method name="AlignNormalNemoWindows">
-      </method>
       <method name="AlignNormalWindowsCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Close">
@@ -291,38 +287,6 @@ var WindowFunctions = class WindowFunctions {
         let win_workspace = win.get_workspace();
         // Here global.get_current_time() instead of 0 will also work
         win_workspace.activate_with_focus(win, 0);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalAlacrittyWindowsCurrentWorkspaceCurrentWMClass | jq .
-    AlignNormalAlacrittyWindows() {
-        let windows_array = this._get_normal_windows_given_wm_class_sorted("Alacritty");
-        let persistent_state_key = "align_windows_state_alacritty";
-        let windows_per_container = 3;
-        // this._close_duplicate_windows("Alacritty");
-        this._align_windows(windows_array, windows_per_container, persistent_state_key);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass | jq .
-    AlignNormalNemoWindows() {
-
-        this._close_duplicate_windows("Nemo");
-        let windows_array = this._get_normal_windows_given_wm_class_sorted("Nemo");
-        let current_workspace = WorkspaceManager.get_active_workspace();
-
-        windows_array.forEach(function (win) {
-            if (win) {
-                win.change_workspace(current_workspace);
-                // Here global.get_current_time() instead of 0 will also work
-                current_workspace.activate_with_focus(win, 0);
-            } else {
-                throw new Error('Not found');
-            }
-        })
-
-        let persistent_state_key = "align_windows_state_nemo";
-        let windows_per_container = 3;
-
-        this._align_windows(windows_array, windows_per_container, persistent_state_key);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
@@ -747,17 +711,22 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllNemoWindowsToCurrentWorkspace
 
     MoveAllNemoWindowsToCurrentWorkspace() {
-
         let current_workspace = WorkspaceManager.get_active_workspace();
+
+        // it also remove duplicates
+        this._close_duplicate_windows("Nemo");
 
         let windows_array = this._get_normal_windows_given_wm_class_sorted("Nemo");
 
-        wins.forEach(win => {
-            win.change_workspace(current_workspace);
-            current_workspace.activate_with_focus(win, 0);
+        windows_array.forEach(win => {
+            if (win) {
+                win.change_workspace(current_workspace);
+                current_workspace.activate_with_focus(win, 0);
+            }
         });
-
-        this._align_windows(windows_array, 3, "align_windows_state_nemo_move");
+        let persistent_state_key = "align_windows_state_nemo";
+        let windows_per_container = 3;
+        this._align_windows(windows_array, windows_per_container, persistent_state_key);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
