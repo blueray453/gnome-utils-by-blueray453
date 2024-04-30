@@ -12,9 +12,9 @@ var MR_DBUS_IFACE = `
       <method name="Activate">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="AlignNormalAlacrittyWindowsCurrentWorkspaceCurrentWMClass">
+      <method name="AlignNormalAlacrittyWindows">
       </method>
-      <method name="AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass">
+      <method name="AlignNormalNemoWindows">
       </method>
       <method name="AlignNormalWindowsCurrentWorkspaceCurrentWMClass">
       </method>
