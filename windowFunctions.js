@@ -12,10 +12,14 @@ var MR_DBUS_IFACE = `
       <method name="Activate">
          <arg type="u" direction="in" name="winid" />
       </method>
+      <method name="AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass">
+      </method>
       <method name="AlignNormalWindowsCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Close">
          <arg type="u" direction="in" name="winid" />
+      </method>
+      <method name="CloseDuplicateAlacrittyWindows">
       </method>
       <method name="CloseDuplicateNemoWindows">
       </method>
@@ -40,16 +44,16 @@ var MR_DBUS_IFACE = `
       <method name="GetNormalWindows">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetNormalWindowsForRofi">
-         <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetNormalWindowsForRofiSorted">
-         <arg type="s" direction="out" name="win" />
-      </method>
       <method name="GetNormalWindowsCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="GetNormalWindowsCurrentWorkspaceCurrentWMClass">
+         <arg type="s" direction="out" name="win" />
+      </method>
+      <method name="GetNormalWindowsForRofi">
+         <arg type="s" direction="out" name="win" />
+      </method>
+      <method name="GetNormalWindowsForRofiSorted">
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="GetTitle">
@@ -715,13 +719,14 @@ var WindowFunctions = class WindowFunctions {
 
         let current_workspace = WorkspaceManager.get_active_workspace();
 
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).filter(w => w.get_wm_class() == "Nemo");
+        let windows_array = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
+
         wins.forEach(win => {
             win.change_workspace(current_workspace);
             current_workspace.activate_with_focus(win, 0);
         });
 
-        this.AlignNormalNemoWindowsCurrentWorkspaceCurrentWMClass();
+        this._align_windows(windows_array, 3, "align_windows_state_nemo_move");
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
