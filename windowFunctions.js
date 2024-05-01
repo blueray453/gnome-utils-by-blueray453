@@ -80,6 +80,8 @@ var MR_DBUS_IFACE = `
          <arg type="i" direction="in" name="x" />
          <arg type="i" direction="in" name="y" />
       </method>
+      <method name="MoveAllAlacrittyWindowsToCurrentWorkspace">
+      </method>
       <method name="MoveAllNemoWindowsToCurrentWorkspace">
       </method>
       <method name="MoveResize">
@@ -709,6 +711,30 @@ var WindowFunctions = class WindowFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllNemoWindowsToCurrentWorkspace
 
+    MoveAllAlacrittyWindowsToCurrentWorkspace() {
+        let current_workspace = WorkspaceManager.get_active_workspace();
+
+        let windows_array = this._get_normal_windows_given_wm_class_sorted("Alacritty");
+
+        let isAllInCurrentWorkspace = windows_array.every(function (win) {
+            return win.get_workspace().index() === current_workspace.index();
+        });
+
+        if (!isAllInCurrentWorkspace) {
+            windows_array.forEach(win => {
+                if (win) {
+                    win.change_workspace(current_workspace);
+                    current_workspace.activate_with_focus(win, 0);
+                }
+            });
+        }
+        let persistent_state_key = "align_windows_state_alacritty";
+        let windows_per_container = 3;
+        this._align_windows(windows_array, windows_per_container, persistent_state_key);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllNemoWindowsToCurrentWorkspace
+
     MoveAllNemoWindowsToCurrentWorkspace() {
         let current_workspace = WorkspaceManager.get_active_workspace();
 
@@ -721,21 +747,19 @@ var WindowFunctions = class WindowFunctions {
             return win.get_workspace().index() === current_workspace.index();
         });
 
-        if (isAllInCurrentWorkspace){
-            let persistent_state_key = "align_windows_state_nemo";
-            let windows_per_container = 3;
-            this._align_windows(windows_array, windows_per_container, persistent_state_key);
-        } else {
+        if (!isAllInCurrentWorkspace) {
             windows_array.forEach(win => {
                 if (win) {
                     win.change_workspace(current_workspace);
                     current_workspace.activate_with_focus(win, 0);
                 }
             });
-            let persistent_state_key = "align_windows_state_nemo";
-            let windows_per_container = 3;
-            this._align_windows(windows_array, windows_per_container, persistent_state_key);
         }
+
+        let persistent_state_key = "align_windows_state_nemo";
+        let windows_per_container = 3;
+        this._align_windows(windows_array, windows_per_container, persistent_state_key);
+
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
