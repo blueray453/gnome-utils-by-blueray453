@@ -148,7 +148,10 @@ var WindowFunctions = class WindowFunctions {
             state = 0;
         }
 
-        let work_area = windows_array[0].get_work_area_current_monitor();
+        let monitor = Display.get_current_monitor();
+        let current_workspace = WorkspaceManager.get_active_workspace();
+        let work_area = current_workspace.get_work_area_for_monitor(monitor);
+        // let work_area = windows_array[0].get_work_area_current_monitor();
         let work_area_width = work_area.width;
         let work_area_height = work_area.height;
 
