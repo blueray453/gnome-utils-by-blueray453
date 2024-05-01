@@ -712,15 +712,27 @@ var WindowFunctions = class WindowFunctions {
 
         let windows_array = this._get_normal_windows_given_wm_class_sorted("Nemo");
 
-        windows_array.forEach(win => {
-            if (win) {
-                win.change_workspace(current_workspace);
-                current_workspace.activate_with_focus(win, 0);
-            }
+        let isAllInCurrentWorkspace = windows_array.every(function (win) {
+            return win.get_workspace().index() === current_workspace.index();
         });
-        let persistent_state_key = "align_windows_state_nemo";
-        let windows_per_container = 3;
-        this._align_windows(windows_array, windows_per_container, persistent_state_key);
+
+        if (isAllInCurrentWorkspace){
+            let persistent_state_key = "align_windows_state_nemo";
+            let windows_per_container = 3;
+            this._align_windows(windows_array, windows_per_container, persistent_state_key);
+        } else {
+            windows_array.forEach(win => {
+                if (win) {
+                    win.change_workspace(current_workspace);
+                    current_workspace.activate_with_focus(win, 0);
+                }
+            });
+            let persistent_state_key = "align_windows_state_nemo";
+            let windows_per_container = 3;
+            this._align_windows(windows_array, windows_per_container, persistent_state_key);
+        }
+
+
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
