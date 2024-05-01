@@ -12,6 +12,8 @@ var MR_DBUS_IFACE = `
       <method name="Activate">
          <arg type="u" direction="in" name="winid" />
       </method>
+      <method name="AlignAlacrittyWindowsCurrentWorkspace">
+      </method>
       <method name="AlignNemoWindowsCurrentWorkspace">
       </method>
       <method name="AlignNormalWindowsCurrentWorkspaceCurrentWMClass">
@@ -291,7 +293,15 @@ var WindowFunctions = class WindowFunctions {
         win_workspace.activate_with_focus(win, 0);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignAlacrittyWindowsCurrentWorkspace | jq .
+
+    AlignAlacrittyWindowsCurrentWorkspace() {
+        let windows_array = this._get_normal_windows_current_workspace_given_wm_class_sorted("Alacritty");
+        let persistent_state_key = "align_windows_state_nemo";
+        let windows_per_container = 3;
+
+        this._align_windows(windows_array, windows_per_container, persistent_state_key);
+    }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNemoWindowsCurrentWorkspace | jq .
 
@@ -302,6 +312,8 @@ var WindowFunctions = class WindowFunctions {
 
         this._align_windows(windows_array, windows_per_container, persistent_state_key);
     }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
 
     AlignNormalWindowsCurrentWorkspaceCurrentWMClass() {
         let windows_array = this._get_normal_windows_current_workspace_current_wm_class_sorted();
