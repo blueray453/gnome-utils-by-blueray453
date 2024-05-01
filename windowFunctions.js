@@ -205,6 +205,11 @@ var WindowFunctions = class WindowFunctions {
 
     }
 
+    _get_normal_windows = function () {
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
+        return wins;
+    }
+
     _get_normal_windows_current_workspace_current_wm_class = function () {
         let win = Display.get_focus_window();
 
@@ -213,7 +218,6 @@ var WindowFunctions = class WindowFunctions {
 
         return Display.get_tab_list(Meta.TabList.NORMAL, win_workspace).filter(w => w.get_wm_class() == win_wm_class);
     }
-
 
     _get_normal_windows_current_workspace_current_wm_class_sorted = function () {
         let win = Display.get_focus_window();
@@ -438,7 +442,7 @@ var WindowFunctions = class WindowFunctions {
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindows | jq .
 
     GetNormalWindows() {
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
+        let wins = this._get_normal_windows();
 
         var winJsonArr = [];
         wins.forEach(function (win) {
@@ -533,7 +537,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofiSorted | jq .
 
     GetWindowsForRofiSorted() {
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
+        let wins = this._get_normal_windows();
 
         const classOrder = {
             "Fsearch": 1,
