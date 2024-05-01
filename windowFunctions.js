@@ -288,6 +288,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
+
     AlignNormalWindowsCurrentWorkspaceCurrentWMClass() {
         let windows_array = this._get_normal_windows_current_workspace_current_wm_class_sorted();
         let persistent_state_key = "align_windows_state_all_windows";
@@ -453,6 +454,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
+
     GetNormalWindowsCurrentWorkspaceCurrentWMClass() {
         let wins = this._get_normal_windows_current_workspace_current_wm_class();
 
@@ -491,6 +493,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsForRofiSorted | jq .
+
     GetNormalWindowsForRofiSorted() {
         let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
 
@@ -654,6 +657,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Maximize uint32:3931313482
+
     Maximize(winid) {
         let win = this._get_window_by_wid(winid);
 
@@ -669,6 +673,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Minimize uint32:3931313482
+
     Minimize(winid) {
         let win = this._get_window_by_wid(winid);
         if (win) {
@@ -731,8 +736,6 @@ var WindowFunctions = class WindowFunctions {
             let windows_per_container = 3;
             this._align_windows(windows_array, windows_per_container, persistent_state_key);
         }
-
-
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
