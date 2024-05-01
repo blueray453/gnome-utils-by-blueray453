@@ -45,6 +45,8 @@ class Extension {
         this._dbus_clipboard = Gio.DBusExportedObject.wrapJSObject(clipboardFunctions.MR_DBUS_IFACE, new clipboardFunctions.clipboardFunctions());
         this._dbus_clipboard.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsClipboard');
 
+        // Register keybindings
+        // this._keyBinding = global.display.connect('key-press-event', this._onKeyPress.bind(this));
     }
 
     disable() {
@@ -65,7 +67,18 @@ class Extension {
         this._dbus_clipboard.flush();
         this._dbus_clipboard.unexport();
         delete this._dbus_clipboard;
+
+        // Disconnect the keybinding
+        // global.display.disconnect(this._keyBinding);
     }
+
+    // _onKeyPress(display, event) {
+    //     // Check if the key combination is Ctrl + N (assuming lowercase 'n')
+    //     if (event.get_key_symbol() === Clutter.KEY_Super_N && event.get_state() === Clutter.ModifierType.CONTROL_MASK) {
+    //         // Call the method to move all Nemo windows to the current workspace
+    //         windowFunctions.MoveAllNemoWindowsToCurrentWorkspace();
+    //     }
+    // }
 }
 
 function init(meta) {
