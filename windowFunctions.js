@@ -195,6 +195,7 @@ var WindowFunctions = class WindowFunctions {
         global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(state + 1));
     }
 
+    // this code is buggy, if no close duplicates then no issues
     _close_duplicate_windows = function (wm_class) {
         let wins = this._get_normal_windows_current_workspace_given_wm_class(wm_class);
         let seen = {};
@@ -739,7 +740,10 @@ var WindowFunctions = class WindowFunctions {
 
     MoveAllNemoWindowsToCurrentWorkspace() {
         // it also remove duplicates
+        // this line seems to create bug
         this._close_duplicate_windows("Nemo");
+
+
         this._move_all_app_windows_to_current_workspace("Nemo", 3, "align_windows_state_nemo");
 
     }
