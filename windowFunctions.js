@@ -205,9 +205,11 @@ var WindowFunctions = class WindowFunctions {
             } else {
                 // Compare timestamps
                 if (win.get_user_time() < seen[key].get_user_time()) {
-                    win.delete(0);
+                    // win.delete(0);
+                    win.kill();
                 } else {
-                    seen[key].delete(0);
+                    // seen[key].delete(0);
+                    seen[key].kill();
                     seen[key] = win;
                 }
             }
@@ -323,7 +325,8 @@ var WindowFunctions = class WindowFunctions {
         let win = this._get_window_by_wid(winid);
         if (win) {
             // Here global.get_current_time() instead of 0 will also work
-            win.delete(0);
+            // win.delete(0);
+            win.kill();
             // win.delete(Math.floor(Date.now() / 1000));
         } else {
             throw new Error('Not found');
@@ -340,7 +343,8 @@ var WindowFunctions = class WindowFunctions {
             if (w.get_wm_class_instance() !== 'file_progress') {
                 // log(`closing: ${w.get_id()}`);
                 // log(`closing: ${w.get_wm_class_instance()}`);
-                w.delete(0);
+                // w.delete(0);
+                w.kill();
             }
         })
     }
