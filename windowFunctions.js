@@ -4,26 +4,24 @@ const Display = global.get_display();
 // const WorkspaceManager = global.get_workspace_manager();
 const WorkspaceManager = Display.get_workspace_manager();
 
-// dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq .
-
 var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWindows">
       <method name="Activate">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="AlignAlacrittyWindowsCurrentWorkspace">
+      <method name="AlignAlacrittyWindows">
       </method>
-      <method name="AlignNemoWindowsCurrentWorkspace">
+      <method name="AlignNemoWindows">
       </method>
-      <method name="AlignNormalWindowsCurrentWorkspaceCurrentWMClass">
+      <method name="AlignWindowsCurrentWMClass">
       </method>
       <method name="Close">
          <arg type="u" direction="in" name="winid" />
       </method>
       <method name="CloseDuplicateNemoWindows">
       </method>
-      <method name="CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass">
+      <method name="CloseOtherWindowsCurrentWorkspaceCurrentWMClass">
       </method>
       <method name="Focus">
          <arg type="u" direction="in" name="winid" />
@@ -50,10 +48,10 @@ var MR_DBUS_IFACE = `
       <method name="GetNormalWindowsCurrentWorkspaceCurrentWMClass">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetNormalWindowsForRofi">
+      <method name="GetWindowsForRofi">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetNormalWindowsForRofiSorted">
+      <method name="GetWindowsForRofiSorted">
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="GetTitle">
@@ -77,7 +75,7 @@ var MR_DBUS_IFACE = `
       <method name="Minimize">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="MinimizeOtherNormalWindowsCurrentWorkspaceCurrentWMClass">
+      <method name="MinimizeOtherWindowsCurrentWMClass">
       </method>
       <method name="Move">
          <arg type="u" direction="in" name="winid" />
@@ -119,7 +117,7 @@ var MR_DBUS_IFACE = `
       <method name="Unminimize">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="UnminimizeOtherNormalWindowsCurrentWorkspaceCurrentWMClass">
+      <method name="UnMinimizeOtherWindowsCurrentWMClass">
       </method>
       <method name="Unstick">
          <arg type="u" direction="in" name="winid" />
@@ -293,9 +291,9 @@ var WindowFunctions = class WindowFunctions {
         win_workspace.activate_with_focus(win, 0);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignAlacrittyWindowsCurrentWorkspace | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignAlacrittyWindows | jq .
 
-    AlignAlacrittyWindowsCurrentWorkspace() {
+    AlignAlacrittyWindows() {
         let windows_array = this._get_normal_windows_current_workspace_given_wm_class_sorted("Alacritty");
         let persistent_state_key = "align_windows_state_nemo";
         let windows_per_container = 3;
@@ -303,9 +301,9 @@ var WindowFunctions = class WindowFunctions {
         this._align_windows(windows_array, windows_per_container, persistent_state_key);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNemoWindowsCurrentWorkspace | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNemoWindows | jq .
 
-    AlignNemoWindowsCurrentWorkspace() {
+    AlignNemoWindows() {
         let windows_array = this._get_normal_windows_current_workspace_given_wm_class_sorted("Nemo");
         let persistent_state_key = "align_windows_state_nemo";
         let windows_per_container = 3;
@@ -313,9 +311,9 @@ var WindowFunctions = class WindowFunctions {
         this._align_windows(windows_array, windows_per_container, persistent_state_key);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsCurrentWMClass | jq .
 
-    AlignNormalWindowsCurrentWorkspaceCurrentWMClass() {
+    AlignWindowsCurrentWMClass() {
         let windows_array = this._get_normal_windows_current_workspace_current_wm_class_sorted();
         let persistent_state_key = "align_windows_state_all_windows";
         let windows_per_container = 3;
@@ -353,7 +351,7 @@ var WindowFunctions = class WindowFunctions {
         });
     }
 
-    CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
+    CloseOtherWindowsCurrentWorkspaceCurrentWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
         wins.forEach(function (w) {
             if (w.get_wm_class_instance() !== 'file_progress') {
@@ -382,7 +380,6 @@ var WindowFunctions = class WindowFunctions {
         win_workspace.activate_with_focus(win, 0);
         // win.make_fullscreen();
     }
-
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | jq .
 
@@ -507,9 +504,9 @@ var WindowFunctions = class WindowFunctions {
 
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsForRofi | jq .
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofi | jq .
 
-    GetNormalWindowsForRofi() {
+    GetWindowsForRofi() {
         let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
 
         var winJsonArr = [];
@@ -533,9 +530,9 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsForRofiSorted | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofiSorted | jq .
 
-    GetNormalWindowsForRofiSorted() {
+    GetWindowsForRofiSorted() {
         let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
 
         const classOrder = {
@@ -724,7 +721,7 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    MinimizeOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
+    MinimizeOtherWindowsCurrentWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
 
         wins.map(w => w.minimize());
@@ -917,7 +914,7 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    UnminimizeOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
+    UnMinimizeOtherWindowsCurrentWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
 
         wins.map(w => {
