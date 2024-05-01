@@ -197,26 +197,6 @@ var WindowFunctions = class WindowFunctions {
         global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(state + 1));
     }
 
-    // this code is buggy, if no close duplicates then no issues
-    _close_duplicate_windows = function (wm_class) {
-        log(`Running _close_duplicate_windows`);
-        let wins = this._get_normal_windows_current_workspace_given_wm_class(wm_class);
-        let seen = {};
-        wins.forEach(win => {
-            let key = win.get_title();
-            if (!seen[key]) {
-                seen[key] = win;
-            } else {
-                    if (win.get_user_time() < seen[key].get_user_time()) {
-                        win.delete(0);
-                    } else {
-                        seen[key].delete(0);
-                        seen[key] = win;
-                    }
-            }
-        });
-    }
-
     _get_app_by_win = function (win) {
         // let tracker = global.get_window_tracker().get_default();
         let tracker = Shell.WindowTracker.get_default();
@@ -344,7 +324,21 @@ var WindowFunctions = class WindowFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseDuplicateNemoWindows
     CloseDuplicateNemoWindows() {
-        this._close_duplicate_windows("Nemo");
+        let wins = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
+        let seen = {};
+        wins.forEach(win => {
+            let key = win.get_title();
+            if (!seen[key]) {
+                seen[key] = win;
+            } else {
+                if (win.get_user_time() < seen[key].get_user_time()) {
+                    win.delete(0);
+                } else {
+                    seen[key].delete(0);
+                    seen[key] = win;
+                }
+            }
+        });
     }
 
     CloseOtherNormalWindowsCurrentWorkspaceCurrentWMClass() {
@@ -751,9 +745,6 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllNemoWindowsToCurrentWorkspace
 
     MoveAllNemoWindowsToCurrentWorkspace() {
-        // it also remove duplicates
-        // this line seems to create bug
-        // this._close_duplicate_windows("Nemo");
         this._move_all_app_windows_to_current_workspace("Nemo");
 
     }
