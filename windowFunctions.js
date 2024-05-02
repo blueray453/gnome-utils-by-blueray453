@@ -330,7 +330,6 @@ var WindowFunctions = class WindowFunctions {
         try {
             let win = this._get_window_by_wid(winid);
             win.delete(0);
-            win.destroy();
         } catch (error) {
             log(`Error : ${error}`);
         }
@@ -364,7 +363,6 @@ var WindowFunctions = class WindowFunctions {
                 // log(`closing: ${w.get_id()}`);
                 // log(`closing: ${w.get_wm_class_instance()}`);
                 w.delete(0);
-                // w.destroy();
             }
         })
     }
