@@ -345,9 +345,9 @@ var WindowFunctions = class WindowFunctions {
                 seen[key] = win;
             } else {
                 if (win.get_user_time() < seen[key].get_user_time()) {
-                    win.destroy();
+                    win.delete(global.get_current_time());
                 } else {
-                    seen[key].destroy();
+                    seen[key].delete(global.get_current_time());
                     seen[key] = win;
                 }
             }
