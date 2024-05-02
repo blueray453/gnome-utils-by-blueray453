@@ -767,16 +767,17 @@ var WindowFunctions = class WindowFunctions {
             if (win.maximized_horizontally || win.maximized_vertically) {
                 win.unmaximize(3);
             }
-            // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            //     win.move_resize_frame(1, x, y, width, height);
-            //     return GLib.SOURCE_REMOVE;
-            // });
 
-            let actor = win.get_compositor_private();
-            let id = actor.connect('first-frame', _ => {
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 win.move_resize_frame(1, x, y, width, height);
-                actor.disconnect(id);
+                return GLib.SOURCE_REMOVE;
             });
+
+            // let actor = win.get_compositor_private();
+            // let id = actor.connect('first-frame', _ => {
+            //     win.move_resize_frame(1, x, y, width, height);
+            //     actor.disconnect(id);
+            // });
 
             win.activate(0);
         } else {
@@ -794,16 +795,16 @@ var WindowFunctions = class WindowFunctions {
             let height = work_area.height;
             // win.move_resize_frame(true, left, top, width, height);
 
-            // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            //     win.move_resize_frame(1, left, top, width, height);
-            //     return GLib.SOURCE_REMOVE;
-            // });
-
-            let actor = win.get_compositor_private();
-            let id = actor.connect('first-frame', _ => {
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 win.move_resize_frame(1, left, top, width, height);
-                actor.disconnect(id);
+                return GLib.SOURCE_REMOVE;
             });
+
+            // let actor = win.get_compositor_private();
+            // let id = actor.connect('first-frame', _ => {
+            //     win.move_resize_frame(1, left, top, width, height);
+            //     actor.disconnect(id);
+            // });
         }
     }
 
@@ -817,16 +818,16 @@ var WindowFunctions = class WindowFunctions {
             let height = work_area.height;
             // win.move_resize_frame(true, left, top, width, height);
 
-            // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            //     win.move_resize_frame(1, left, top, width, height);
-            //     return GLib.SOURCE_REMOVE;
-            // });
-
-            let actor = win.get_compositor_private();
-            let id = actor.connect('first-frame', _ => {
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 win.move_resize_frame(1, left, top, width, height);
-                actor.disconnect(id);
+                return GLib.SOURCE_REMOVE;
             });
+
+            // let actor = win.get_compositor_private();
+            // let id = actor.connect('first-frame', _ => {
+            //     win.move_resize_frame(1, left, top, width, height);
+            //     actor.disconnect(id);
+            // });
         }
     }
 
@@ -866,18 +867,19 @@ var WindowFunctions = class WindowFunctions {
                 win.unmaximize(3);
             }
 
-            // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            //     win.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
-            //     return GLib.SOURCE_REMOVE;
-            // });
-
-            let actor = win.get_compositor_private();
-            let id = actor.connect('first-frame', _ => {
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 win.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
-                actor.disconnect(id);
+                return GLib.SOURCE_REMOVE;
             });
 
+            // let actor = win.get_compositor_private();
+            // let id = actor.connect('first-frame', _ => {
+            //     win.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
+            //     actor.disconnect(id);
+            // });
+
             win.activate(0);
+
         } else {
             throw new Error('Not found');
         }
