@@ -364,7 +364,7 @@ var WindowFunctions = class WindowFunctions {
                 // log(`closing: ${w.get_id()}`);
                 // log(`closing: ${w.get_wm_class_instance()}`);
                 w.delete(0);
-                w.destroy();
+                // w.destroy();
             }
         })
     }
