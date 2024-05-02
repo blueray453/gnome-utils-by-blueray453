@@ -330,6 +330,7 @@ var WindowFunctions = class WindowFunctions {
         try {
             let win = this._get_window_by_wid(winid);
             win.delete(0);
+            win.destroy();
         } catch (error) {
             log(`Error : ${error}`);
         }
@@ -345,10 +346,10 @@ var WindowFunctions = class WindowFunctions {
                 seen[key] = win;
             } else {
                 if (win.get_user_time() < seen[key].get_user_time()) {
-                    win.delete(global.get_current_time());
+                    win.delete(0);
                     win.destroy();
                 } else {
-                    seen[key].delete(global.get_current_time());
+                    seen[key].delete(0);
                     seen[key].destroy();
                     seen[key] = win;
                 }
@@ -363,6 +364,7 @@ var WindowFunctions = class WindowFunctions {
                 // log(`closing: ${w.get_id()}`);
                 // log(`closing: ${w.get_wm_class_instance()}`);
                 w.delete(0);
+                w.destroy();
             }
         })
     }
