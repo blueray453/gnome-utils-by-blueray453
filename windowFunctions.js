@@ -128,6 +128,11 @@ var MR_DBUS_IFACE = `
 var WindowFunctions = class WindowFunctions {
 
     _align_windows = function (windows_array, windows_per_container, persistent_state_key) {
+
+        // remove windows from windows_array that do not have a minimize() method
+        // This is just to check these are valid windows
+        windows_array = windows_array.filter(win => typeof win.minimize === 'function');
+
         let number_of_windows = windows_array.length;
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
 
@@ -164,15 +169,8 @@ var WindowFunctions = class WindowFunctions {
             all_x[n] = window_width * n;
         }
 
-        for (let i = 0; i < windows_array.length; i++) {
-            let win = windows_array[i];
-            // log(`win is ${win}`);
-            if (win) {
-                win.minimize();
-            } else {
-                throw new Error('Not found');
-            }
-        }
+        // minimize all the windows
+        windows_array.forEach(win => win?.minimize() || log(`Win Not Found`));
 
         for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
             let win = windows_array[i];
