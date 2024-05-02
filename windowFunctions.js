@@ -131,7 +131,7 @@ var WindowFunctions = class WindowFunctions {
 
         // remove windows from windows_array that do not have a minimize() method
         // This is just to check these are valid windows
-        windows_array = windows_array.filter(win => typeof win.minimize === 'function');
+        // windows_array = windows_array.filter(win => typeof win.minimize === 'function');
 
         let number_of_windows = windows_array.length;
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
@@ -327,13 +327,11 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Close(winid) {
-        let win = this._get_window_by_wid(winid);
-        if (win) {
-            // Here global.get_current_time() instead of 0 will also work
+        try {
+            let win = this._get_window_by_wid(winid);
             win.delete(0);
-            // win.delete(Math.floor(Date.now() / 1000));
-        } else {
-            throw new Error('Not found');
+        } catch (error) {
+            log(`Error : ${error}`);
         }
     }
 
@@ -368,12 +366,11 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Focus(winid) {
-        let win = this._get_window_by_wid(winid);
-        if (win) {
-            // Here global.get_current_time() instead of 0 will also work
+        try {
+            let win = this._get_window_by_wid(winid);
             win.focus(0);
-        } else {
-            throw new Error('Not found');
+        } catch (error) {
+            log(`Error : ${error}`);
         }
     }
 
@@ -393,28 +390,22 @@ var WindowFunctions = class WindowFunctions {
 
         let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
 
-        if (win) {
-            var winJsonArr = [];
+        var winJsonArr = [];
 
-            winJsonArr.push({
-                description: win.get_description(),
-                id: win.get_id(),
-                is_sticky: is_sticky,
-                layer: win.get_layer(),
-                pid: win.get_pid(),
-                root_ancestor: win.find_root_ancestor(),
-                title: win.get_title(),
-                window_type: win.get_window_type(),
-                wm_class_instance: win.get_wm_class_instance(),
-                wm_class: win.get_wm_class(),
-                workspace: win.get_workspace().index()
-            });
-
-            return JSON.stringify(winJsonArr);
-
-        } else {
-            throw new Error('Not found');
-        }
+        winJsonArr.push({
+            description: win.get_description(),
+            id: win.get_id(),
+            is_sticky: is_sticky,
+            layer: win.get_layer(),
+            pid: win.get_pid(),
+            root_ancestor: win.find_root_ancestor(),
+            title: win.get_title(),
+            window_type: win.get_window_type(),
+            wm_class_instance: win.get_wm_class_instance(),
+            wm_class: win.get_wm_class(),
+            workspace: win.get_workspace().index()
+        });
+        return JSON.stringify(winJsonArr);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetIconFromWinID uint32:44129093
@@ -587,11 +578,11 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetTitle uint32:3931313482
 
     GetTitle(winid) {
-        let w = this._get_window_by_wid(winid);
-        if (w) {
-            return w.get_title();
-        } else {
-            throw new Error('Not found');
+        try {
+            let win = this._get_window_by_wid(winid);
+            return win.get_title();
+        } catch (error) {
+            log(`Error : ${error}`);
         }
     }
 
@@ -689,40 +680,37 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWMClass uint32:3931313482
 
     GetWMClass(winid) {
-        let w = this._get_window_by_wid(winid);
-
-        if (w) {
-            return w.get_wm_class();
-        } else {
-            throw new Error('Not found');
+        try {
+            let win = this._get_window_by_wid(winid);
+            return win.get_wm_class();
+        } catch (error) {
+            log(`Error : ${error}`);
         }
-
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Maximize uint32:3931313482
 
     Maximize(winid) {
-        let win = this._get_window_by_wid(winid);
-
-        if (win) {
+        try {
+            let win = this._get_window_by_wid(winid);
             if (win.minimized) {
                 win.unminimize();
             }
             win.maximize(3);
             win.activate(0);
-        } else {
-            throw new Error('Not found');
+        } catch (error) {
+            log(`Error : ${error}`);
         }
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Minimize uint32:3931313482
 
     Minimize(winid) {
-        let win = this._get_window_by_wid(winid);
-        if (win) {
+        try {
+            let win = this._get_window_by_wid(winid);
             win.minimize();
-        } else {
-            throw new Error('Not found');
+        } catch (error) {
+            log(`Error : ${error}`);
         }
     }
 
