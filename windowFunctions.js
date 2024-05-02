@@ -326,16 +326,24 @@ var WindowFunctions = class WindowFunctions {
         this._align_windows(windows_array, windows_per_container, persistent_state_key);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Close uint32:44129093
+
     Close(winid) {
         try {
             let win = this._get_window_by_wid(winid);
-            win.delete(0);
+            // win.get_compositor_private().destroy();
+            if (win.can_close()){
+                log(`Deleting Window`);
+                win.delete(0);
+            }
+
         } catch (error) {
             log(`Error : ${error}`);
         }
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseDuplicateNemoWindows
+
     CloseDuplicateNemoWindows() {
         let wins = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
         let seen = {};
@@ -346,10 +354,8 @@ var WindowFunctions = class WindowFunctions {
             } else {
                 if (win.get_user_time() < seen[key].get_user_time()) {
                     win.delete(0);
-                    win.destroy();
                 } else {
                     seen[key].delete(0);
-                    seen[key].destroy();
                     seen[key] = win;
                 }
             }
