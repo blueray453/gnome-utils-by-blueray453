@@ -332,7 +332,7 @@ var WindowFunctions = class WindowFunctions {
         try {
             let win = this._get_window_by_wid(winid);
             // win.get_compositor_private().destroy();
-            if (win.can_close()){
+            if (win.can_close()) {
                 log(`Deleting Window`);
                 win.delete(0);
             }
