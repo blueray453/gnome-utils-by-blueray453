@@ -11,6 +11,9 @@ var MR_DBUS_IFACE = `
       <method name="MoveFocusedWindowToWorkspace">
          <arg type="i" direction="in" name="workspace_num" />
       </method>
+      <method name="MoveToWorkspace">
+         <arg type="i" direction="in" name="workspace_num" />
+      </method>
       <method name="MoveWindowToWorkspace">
          <arg type="u" direction="in" name="winid" />
          <arg type="i" direction="in" name="workspace_num" />
@@ -45,6 +48,17 @@ var WorkspaceFunctions = class WorkspaceFunctions {
             win.change_workspace_by_index(workspaceNum, false);
         } else {
             throw new Error('Not found');
+        }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveToWorkspace int32:4
+    MoveToWorkspace(workspaceNum) {
+        let current_workspace = WorkspaceManager.get_active_workspace();
+        let given_workspace = WorkspaceManager.get_workspace_by_index(workspaceNum);
+
+        // Check if the given workspace exists and is different from the current workspace
+        if (given_workspace.index() !== current_workspace.index()) {
+            given_workspace.activate(global.get_current_time());
         }
     }
 
