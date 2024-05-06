@@ -88,6 +88,8 @@ var MR_DBUS_IFACE = `
       </method>
       <method name="MoveAllAlacrittyWindowsToCurrentWorkspace">
       </method>
+      <method name="MoveAllFirefoxWindowsToCurrentWorkspace">
+      </method>
       <method name="MoveAllNemoWindowsToCurrentWorkspace">
       </method>
       <method name="MoveResize">
@@ -395,7 +397,7 @@ var WindowFunctions = class WindowFunctions {
         // win.make_fullscreen();
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | | jq '.[].id'
 
     GetFocusedWindow() {
         let win = Display.get_focus_window();
@@ -512,7 +514,7 @@ var WindowFunctions = class WindowFunctions {
 
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.getWindowsByWMClass string:"firefox" | jq
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.getWindowsByWMClass string:"firefox" | jq -r '.[]'
 
     getWindowsByWMClass(wm_class) {
 
@@ -763,6 +765,12 @@ var WindowFunctions = class WindowFunctions {
 
     MoveAllAlacrittyWindowsToCurrentWorkspace() {
         this._move_all_app_windows_to_current_workspace("Alacritty");
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllFirefoxWindowsToCurrentWorkspace
+
+    MoveAllFirefoxWindowsToCurrentWorkspace() {
+        this._move_all_app_windows_to_current_workspace("firefox");
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllNemoWindowsToCurrentWorkspace
