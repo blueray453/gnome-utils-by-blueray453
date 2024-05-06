@@ -48,6 +48,10 @@ var MR_DBUS_IFACE = `
       <method name="GetNormalWindowsCurrentWorkspaceCurrentWMClass">
          <arg type="s" direction="out" name="win" />
       </method>
+      <method name="getWindowsByWMClass">
+        <arg type="s" direction="in" name="wm_class" />
+        <arg type="s" direction="out" name="windows" />
+      </method>
       <method name="GetWindowsForRofi">
          <arg type="s" direction="out" name="win" />
       </method>
@@ -506,6 +510,15 @@ var WindowFunctions = class WindowFunctions {
 
         return JSON.stringify(windows_array);
 
+    }
+
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.getWindowsByWMClass string:"firefox" | jq
+
+    getWindowsByWMClass(wm_class) {
+
+        let windows_array = Display.get_tab_list(Meta.TabList.NORMAL, null).filter(w => w.get_wm_class() == wm_class).map(w => w.get_id());
+
+        return JSON.stringify(windows_array);
     }
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofi | jq .
