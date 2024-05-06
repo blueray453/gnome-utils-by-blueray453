@@ -309,7 +309,7 @@ var WindowFunctions = class WindowFunctions {
     AlignAlacrittyWindows() {
         let windows_array = this._get_normal_windows_current_workspace_given_wm_class_sorted("Alacritty");
         let persistent_state_key = "align_windows_state_nemo";
-        let windows_per_container = 3;
+        let windows_per_container = 2;
 
         this._align_windows(windows_array, windows_per_container, persistent_state_key);
     }
@@ -319,7 +319,7 @@ var WindowFunctions = class WindowFunctions {
     AlignNemoWindows() {
         let windows_array = this._get_normal_windows_current_workspace_given_wm_class_sorted("Nemo");
         let persistent_state_key = "align_windows_state_nemo";
-        let windows_per_container = 3;
+        let windows_per_container = 2;
 
         this._align_windows(windows_array, windows_per_container, persistent_state_key);
     }
@@ -329,7 +329,7 @@ var WindowFunctions = class WindowFunctions {
     AlignWindowsCurrentWMClass() {
         let windows_array = this._get_normal_windows_current_workspace_current_wm_class_sorted();
         let persistent_state_key = "align_windows_state_all_windows";
-        let windows_per_container = 3;
+        let windows_per_container = 2;
 
         this._align_windows(windows_array, windows_per_container, persistent_state_key);
     }
