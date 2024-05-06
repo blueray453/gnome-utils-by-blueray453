@@ -90,6 +90,8 @@ var MR_DBUS_IFACE = `
       </method>
       <method name="MoveAllFirefoxWindowsToCurrentWorkspace">
       </method>
+      <method name="MoveAllFsearchWindowsToCurrentWorkspace">
+      </method>
       <method name="MoveAllNemoWindowsToCurrentWorkspace">
       </method>
       <method name="MoveResize">
@@ -771,6 +773,12 @@ var WindowFunctions = class WindowFunctions {
 
     MoveAllFirefoxWindowsToCurrentWorkspace() {
         this._move_all_app_windows_to_current_workspace("firefox");
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllFsearchWindowsToCurrentWorkspace
+
+    MoveAllFsearchWindowsToCurrentWorkspace() {
+        this._move_all_app_windows_to_current_workspace("Fsearch");
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllNemoWindowsToCurrentWorkspace
