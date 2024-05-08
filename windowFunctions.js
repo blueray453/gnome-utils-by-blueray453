@@ -943,6 +943,8 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Resize uint32:44129093 int32:800 int32:600
+
     Resize(winid, width, height) {
         let win = this._get_window_by_wid(winid);
         if (win) {
