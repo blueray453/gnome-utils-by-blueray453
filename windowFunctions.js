@@ -503,6 +503,9 @@ var WindowFunctions = class WindowFunctions {
                 wm_class: win.get_wm_class(),
                 workspace: win.get_workspace().index(),
                 tile_match: tileMatchId
+                // allows_move: win.allows_move(),
+                // allows_resize: win.allows_resize(),
+                // check_alive: win.check_alive(global.get_current_time())
             });
         })
         return JSON.stringify(winJsonArr);
@@ -533,6 +536,9 @@ var WindowFunctions = class WindowFunctions {
                 wm_class: win.get_wm_class(),
                 workspace: win.get_workspace().index(),
                 tile_match: tileMatchId
+                // allows_move: win.allows_move(),
+                // allows_resize: win.allows_resize(),
+                // check_alive: win.check_alive(global.get_current_time())
             });
         })
         return JSON.stringify(winJsonArr);
@@ -785,6 +791,8 @@ var WindowFunctions = class WindowFunctions {
 
         wins.map(w => w.minimize());
     }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Move uint32:44129093 int32:100 int32:200
 
     Move(winid, x, y) {
         let win = this._get_window_by_wid(winid);
