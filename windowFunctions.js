@@ -620,6 +620,13 @@ var WindowFunctions = class WindowFunctions {
         log(`win_actor: ${win_actor}`);
         log(`win: ${win}`);
 
+        // frame bound create error for fsearch
+        // try {
+        //     let frame_bounds = win.get_frame_bounds();
+        // } catch (error) {
+        //     log(`Error : ${error}`);
+        // }
+
         if (win && win_actor) {
 
             let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
@@ -640,7 +647,6 @@ var WindowFunctions = class WindowFunctions {
                 description: win.get_description(),
                 display: win.get_display(),
                 focus: win.has_focus(),
-                frame_bounds: win.get_frame_bounds(),
                 frame_type: win.get_frame_type(),
                 gtk_app_id: win.get_gtk_application_id(),
                 id: win.get_id(),
