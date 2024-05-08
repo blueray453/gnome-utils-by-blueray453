@@ -140,8 +140,8 @@ var MR_DBUS_IFACE = `
 var WindowFunctions = class WindowFunctions {
 
     _move_windows_side_by_side = function (winid1, winid2) {
-       let win1 = _get_window_by_wid(winid1);
-       let win2 = _get_window_by_wid(winid2);
+       let win1 = this._get_window_by_wid(winid1);
+       let win2 = this._get_window_by_wid(winid2);
 
         let work_area = win1.get_work_area_current_monitor();
 
