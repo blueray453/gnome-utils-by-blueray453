@@ -139,9 +139,18 @@ var MR_DBUS_IFACE = `
 
 var WindowFunctions = class WindowFunctions {
 
-    _make_window_movable_and_resizable = function (winid){
-        let win = this._get_window_by_wid(winid);
+    _move_resize_window = function (win, x_coordinate, y_coordinate, width, height){
 
+        this._make_window_movable_and_resizable(win);
+
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            win.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
+            return GLib.SOURCE_REMOVE;
+        });
+
+    }
+
+    _make_window_movable_and_resizable = function (win){
         if (win) {
             if (win.minimized) {
                 win.unminimize();
@@ -169,20 +178,8 @@ var WindowFunctions = class WindowFunctions {
         let window_height = work_area_height;
         let window_width = work_area_width / 2;
 
-        this._make_window_movable_and_resizable(win1.get_id());
-
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            win1.move_resize_frame(1, 0, 0, window_width, window_height);
-            return GLib.SOURCE_REMOVE;
-        });
-
-        this._make_window_movable_and_resizable(win2.get_id());
-
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            win2.move_resize_frame(1, window_width, 0, window_width, window_height);
-            return GLib.SOURCE_REMOVE;
-        });
-
+        this._move_resize_window(win1, 0, 0, window_width, window_height);
+        this._move_resize_window(win2, window_width, 0, window_width, window_height);
     }
 
     _align_windows = function (windows_array, windows_per_container, persistent_state_key) {
@@ -233,12 +230,7 @@ var WindowFunctions = class WindowFunctions {
         for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
             let win = windows_array[i];
 
-            this._make_window_movable_and_resizable(win.get_id());
-
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
-                return GLib.SOURCE_REMOVE;
-            });
+            this._move_resize_window(win, all_x[j], 0, window_width, window_height);
 
             // let actor = win.get_compositor_private();
             // let id = actor.connect('first-frame', _ => {
@@ -812,7 +804,7 @@ var WindowFunctions = class WindowFunctions {
     Move(winid, x, y) {
         let win = this._get_window_by_wid(winid);
         if (win) {
-            this._make_window_movable_and_resizable(win.get_id());
+            this._make_window_movable_and_resizable(win);
             win.move_frame(1, x, y);
             win.activate(0);
         } else {
@@ -851,12 +843,7 @@ var WindowFunctions = class WindowFunctions {
         let win = this._get_window_by_wid(winid);
 
         if (win) {
-            this._make_window_movable_and_resizable(win.get_id());
-
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                win.move_resize_frame(1, x, y, width, height);
-                return GLib.SOURCE_REMOVE;
-            });
+            this._move_resize_window(win, x, y, width, height);
 
             // let actor = win.get_compositor_private();
             // let id = actor.connect('first-frame', _ => {
@@ -880,12 +867,7 @@ var WindowFunctions = class WindowFunctions {
             let height = work_area.height;
             // win.move_resize_frame(true, left, top, width, height);
 
-            this._make_window_movable_and_resizable(win.get_id());
-
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                win.move_resize_frame(1, left, top, width, height);
-                return GLib.SOURCE_REMOVE;
-            });
+            this._move_resize_window(win, left, top, width, height);
 
             // let actor = win.get_compositor_private();
             // let id = actor.connect('first-frame', _ => {
@@ -905,12 +887,7 @@ var WindowFunctions = class WindowFunctions {
             let height = work_area.height;
             // win.move_resize_frame(true, left, top, width, height);
 
-            this._make_window_movable_and_resizable(win.get_id());
-
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                win.move_resize_frame(1, left, top, width, height);
-                return GLib.SOURCE_REMOVE;
-            });
+            this._move_resize_window(win, left, top, width, height);
 
             // let actor = win.get_compositor_private();
             // let id = actor.connect('first-frame', _ => {
@@ -956,12 +933,7 @@ var WindowFunctions = class WindowFunctions {
         let win = this._get_window_by_wid(winid);
         if (win) {
 
-            this._make_window_movable_and_resizable(win.get_id());
-
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                win.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
-                return GLib.SOURCE_REMOVE;
-            });
+            this._move_resize_window(win, win.get_x(), win.get_y(), width, height);
 
             // let actor = win.get_compositor_private();
             // let id = actor.connect('first-frame', _ => {
