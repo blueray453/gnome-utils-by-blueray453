@@ -120,9 +120,6 @@ var MR_DBUS_IFACE = `
          <arg type="i" direction="in" name="width" />
          <arg type="i" direction="in" name="height" />
       </method>
-      <method name="Stick">
-         <arg type="u" direction="in" name="winid" />
-      </method>
       <method name="Unmaximize">
          <arg type="u" direction="in" name="winid" />
       </method>
@@ -130,9 +127,6 @@ var MR_DBUS_IFACE = `
          <arg type="u" direction="in" name="winid" />
       </method>
       <method name="UnMinimizeOtherWindowsCurrentWMClass">
-      </method>
-      <method name="Unstick">
-         <arg type="u" direction="in" name="winid" />
       </method>
    </interface>
 </node>`;
@@ -948,15 +942,6 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    Stick(winid) {
-        let win = this._get_window_by_wid(winid);
-        if (win) {
-            win.stick();
-        } else {
-            throw new Error('Not found');
-        }
-    }
-
     Unmaximize(winid) {
         let win = this._get_window_by_wid(winid);
         if (win.maximized_horizontally || win.maximized_vertically) {
@@ -984,14 +969,4 @@ var WindowFunctions = class WindowFunctions {
             w.raise();
         });
     }
-
-    Unstick(winid) {
-        let win = this._get_window_by_wid(winid);
-        if (win) {
-            win.unstick();
-        } else {
-            throw new Error('Not found');
-        }
-    }
-
 }
