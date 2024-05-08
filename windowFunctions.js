@@ -206,6 +206,25 @@ var WindowFunctions = class WindowFunctions {
         global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(state + 1));
     }
 
+    _place_windows_side_by_side = function (window1, window2) {
+
+    const workArea = window1.get_work_area_current_monitor();
+    // Find the matching tiled window
+    const matchingWindow = get_tile_match();
+
+    // If no matching window found, return
+    if (!matchingWindow) return;
+
+    // Get the work area of the current monitor
+
+    // Calculate the width for each window
+    const windowWidth = Math.floor(workArea.width / 2);
+
+    // Position the windows side by side
+    window1.move_resize_frame(true, workArea.x, workArea.y, windowWidth, workArea.height);
+    window2.move_resize_frame(true, workArea.x + windowWidth, workArea.y, windowWidth, workArea.height);
+    }
+
     _get_app_by_win = function (win) {
         // let tracker = global.get_window_tracker().get_default();
         let tracker = Shell.WindowTracker.get_default();
