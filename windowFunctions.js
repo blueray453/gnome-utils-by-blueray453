@@ -456,6 +456,9 @@ var WindowFunctions = class WindowFunctions {
         wins.forEach(function (win) {
 
             let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
+            let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
+
+
 
             winJsonArr.push({
                 description: win.get_description(),
@@ -469,7 +472,8 @@ var WindowFunctions = class WindowFunctions {
                 window_type: win.get_window_type(),
                 wm_class_instance: win.get_wm_class_instance(),
                 wm_class: win.get_wm_class(),
-                workspace: win.get_workspace().index()
+                workspace: win.get_workspace().index(),
+                tile_match: tileMatchId
             });
         })
         return JSON.stringify(winJsonArr);
