@@ -105,6 +105,10 @@ var MR_DBUS_IFACE = `
       </method>
       <method name="MoveResizeFocusedWindowToRightHalfWorkArea">
       </method>
+      <method name="MoveWindowsSideBySide">
+         <arg type="u" direction="in" name="winid1" />
+         <arg type="u" direction="in" name="winid2" />
+      </method>
       <method name="MoveWindowToCurrentWorkspace">
          <arg type="u" direction="in" name="winid" />
       </method>
@@ -135,7 +139,7 @@ var MR_DBUS_IFACE = `
 
 var WindowFunctions = class WindowFunctions {
 
-    _place_windows_side_by_side = function (winid1, winid2) {
+    _move_windows_side_by_side = function (winid1, winid2) {
        let win1 = _get_window_by_wid(winid1);
        let win2 = _get_window_by_wid(winid2);
 
@@ -897,6 +901,12 @@ var WindowFunctions = class WindowFunctions {
             //     actor.disconnect(id);
             // });
         }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsSideBySide uint32:winid1 uint32:winid2
+
+    MoveWindowsSideBySide(winid1, winid2) {
+        this._move_windows_side_by_side(winid1, winid2);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToCurrentWorkspace uint32:44129093
