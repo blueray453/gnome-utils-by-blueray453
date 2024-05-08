@@ -139,6 +139,21 @@ var MR_DBUS_IFACE = `
 
 var WindowFunctions = class WindowFunctions {
 
+    _make_window_movable_and_resizable = function (winid){
+        let win = this._get_window_by_wid(winid);
+
+        if (win) {
+            if (win.minimized) {
+                win.unminimize();
+            }
+            if (win.maximized_horizontally || win.maximized_vertically) {
+                win.unmaximize(3);
+            }
+        } else {
+            throw new Error('Not found');
+        }
+    }
+
     _move_windows_side_by_side = function (winid1, winid2) {
        let win1 = this._get_window_by_wid(winid1);
        let win2 = this._get_window_by_wid(winid2);
@@ -154,10 +169,14 @@ var WindowFunctions = class WindowFunctions {
         let window_height = work_area_height;
         let window_width = work_area_width / 2;
 
+        this._make_window_movable_and_resizable(win1.get_id());
+
         GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             win1.move_resize_frame(1, 0, 0, window_width, window_height);
             return GLib.SOURCE_REMOVE;
         });
+
+        this._make_window_movable_and_resizable(win2.get_id());
 
         GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             win2.move_resize_frame(1, window_width, 0, window_width, window_height);
@@ -213,12 +232,8 @@ var WindowFunctions = class WindowFunctions {
 
         for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
             let win = windows_array[i];
-            if (win.minimized) {
-                win.unminimize();
-            }
-            if (win.maximized_horizontally || win.maximized_vertically) {
-                win.unmaximize(3);
-            }
+
+            this._make_window_movable_and_resizable(win.get_id());
 
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 win.move_resize_frame(1, all_x[j], 0, window_width, window_height);
@@ -797,14 +812,7 @@ var WindowFunctions = class WindowFunctions {
     Move(winid, x, y) {
         let win = this._get_window_by_wid(winid);
         if (win) {
-
-            if (win.minimized) {
-                win.unminimize();
-            }
-
-            if (win.maximized_horizontally || win.maximized_vertically) {
-                win.unmaximize(3);
-            }
+            this._make_window_movable_and_resizable(win.get_id());
             win.move_frame(1, x, y);
             win.activate(0);
         } else {
@@ -843,12 +851,7 @@ var WindowFunctions = class WindowFunctions {
         let win = this._get_window_by_wid(winid);
 
         if (win) {
-            if (win.minimized) {
-                win.unminimize();
-            }
-            if (win.maximized_horizontally || win.maximized_vertically) {
-                win.unmaximize(3);
-            }
+            this._make_window_movable_and_resizable(win.get_id());
 
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 win.move_resize_frame(1, x, y, width, height);
@@ -877,6 +880,8 @@ var WindowFunctions = class WindowFunctions {
             let height = work_area.height;
             // win.move_resize_frame(true, left, top, width, height);
 
+            this._make_window_movable_and_resizable(win.get_id());
+
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 win.move_resize_frame(1, left, top, width, height);
                 return GLib.SOURCE_REMOVE;
@@ -899,6 +904,8 @@ var WindowFunctions = class WindowFunctions {
             let left = width;
             let height = work_area.height;
             // win.move_resize_frame(true, left, top, width, height);
+
+            this._make_window_movable_and_resizable(win.get_id());
 
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 win.move_resize_frame(1, left, top, width, height);
@@ -949,13 +956,7 @@ var WindowFunctions = class WindowFunctions {
         let win = this._get_window_by_wid(winid);
         if (win) {
 
-            if (win.minimized) {
-                win.unminimize();
-            }
-
-            if (win.maximized_horizontally || win.maximized_vertically) {
-                win.unmaximize(3);
-            }
+            this._make_window_movable_and_resizable(win.get_id());
 
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 win.move_resize_frame(1, win.get_x(), win.get_y(), width, height);
