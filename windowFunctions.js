@@ -135,6 +135,33 @@ var MR_DBUS_IFACE = `
 
 var WindowFunctions = class WindowFunctions {
 
+    _place_windows_side_by_side = function (winid1, winid2) {
+       let win1 = _get_window_by_wid(winid1);
+       let win2 = _get_window_by_wid(winid2);
+
+        let work_area = win1.get_work_area_current_monitor();
+
+       //check if both are in current workspace
+       //check if both are in same monitor
+
+        let work_area_width = work_area.width;
+        let work_area_height = work_area.height;
+
+        let window_height = work_area_height;
+        let window_width = work_area_width / 2;
+
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            win1.move_resize_frame(1, 0, 0, window_width, window_height);
+            return GLib.SOURCE_REMOVE;
+        });
+
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            win2.move_resize_frame(1, window_width, 0, window_width, window_height);
+            return GLib.SOURCE_REMOVE;
+        });
+
+    }
+
     _align_windows = function (windows_array, windows_per_container, persistent_state_key) {
 
         // remove windows from windows_array that do not have a minimize() method
