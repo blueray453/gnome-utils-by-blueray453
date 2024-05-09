@@ -219,73 +219,6 @@ var WindowFunctions = class WindowFunctions {
 
     /* Utility Functions */
 
-
-
-
-
-
-
-
-
-
-    _get_app_given_meta_window = function (win) {
-        // let tracker = global.get_window_tracker().get_default();
-        let tracker = Shell.WindowTracker.get_default();
-        let app = tracker.get_window_app(win);
-        return app;
-    }
-
-
-
-    _make_window_movable_and_resizable = function (win) {
-        if (win) {
-            if (win.minimized) {
-                win.unminimize();
-            }
-            if (win.maximized_horizontally || win.maximized_vertically) {
-                win.unmaximize(3);
-            }
-        } else {
-            log(`Window not found`);
-        }
-    }
-
-
-
-
-
-
-
-    _move_resize_window = function (win, x_coordinate, y_coordinate, width, height) {
-
-        this._make_window_movable_and_resizable(win);
-
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            win.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
-            return GLib.SOURCE_REMOVE;
-        });
-
-    }
-
-    _move_windows_side_by_side = function (winid1, winid2) {
-        let win1 = this._get_normal_window_given_window_id(winid1);
-        let win2 = this._get_normal_window_given_window_id(winid2);
-
-        let work_area = win1.get_work_area_current_monitor();
-
-        //check if both are in current workspace
-        //check if both are in same monitor
-
-        let work_area_width = work_area.width;
-        let work_area_height = work_area.height;
-
-        let window_height = work_area_height;
-        let window_width = work_area_width / 2;
-
-        this._move_resize_window(win1, 0, 0, window_width, window_height);
-        this._move_resize_window(win2, window_width, 0, window_width, window_height);
-    }
-
     _align_windows = function (windows_array, windows_per_container, persistent_state_key) {
 
         // remove windows from windows_array that do not have a minimize() method
@@ -342,10 +275,6 @@ var WindowFunctions = class WindowFunctions {
         global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(state + 1));
     }
 
-
-
-
-
     _move_all_app_windows_to_current_workspace = function (wm_class) {
         let current_workspace = WorkspaceManager.get_active_workspace();
 
@@ -365,27 +294,55 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
+    _get_app_given_meta_window = function (win) {
+        // let tracker = global.get_window_tracker().get_default();
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(win);
+        return app;
+    }
 
+    _make_window_movable_and_resizable = function (win) {
+        if (win) {
+            if (win.minimized) {
+                win.unminimize();
+            }
+            if (win.maximized_horizontally || win.maximized_vertically) {
+                win.unmaximize(3);
+            }
+        } else {
+            log(`Window not found`);
+        }
+    }
 
+    _move_resize_window = function (win, x_coordinate, y_coordinate, width, height) {
 
+        this._make_window_movable_and_resizable(win);
 
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            win.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
+            return GLib.SOURCE_REMOVE;
+        });
 
+    }
 
+    _move_windows_side_by_side = function (winid1, winid2) {
+        let win1 = this._get_normal_window_given_window_id(winid1);
+        let win2 = this._get_normal_window_given_window_id(winid2);
 
+        let work_area = win1.get_work_area_current_monitor();
 
+        //check if both are in current workspace
+        //check if both are in same monitor
 
+        let work_area_width = work_area.width;
+        let work_area_height = work_area.height;
 
+        let window_height = work_area_height;
+        let window_width = work_area_width / 2;
 
-
-
-
-
-
-
-
-
-
-
+        this._move_resize_window(win1, 0, 0, window_width, window_height);
+        this._move_resize_window(win2, window_width, 0, window_width, window_height);
+    }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Activate uint32:44129093
 
