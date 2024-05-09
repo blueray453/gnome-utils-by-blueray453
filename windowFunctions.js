@@ -60,9 +60,6 @@ var MR_DBUS_IFACE = `
       <method name="GetWindowsForRofi">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetWindowsForRofiSorted">
-         <arg type="s" direction="out" name="win" />
-      </method>
       <method name="GetWindowDetails">
          <arg type="u" direction="in" name="winid" />
          <arg type="s" direction="out" name="win" />
@@ -502,32 +499,6 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofi | jq .
-
-    GetWindowsForRofi() {
-        let wins = this._get_normal_windows();
-
-        var winJsonArr = [];
-
-        wins.forEach((win) => {
-            let app = this._get_app_by_win(win);
-            let icon = app.get_icon().to_string();
-
-            let workspace_id = win.get_workspace().index();
-            let workspace_name = Meta.prefs_get_workspace_name(workspace_id);
-
-            winJsonArr.push({
-                id: win.get_id(),
-                title: win.get_title(),
-                wm_class: win.get_wm_class(),
-                icon: icon,
-                workspace_id: workspace_id,
-                workspace_name: workspace_name
-            });
-        })
-        return JSON.stringify(winJsonArr);
-    }
-
     _get_basic_properties = function (win) {
         // let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
         // let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
@@ -549,9 +520,9 @@ var WindowFunctions = class WindowFunctions {
         };
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofiSorted | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofi | jq .
 
-    GetWindowsForRofiSorted() {
+    GetWindowsForRofi() {
         let wins = this._get_normal_windows();
 
         const classOrder = {
@@ -578,7 +549,6 @@ var WindowFunctions = class WindowFunctions {
 
         // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_basic_properties(win));
-        // let winPropertiesArr = wins.map(this._get_basic_properties.bind(this));
 
         return JSON.stringify(winPropertiesArr);
 
@@ -662,8 +632,6 @@ var WindowFunctions = class WindowFunctions {
             tile_match: tileMatchId
         };
     }
-
-
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowDetails uint32:740651535
 
