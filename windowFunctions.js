@@ -279,17 +279,17 @@ var WindowFunctions = class WindowFunctions {
         global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(state + 1));
     }
 
-    _get_brief_properties_given_window_id = function (winid) {
+    _get_properties_brief_given_window_id = function (winid) {
         let win = this._get_normal_window_given_window_id(winid);
-        this._get_brief_properties_given_meta_window(win);
+        this._get_properties_brief_given_meta_window(win);
     }
 
-    _get_brief_properties_given_wm_class = function (wm_class) {
+    _get_properties_brief_given_wm_class = function (wm_class) {
         let win = this._get_normal_window_given_wm_class(wm_class);
-        this._get_brief_properties_given_meta_window(win);
+        this._get_properties_brief_given_meta_window(win);
     }
 
-    _get_brief_properties_given_meta_window = function (win) {
+    _get_properties_brief_given_meta_window = function (win) {
         // let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
         // let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
 
@@ -310,7 +310,7 @@ var WindowFunctions = class WindowFunctions {
         };
     }
 
-    _get_detailed_properties_given_meta_window = function (win) {
+    _get_properties_detailed_given_meta_window = function (win) {
 
         let win_actor = this._get_window_actor_given_window_id(win.get_id());
 
@@ -547,7 +547,7 @@ var WindowFunctions = class WindowFunctions {
 
     GetFocusedWindow() {
         let win = Display.get_focus_window();
-        let winProperties = this._get_brief_properties_given_meta_window(win);
+        let winProperties = this._get_properties_brief_given_meta_window(win);
         return JSON.stringify(winProperties);
     }
 
@@ -559,7 +559,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = this._get_normal_windows();
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_brief_properties_given_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
     }
@@ -570,7 +570,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = this._get_normal_windows_current_workspace();
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_brief_properties_given_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
     }
@@ -583,7 +583,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = this._get_normal_windows_current_workspace_current_wm_class();
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_brief_properties_given_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
 
@@ -597,7 +597,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = _get_normal_windows_current_workspace_given_wm_class(wm_class).map(w => w.get_id());
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_brief_properties_given_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
     }
@@ -632,7 +632,7 @@ var WindowFunctions = class WindowFunctions {
         });
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_brief_properties_given_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
     }
@@ -643,7 +643,7 @@ var WindowFunctions = class WindowFunctions {
 
         let win = this._get_normal_window_given_window_id(winid);
 
-        let winProperties = this._get_detailed_properties_given_meta_window(win);
+        let winProperties = this._get_properties_detailed_given_meta_window(win);
 
         return JSON.stringify(winProperties);
     }
@@ -654,7 +654,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = this._get_normal_windows();
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_brief_properties_given_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
     }
