@@ -134,14 +134,14 @@ var WindowFunctions = class WindowFunctions {
     These are the building blocks of other utility functions
     */
 
-    _get_app_by_win = function (win) {
+    _get_app_given_meta_window = function (win) {
         // let tracker = global.get_window_tracker().get_default();
         let tracker = Shell.WindowTracker.get_default();
         let app = tracker.get_window_app(win);
         return app;
     }
 
-    _get_window_by_wid = function (winid) {
+    _get_meta_window_given_window_id = function (winid) {
         let win = Display.list_all_windows().find(w => w.get_id() == winid);
         return win;
     }
@@ -193,8 +193,8 @@ var WindowFunctions = class WindowFunctions {
     }
 
     _move_windows_side_by_side = function (winid1, winid2) {
-        let win1 = this._get_window_by_wid(winid1);
-        let win2 = this._get_window_by_wid(winid2);
+        let win1 = this._get_meta_window_given_window_id(winid1);
+        let win2 = this._get_meta_window_given_window_id(winid2);
 
         let work_area = win1.get_work_area_current_monitor();
 
@@ -267,16 +267,16 @@ var WindowFunctions = class WindowFunctions {
         global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(state + 1));
     }
 
-    _get_basic_properties_by_window_id = function (winid) {
-        let win = this._get_window_by_wid(winid);
-        this._get_basic_properties_by_meta_window(win);
+    _get_basic_properties_given_window_id = function (winid) {
+        let win = this._get_meta_window_given_window_id(winid);
+        this._get_basic_properties_given_meta_window(win);
     }
 
-    _get_basic_properties_by_meta_window = function (win) {
+    _get_basic_properties_given_meta_window = function (win) {
         // let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
         // let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
 
-        let app = this._get_app_by_win(win);
+        let app = this._get_app_given_meta_window(win);
         let icon = app.get_icon().to_string();
 
         let workspace_id = win.get_workspace().index();
@@ -335,7 +335,7 @@ var WindowFunctions = class WindowFunctions {
         return this._get_normal_windows_current_workspace_given_wm_class().filter(w => win != w);
       }
 
-    _get_window_actor_by_wid = function (winid) {
+    _get_window_actor_given_window_id = function (winid) {
         let win = global.get_window_actors().find(w => w.get_meta_window().get_id() == winid);
         return win;
     }
@@ -364,7 +364,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Activate uint32:44129093
 
     Activate(winid) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_meta_window_given_window_id(winid);
         let win_workspace = win.get_workspace();
         // Here global.get_current_time() instead of 0 will also work
         win_workspace.activate_with_focus(win, 0);
@@ -404,7 +404,7 @@ var WindowFunctions = class WindowFunctions {
 
     Close(winid) {
         try {
-            let win = this._get_window_by_wid(winid);
+            let win = this._get_meta_window_given_window_id(winid);
             // win.get_compositor_private().destroy();
             if (win.can_close()) {
                 log(`Deleting Window`);
@@ -449,7 +449,7 @@ var WindowFunctions = class WindowFunctions {
 
     Focus(winid) {
         try {
-            let win = this._get_window_by_wid(winid);
+            let win = this._get_meta_window_given_window_id(winid);
             win.focus(0);
         } catch (error) {
             log(`Error : ${error}`);
@@ -457,7 +457,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     FullScreen(winid) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_meta_window_given_window_id(winid);
         let win_workspace = win.get_workspace();
         // Here global.get_current_time() instead of 0 will also work
         win.maximize(3);
@@ -469,7 +469,7 @@ var WindowFunctions = class WindowFunctions {
 
     GetFocusedWindow() {
         let win = Display.get_focus_window();
-        let winProperties = this._get_basic_properties_by_meta_window(win);
+        let winProperties = this._get_basic_properties_given_meta_window(win);
         return JSON.stringify(winProperties);
     }
 
@@ -481,7 +481,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = this._get_normal_windows();
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_basic_properties_by_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_basic_properties_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
     }
@@ -492,7 +492,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = this._get_normal_windows_current_workspace();
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_basic_properties_by_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_basic_properties_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
     }
@@ -505,7 +505,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = this._get_normal_windows_current_workspace_current_wm_class();
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_basic_properties_by_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_basic_properties_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
 
@@ -519,7 +519,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = _get_normal_windows_current_workspace_given_wm_class(wm_class).map(w => w.get_id());
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_basic_properties_by_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_basic_properties_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
     }
@@ -554,14 +554,14 @@ var WindowFunctions = class WindowFunctions {
         });
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_basic_properties_by_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_basic_properties_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
     }
 
     _get_detailed_properties = function (win) {
 
-        let win_actor = this._get_window_actor_by_wid(win.get_id());
+        let win_actor = this._get_window_actor_given_window_id(win.get_id());
 
         // frame bound create error for fsearch
         // try {
@@ -622,7 +622,7 @@ var WindowFunctions = class WindowFunctions {
 
     GetWindowDetails(winid) {
 
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_meta_window_given_window_id(winid);
 
         let winProperties = this._get_detailed_properties(win);
 
@@ -635,7 +635,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = this._get_normal_windows();
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_basic_properties_by_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_basic_properties_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
     }
@@ -644,7 +644,7 @@ var WindowFunctions = class WindowFunctions {
 
     GetWMClass(winid) {
         try {
-            let win = this._get_window_by_wid(winid);
+            let win = this._get_meta_window_given_window_id(winid);
             return win.get_wm_class();
         } catch (error) {
             log(`Error : ${error}`);
@@ -655,7 +655,7 @@ var WindowFunctions = class WindowFunctions {
 
     Maximize(winid) {
         try {
-            let win = this._get_window_by_wid(winid);
+            let win = this._get_meta_window_given_window_id(winid);
             if (win.minimized) {
                 win.unminimize();
             }
@@ -670,7 +670,7 @@ var WindowFunctions = class WindowFunctions {
 
     Minimize(winid) {
         try {
-            let win = this._get_window_by_wid(winid);
+            let win = this._get_meta_window_given_window_id(winid);
             win.minimize();
         } catch (error) {
             log(`Error : ${error}`);
@@ -686,7 +686,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Move uint32:44129093 int32:100 int32:200
 
     Move(winid, x, y) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_meta_window_given_window_id(winid);
         if (win) {
             this._make_window_movable_and_resizable(win);
             win.move_frame(1, x, y);
@@ -724,7 +724,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
 
     MoveResize(winid, x, y, width, height) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_meta_window_given_window_id(winid);
 
         if (win) {
             this._move_resize_window(win, x, y, width, height);
@@ -778,7 +778,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToCurrentWorkspace uint32:44129093
 
     MoveWindowToCurrentWorkspace(winid) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_meta_window_given_window_id(winid);
         if (win) {
             let current_workspace = WorkspaceManager.get_active_workspace();
             win.change_workspace(current_workspace);
@@ -790,7 +790,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     Raise(winid) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_meta_window_given_window_id(winid);
         if (win) {
             win.raise();
             win.raise_and_make_recent();
@@ -802,7 +802,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Resize uint32:44129093 int32:800 int32:600
 
     Resize(winid, width, height) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_meta_window_given_window_id(winid);
         if (win) {
 
             this._move_resize_window(win, win.get_x(), win.get_y(), width, height);
@@ -816,7 +816,7 @@ var WindowFunctions = class WindowFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Resize uint32:44129093 int32:800 int32:600
     Unmaximize(winid) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_meta_window_given_window_id(winid);
         if (win.maximized_horizontally || win.maximized_vertically) {
             win.unmaximize(3);
             win.activate(0);
@@ -827,7 +827,7 @@ var WindowFunctions = class WindowFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Unminimize uint32:44129093
     Unminimize(winid) {
-        let win = this._get_window_by_wid(winid);
+        let win = this._get_meta_window_given_window_id(winid);
         if (win.minimized) {
             win.unminimize();
         } else {
