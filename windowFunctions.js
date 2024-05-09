@@ -119,24 +119,7 @@ var MR_DBUS_IFACE = `
 
 var WindowFunctions = class WindowFunctions {
 
-    /* Atomic Utility Functions
-
-    The utility functions that did not use anything other than the Gnome API functions
-
-    These are the building blocks of other utility functions
-    */
-
     /* Get Properties */
-
-    _get_properties_brief_given_window_id = function (winid) {
-        let win = this._get_normal_window_given_window_id(winid);
-        this._get_properties_brief_given_meta_window(win);
-    }
-
-    _get_properties_brief_given_wm_class = function (wm_class) {
-        let win = this._get_normal_window_given_wm_class(wm_class);
-        this._get_properties_brief_given_meta_window(win);
-    }
 
     _get_properties_brief_given_meta_window = function (win) {
         // let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
@@ -157,6 +140,11 @@ var WindowFunctions = class WindowFunctions {
             workspace_name: Meta.prefs_get_workspace_name(workspace_id),
             icon: icon
         };
+    }
+
+    _get_properties_brief_given_window_id = function (winid) {
+        let win = this._get_normal_window_given_window_id(winid);
+        this._get_properties_brief_given_meta_window(win);
     }
 
     /* Get Normal Windows */
@@ -182,24 +170,6 @@ var WindowFunctions = class WindowFunctions {
         return wins;
     }
 
-    _get_normal_window_given_window_id = function (winid) {
-        let win = this._get_normal_windows.find(w => w.get_id() == winid);
-        return win;
-    }
-
-    _get_normal_window_given_wm_class = function (wm_class) {
-        let win = this._get_normal_windows.find(w => w.get_wm_class() == wm_class);
-        return win;
-    }
-
-    _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
-        return this._get_normal_windows_current_workspace.filter(w => w.get_wm_class() == wm_class);
-    }
-
-    _get_normal_windows_given_wm_class = function (wm_class) {
-        return this._get_normal_windows.filter(w => w.get_wm_class() == wm_class);
-    }
-
     _get_normal_windows_current_workspace_current_wm_class = function () {
         let win = Display.get_focus_window();
         let win_wm_class = win.get_wm_class();
@@ -214,8 +184,23 @@ var WindowFunctions = class WindowFunctions {
         return this._get_normal_windows_current_workspace_given_wm_class_sorted(win_wm_class);
     }
 
+
+    _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
+        return this._get_normal_windows_current_workspace.filter(w => w.get_wm_class() == wm_class);
+    }
+
+
     _get_normal_windows_current_workspace_given_wm_class_sorted = function (wm_class) {
         return this._get_normal_windows_current_workspace_given_wm_class.sort((a, b) => a.get_id() - b.get_id());
+    }
+
+    _get_normal_window_given_window_id = function (winid) {
+        let win = this._get_normal_windows.find(w => w.get_id() == winid);
+        return win;
+    }
+
+    _get_normal_windows_given_wm_class = function (wm_class) {
+        return this._get_normal_windows.filter(w => w.get_wm_class() == wm_class);
     }
 
     _get_normal_windows_given_wm_class_sorted = function (wm_class) {
@@ -227,6 +212,12 @@ var WindowFunctions = class WindowFunctions {
         return this._get_normal_windows_current_workspace_given_wm_class().filter(w => win != w);
     }
 
+    _get_window_actor_given_window_id = function (winid) {
+        let win = global.get_window_actors().find(w => w.get_meta_window().get_id() == winid);
+        return win;
+    }
+
+    /* Utility Functions */
 
 
 
@@ -246,13 +237,6 @@ var WindowFunctions = class WindowFunctions {
 
 
 
-
-
-    _get_window_actor_given_window_id = function (winid) {
-        let win = global.get_window_actors().find(w => w.get_meta_window().get_id() == winid);
-        return win;
-    }
-
     _make_window_movable_and_resizable = function (win) {
         if (win) {
             if (win.minimized) {
@@ -268,12 +252,7 @@ var WindowFunctions = class WindowFunctions {
 
 
 
-    /* Composite Utility Functions
 
-    The utility functions that use Atomic Utility Functions
-
-    These are the building blocks of regular functions
-    */
 
 
 
