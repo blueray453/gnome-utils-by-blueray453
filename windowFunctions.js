@@ -124,11 +124,6 @@ var WindowFunctions = class WindowFunctions {
         };
     }
 
-    _get_properties_brief_given_window_id = function (winid) {
-        let win = this._get_normal_window_given_window_id(winid);
-        this._get_properties_brief_given_meta_window(win);
-    }
-
     /* Get Normal Windows */
 
     /*
@@ -190,11 +185,6 @@ var WindowFunctions = class WindowFunctions {
     _get_other_normal_windows_current_workspace_of_focused_window_wm_class = function () {
         let win = Display.get_focus_window();
         return this._get_normal_windows_current_workspace_given_wm_class(win.get_wm_class()).filter(w => win != w);
-    }
-
-    _get_window_actor_given_window_id = function (winid) {
-        let win = global.get_window_actors().find(w => w.get_meta_window().get_id() == winid);
-        return win;
     }
 
     /* Utility Functions */
@@ -366,17 +356,9 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Close uint32:44129093
 
     Close(winid) {
-        try {
             let win = this._get_normal_window_given_window_id(winid);
             // win.get_compositor_private().destroy();
-            if (win.can_close()) {
-                log(`Deleting Window`);
-                win.delete(0);
-            }
-
-        } catch (error) {
-            log(`Error : ${error}`);
-        }
+            win.delete(0);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseDuplicateNemoWindows
@@ -405,8 +387,6 @@ var WindowFunctions = class WindowFunctions {
         let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
         wins.forEach(function (w) {
             if (w.get_wm_class_instance() !== 'file_progress') {
-                // log(`closing: ${w.get_id()}`);
-                // log(`closing: ${w.get_wm_class_instance()}`);
                 w.delete(0);
             }
         })
@@ -415,10 +395,8 @@ var WindowFunctions = class WindowFunctions {
     FullScreen(winid) {
         let win = this._get_normal_window_given_window_id(winid);
         let win_workspace = win.get_workspace();
-        // Here global.get_current_time() instead of 0 will also work
         win.maximize(3);
         win_workspace.activate_with_focus(win, 0);
-        // win.make_fullscreen();
     }
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq .
@@ -470,8 +448,6 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-
-
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofi | jq .
 
     GetWindowsForRofi() {
@@ -510,34 +486,27 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Maximize uint32:3931313482
 
     Maximize(winid) {
-        try {
-            let win = this._get_normal_window_given_window_id(winid);
-            if (win.minimized) {
-                win.unminimize();
-            }
-            win.maximize(3);
-            win.activate(0);
-        } catch (error) {
-            log(`Error : ${error}`);
+        let win = this._get_normal_window_given_window_id(winid);
+
+        if (win.minimized) {
+            win.unminimize();
         }
+
+        win.maximize(3);
+        win.activate(0);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Minimize uint32:3931313482
 
     Minimize(winid) {
-        try {
-            let win = this._get_normal_window_given_window_id(winid);
-            win.minimize();
-        } catch (error) {
-            log(`Error : ${error}`);
-        }
+        let win = this._get_normal_window_given_window_id(winid);
+        win.minimize();
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MinimizeOtherWindowsOfFocusedWindowWMClass
 
     MinimizeOtherWindowsOfFocusedWindowWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
-
         wins.map(w => w.minimize());
     }
 
@@ -545,13 +514,9 @@ var WindowFunctions = class WindowFunctions {
 
     Move(winid, x, y) {
         let win = this._get_normal_window_given_window_id(winid);
-        if (win) {
-            this._make_window_movable_and_resizable(win);
-            win.move_frame(1, x, y);
-            win.activate(0);
-        } else {
-            log(`Window not found`);
-        }
+        this._make_window_movable_and_resizable(win);
+        win.move_frame(1, x, y);
+        win.activate(0);
     }
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToCurrentWorkspaceGivenWMClass string:"firefox"
@@ -567,19 +532,15 @@ var WindowFunctions = class WindowFunctions {
     MoveResize(winid, x, y, width, height) {
         let win = this._get_normal_window_given_window_id(winid);
 
-        if (win) {
-            this._move_resize_window(win, x, y, width, height);
+        this._move_resize_window(win, x, y, width, height);
 
-            // let actor = win.get_compositor_private();
-            // let id = actor.connect('first-frame', _ => {
-            //     win.move_resize_frame(1, x, y, width, height);
-            //     actor.disconnect(id);
-            // });
+        // let actor = win.get_compositor_private();
+        // let id = actor.connect('first-frame', _ => {
+        //     win.move_resize_frame(1, x, y, width, height);
+        //     actor.disconnect(id);
+        // });
 
-            win.activate(0);
-        } else {
-            log(`Window not found`);
-        }
+        win.activate(0);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsSideBySide uint32:winid1 uint32:winid2
@@ -592,50 +553,35 @@ var WindowFunctions = class WindowFunctions {
 
     MoveWindowToCurrentWorkspace(winid) {
         let win = this._get_normal_window_given_window_id(winid);
-        if (win) {
-            let current_workspace = WorkspaceManager.get_active_workspace();
-            win.change_workspace(current_workspace);
-            // Here global.get_current_time() instead of 0 will also work
-            current_workspace.activate_with_focus(win, 0);
-        } else {
-            log(`Window not found`);
-        }
+
+        let current_workspace = WorkspaceManager.get_active_workspace();
+        win.change_workspace(current_workspace);
+        current_workspace.activate_with_focus(win, 0);
     }
 
     Raise(winid) {
         let win = this._get_normal_window_given_window_id(winid);
-        if (win) {
-            win.raise();
-            win.raise_and_make_recent();
-        } else {
-            log(`Window not found`);
-        }
+
+        win.raise();
+        win.raise_and_make_recent();
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Resize uint32:44129093 int32:800 int32:600
 
     Resize(winid, width, height) {
         let win = this._get_normal_window_given_window_id(winid);
-        if (win) {
 
-            this._move_resize_window(win, win.get_x(), win.get_y(), width, height);
-
-            win.activate(0);
-
-        } else {
-            log(`Window not found`);
-        }
+        this._move_resize_window(win, win.get_x(), win.get_y(), width, height);
+        win.activate(0);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Resize uint32:44129093 int32:800 int32:600
     Unmaximize(winid) {
         let win = this._get_normal_window_given_window_id(winid);
-        if (win.maximized_horizontally || win.maximized_vertically) {
-            win.unmaximize(3);
-            win.activate(0);
-        } else {
-            log(`Window not found`);
-        }
+        this._make_window_movable_and_resizable(win);
+
+        win.unmaximize(3);
+        win.activate(0);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Unminimize uint32:44129093
@@ -643,8 +589,6 @@ var WindowFunctions = class WindowFunctions {
         let win = this._get_normal_window_given_window_id(winid);
         if (win.minimized) {
             win.unminimize();
-        } else {
-            log(`Window not found`);
         }
     }
 
