@@ -64,7 +64,7 @@ var MR_DBUS_IFACE = `
          <arg type="i" direction="in" name="y" />
       </method>
       <method name="MoveWindowsToCurrentWorkspaceGivenWMClass">
-         <arg type="u" direction="in" name="wm_class" />
+         <arg type="s" direction="in" name="wm_class" />
       </method>
       <method name="MoveResize">
          <arg type="u" direction="in" name="winid" />
@@ -186,7 +186,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     _get_normal_windows_given_wm_class_sorted = function (wm_class) {
-        return this._get_normal_windows_given_wm_class.sort((a, b) => a.get_id() - b.get_id());
+        return this._get_normal_windows_given_wm_class(wm_class).sort((a, b) => a.get_id() - b.get_id());
     }
 
     _get_other_normal_windows_current_workspace_current_wm_class = function () {
