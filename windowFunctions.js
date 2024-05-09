@@ -189,7 +189,7 @@ var WindowFunctions = class WindowFunctions {
 
     _get_other_normal_windows_current_workspace_current_wm_class = function () {
         let win = Display.get_focus_window();
-        return this._get_normal_windows_current_workspace_given_wm_class().filter(w => win != w);
+        return this._get_normal_windows_current_workspace_given_wm_class(win.get_wm_class()).filter(w => win != w);
     }
 
     _get_window_actor_given_window_id = function (winid) {
@@ -398,6 +398,8 @@ var WindowFunctions = class WindowFunctions {
             }
         });
     }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
 
     CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
