@@ -4,6 +4,14 @@ const Display = global.get_display();
 // const WorkspaceManager = global.get_workspace_manager();
 const WorkspaceManager = Display.get_workspace_manager();
 
+// distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
+
+// brief and detailed
+
+// actions will log error
+
+// those functions which have output will output as json error
+
 var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWindows">
@@ -424,7 +432,7 @@ var WindowFunctions = class WindowFunctions {
         // win.make_fullscreen();
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | | jq '.[].id'
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | jq '.[].id'
 
     GetFocusedWindow() {
         let win = Display.get_focus_window();
@@ -440,34 +448,17 @@ var WindowFunctions = class WindowFunctions {
         return app.get_icon().to_string();
     }
 
-    _get_basic_properties = function (win) {
-        let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
-        let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
 
-        return {
-            description: win.get_description(),
-            focus: win.has_focus(),
-            id: win.get_id(),
-            is_sticky: is_sticky,
-            layer: win.get_layer(),
-            pid: win.get_pid(),
-            root_ancestor: win.find_root_ancestor(),
-            title: win.get_title(),
-            window_type: win.get_window_type(),
-            wm_class_instance: win.get_wm_class_instance(),
-            wm_class: win.get_wm_class(),
-            workspace: win.get_workspace().index(),
-            tile_match: tileMatchId
-        };
-    }
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindows | jq .
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindows | jq -r '.[].id'
 
     GetNormalWindows() {
         let wins = this._get_normal_windows();
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(this._get_basic_properties);
+        let winPropertiesArr = wins.map(win => this._get_basic_properties(win));
 
         return JSON.stringify(winPropertiesArr);
     }
@@ -478,37 +469,43 @@ var WindowFunctions = class WindowFunctions {
         let wins = Display.get_tab_list(Meta.TabList.NORMAL, WorkspaceManager.get_active_workspace());
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(this._get_basic_properties);
+        let winPropertiesArr = wins.map(win => this._get_basic_properties(win));
 
         return JSON.stringify(winPropertiesArr);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspaceCurrentWMClass | jq -r '.[].id'
+
     GetNormalWindowsCurrentWorkspaceCurrentWMClass() {
         let wins = this._get_normal_windows_current_workspace_current_wm_class();
 
-        let windows_array = [];
+        // Map each window to its properties
+        let winPropertiesArr = wins.map(win => this._get_basic_properties(win));
 
-        wins.map(w => windows_array.push(w.get_id()));
-
-        return JSON.stringify(windows_array);
+        return JSON.stringify(winPropertiesArr);
 
     }
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.getWindowsByWMClass string:"firefox" | jq -r '.[]'
 
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.getWindowsByWMClass string:"firefox" | jq -r '.[].id'
+
     getWindowsByWMClass(wm_class) {
 
-        let windows_array = Display.get_tab_list(Meta.TabList.NORMAL, null).filter(w => w.get_wm_class() == wm_class).map(w => w.get_id());
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).filter(w => w.get_wm_class() == wm_class).map(w => w.get_id());
 
-        return JSON.stringify(windows_array);
+        // Map each window to its properties
+        let winPropertiesArr = wins.map(win => this._get_basic_properties(win));
+
+        return JSON.stringify(winPropertiesArr);
     }
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofi | jq .
 
     GetWindowsForRofi() {
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
+        let wins = this._get_normal_windows();
 
         var winJsonArr = [];
 
@@ -529,6 +526,27 @@ var WindowFunctions = class WindowFunctions {
             });
         })
         return JSON.stringify(winJsonArr);
+    }
+
+    _get_basic_properties = function (win) {
+        // let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
+        // let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
+
+        let app = this._get_app_by_win(win);
+        let icon = app.get_icon().to_string();
+
+        let workspace_id = win.get_workspace().index();
+
+        return {
+            id: win.get_id(),
+            title: win.get_title(),
+            description: win.get_description(),
+            wm_class_instance: win.get_wm_class_instance(),
+            wm_class: win.get_wm_class(),
+            workspace_id: workspace_id,
+            workspace_name: Meta.prefs_get_workspace_name(workspace_id),
+            icon: icon
+        };
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofiSorted | jq .
@@ -558,26 +576,32 @@ var WindowFunctions = class WindowFunctions {
             return orderA - orderB;
         });
 
-        var winJsonArr = [];
+        // Map each window to its properties
+        let winPropertiesArr = wins.map(win => this._get_basic_properties(win));
+        // let winPropertiesArr = wins.map(this._get_basic_properties.bind(this));
 
-        wins.forEach((win) => {
-            let app = this._get_app_by_win(win);
-            let icon = app.get_icon().to_string();
+        return JSON.stringify(winPropertiesArr);
 
-            let workspace_id = win.get_workspace().index();
-            let workspace_name = Meta.prefs_get_workspace_name(workspace_id);
-            // time is buggy, need fix
-            winJsonArr.push({
-                id: win.get_id(),
-                title: win.get_title(),
-                wm_class: win.get_wm_class(),
-                time: new Date(win.get_user_time()).toLocaleString(),
-                icon: icon,
-                workspace_id: workspace_id,
-                workspace_name: workspace_name
-            });
-        })
-        return JSON.stringify(winJsonArr);
+        // var winJsonArr = [];
+
+        // wins.forEach((win) => {
+        //     let app = this._get_app_by_win(win);
+        //     let icon = app.get_icon().to_string();
+
+        //     let workspace_id = win.get_workspace().index();
+        //     let workspace_name = Meta.prefs_get_workspace_name(workspace_id);
+        //     // time is buggy, need fix
+        //     winJsonArr.push({
+        //         id: win.get_id(),
+        //         title: win.get_title(),
+        //         wm_class: win.get_wm_class(),
+        //         time: new Date(win.get_user_time()).toLocaleString(),
+        //         icon: icon,
+        //         workspace_id: workspace_id,
+        //         workspace_name: workspace_name
+        //     });
+        // })
+        // return JSON.stringify(winJsonArr);
     }
 
     _get_detailed_properties = function (win) {
@@ -658,7 +682,7 @@ var WindowFunctions = class WindowFunctions {
         let wins = global.get_window_actors().map(w => w.meta_window);
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(this._get_basic_properties);
+        let winPropertiesArr = wins.map(win => this._get_basic_properties(win));
 
         return JSON.stringify(winPropertiesArr);
     }
