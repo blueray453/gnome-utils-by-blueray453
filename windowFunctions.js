@@ -154,9 +154,9 @@ var WindowFunctions = class WindowFunctions {
 
     _get_normal_windows_current_workspace_current_wm_class = function () {
         let win = Display.get_focus_window();
-        let win_wm_class = win.get_wm_class();
+        let wm_class = win.get_wm_class();
 
-        return this._get_normal_windows_current_workspace_given_wm_class(win_wm_class);
+        return this._get_normal_windows_current_workspace_given_wm_class(wm_class);
     }
 
     _get_normal_windows_current_workspace_current_wm_class_sorted = function () {
@@ -166,14 +166,12 @@ var WindowFunctions = class WindowFunctions {
         return this._get_normal_windows_current_workspace_given_wm_class_sorted(win_wm_class);
     }
 
-
     _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
         return this._get_normal_windows_current_workspace().filter(w => w.get_wm_class() == wm_class);
     }
 
-
     _get_normal_windows_current_workspace_given_wm_class_sorted = function (wm_class) {
-        return this._get_normal_windows_current_workspace_given_wm_class().sort((a, b) => a.get_id() - b.get_id());
+        return this._get_normal_windows_current_workspace_given_wm_class(wm_class).sort((a, b) => a.get_id() - b.get_id());
     }
 
     _get_normal_window_given_window_id = function (winid) {
