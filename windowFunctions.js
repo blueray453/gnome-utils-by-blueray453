@@ -36,9 +36,6 @@ var MR_DBUS_IFACE = `
          <arg type="u" direction="in" name="winid" />
          <arg type="s" direction="out" name="icon" />
       </method>
-      <method name="GetMonitorWorkArea">
-         <arg type="s" direction="out" name="work_area" />
-      </method>
       <method name="GetNormalWindows">
          <arg type="s" direction="out" name="win" />
       </method>
@@ -56,10 +53,6 @@ var MR_DBUS_IFACE = `
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="GetWindowsForRofiSorted">
-         <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetTitle">
-         <arg type="u" direction="in" name="winid" />
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="GetWindowDetails">
@@ -435,25 +428,8 @@ var WindowFunctions = class WindowFunctions {
 
     GetFocusedWindow() {
         let win = Display.get_focus_window();
-
-        let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
-
-        var winJsonArr = [];
-
-        winJsonArr.push({
-            description: win.get_description(),
-            id: win.get_id(),
-            is_sticky: is_sticky,
-            layer: win.get_layer(),
-            pid: win.get_pid(),
-            root_ancestor: win.find_root_ancestor(),
-            title: win.get_title(),
-            window_type: win.get_window_type(),
-            wm_class_instance: win.get_wm_class_instance(),
-            wm_class: win.get_wm_class(),
-            workspace: win.get_workspace().index()
-        });
-        return JSON.stringify(winJsonArr);
+        let winProperties = this._get_basic_properties(win);
+        return JSON.stringify(winProperties);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetIconFromWinID uint32:44129093
@@ -464,19 +440,25 @@ var WindowFunctions = class WindowFunctions {
         return app.get_icon().to_string();
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetMonitorWorkArea
+    _get_basic_properties = function (win) {
+        let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
+        let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
 
-    GetMonitorWorkArea() {
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-        let work_area = win.get_work_area_current_monitor();
-        var monitor = [];
-
-        monitor.push({
-            width: work_area.width,
-            height: work_area.height
-        });
-
-        return JSON.stringify(monitor);
+        return {
+            description: win.get_description(),
+            focus: win.has_focus(),
+            id: win.get_id(),
+            is_sticky: is_sticky,
+            layer: win.get_layer(),
+            pid: win.get_pid(),
+            root_ancestor: win.find_root_ancestor(),
+            title: win.get_title(),
+            window_type: win.get_window_type(),
+            wm_class_instance: win.get_wm_class_instance(),
+            wm_class: win.get_wm_class(),
+            workspace: win.get_workspace().index(),
+            tile_match: tileMatchId
+        };
     }
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindows | jq .
@@ -484,32 +466,10 @@ var WindowFunctions = class WindowFunctions {
     GetNormalWindows() {
         let wins = this._get_normal_windows();
 
-        var winJsonArr = [];
-        wins.forEach(function (win) {
+        // Map each window to its properties
+        let winPropertiesArr = wins.map(this._get_basic_properties);
 
-            let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
-            let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
-
-            winJsonArr.push({
-                description: win.get_description(),
-                focus: win.has_focus(),
-                id: win.get_id(),
-                is_sticky: is_sticky,
-                layer: win.get_layer(),
-                pid: win.get_pid(),
-                root_ancestor: win.find_root_ancestor(),
-                title: win.get_title(),
-                window_type: win.get_window_type(),
-                wm_class_instance: win.get_wm_class_instance(),
-                wm_class: win.get_wm_class(),
-                workspace: win.get_workspace().index(),
-                tile_match: tileMatchId
-                // allows_move: win.allows_move(),
-                // allows_resize: win.allows_resize(),
-                // check_alive: win.check_alive(global.get_current_time())
-            });
-        })
-        return JSON.stringify(winJsonArr);
+        return JSON.stringify(winPropertiesArr);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspace | jq .
@@ -517,32 +477,10 @@ var WindowFunctions = class WindowFunctions {
     GetNormalWindowsCurrentWorkspace() {
         let wins = Display.get_tab_list(Meta.TabList.NORMAL, WorkspaceManager.get_active_workspace());
 
-        var winJsonArr = [];
-        wins.forEach(function (win) {
+        // Map each window to its properties
+        let winPropertiesArr = wins.map(this._get_basic_properties);
 
-            let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
-            let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
-
-            winJsonArr.push({
-                description: win.get_description(),
-                focus: win.has_focus(),
-                id: win.get_id(),
-                is_sticky: is_sticky,
-                layer: win.get_layer(),
-                pid: win.get_pid(),
-                root_ancestor: win.find_root_ancestor(),
-                title: win.get_title(),
-                window_type: win.get_window_type(),
-                wm_class_instance: win.get_wm_class_instance(),
-                wm_class: win.get_wm_class(),
-                workspace: win.get_workspace().index(),
-                tile_match: tileMatchId
-                // allows_move: win.allows_move(),
-                // allows_resize: win.allows_resize(),
-                // check_alive: win.check_alive(global.get_current_time())
-            });
-        })
-        return JSON.stringify(winJsonArr);
+        return JSON.stringify(winPropertiesArr);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
@@ -642,25 +580,9 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winJsonArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetTitle uint32:3931313482
+    _get_detailed_properties = function (win) {
 
-    GetTitle(winid) {
-        try {
-            let win = this._get_window_by_wid(winid);
-            return win.get_title();
-        } catch (error) {
-            log(`Error : ${error}`);
-        }
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowDetails uint32:740651535
-
-    GetWindowDetails(winid) {
-        let win_actor = this._get_window_actor_by_wid(winid);
-        let win = this._get_window_by_wid(winid);
-
-        log(`win_actor: ${win_actor}`);
-        log(`win: ${win}`);
+        let win_actor = this._get_window_actor_by_wid(win.get_id());
 
         // frame bound create error for fsearch
         // try {
@@ -669,57 +591,65 @@ var WindowFunctions = class WindowFunctions {
         //     log(`Error : ${error}`);
         // }
 
-        if (win && win_actor) {
+        let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
+        let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
 
-            let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
+        return {
+            width: win_actor.get_width(),
+            height: win_actor.get_height(),
+            flags: win_actor.get_flags(),
+            area_all: win.get_work_area_all_monitors(),
+            area_cust: win.get_work_area_for_monitor(Display.get_current_monitor()),
+            area: win.get_work_area_current_monitor(),
+            canclose: win.can_close(),
+            canmaximize: win.can_maximize(),
+            canminimize: win.can_minimize(),
+            canshade: win.can_shade(),
+            description: win.get_description(),
+            display: win.get_display(),
+            focus: win.has_focus(),
+            frame_type: win.get_frame_type(),
+            gtk_app_id: win.get_gtk_application_id(),
+            id: win.get_id(),
+            in_current_workspace: win.located_on_workspace(WorkspaceManager.get_active_workspace()),
+            is_above: win.is_above(),
+            is_fullscreen: win.is_fullscreen(),
+            is_on_all_workspaces: win.is_on_all_workspaces(),
+            is_always_on_all_workspaces: win.is_always_on_all_workspaces(),
+            is_skip_taskbar: win.is_skip_taskbar(),
+            is_sticky: is_sticky,
+            layer: win.get_layer(),
+            maximized: win.get_maximized(),
+            monitor: win.get_monitor(),
+            moveable: win.allows_move(),
+            pid: win.get_pid(),
+            resizeable: win.allows_resize(),
+            role: win.get_role(),
+            root_ancestor: win.find_root_ancestor(),
+            sandbox_app_id: win.get_sandboxed_app_id(),
+            title: win.get_title(),
+            user_time: win.get_user_time(),
+            window_type: win.get_window_type(),
+            wm_class_instance: win.get_wm_class_instance(),
+            wm_class: win.get_wm_class(),
+            workspace: win.get_workspace().index(),
+            x: win_actor.get_x(),
+            y: win_actor.get_y(),
+            tile_match: tileMatchId
+        };
+    }
 
-            log(`is_sticky: ${is_sticky}`);
 
-            return JSON.stringify({
-                width: win_actor.get_width(),
-                height: win_actor.get_height(),
-                flags: win_actor.get_flags(),
-                area_all: win.get_work_area_all_monitors(),
-                area_cust: win.get_work_area_for_monitor(Display.get_current_monitor()),
-                area: win.get_work_area_current_monitor(),
-                canclose: win.can_close(),
-                canmaximize: win.can_maximize(),
-                canminimize: win.can_minimize(),
-                canshade: win.can_shade(),
-                description: win.get_description(),
-                display: win.get_display(),
-                focus: win.has_focus(),
-                frame_type: win.get_frame_type(),
-                gtk_app_id: win.get_gtk_application_id(),
-                id: win.get_id(),
-                in_current_workspace: win.located_on_workspace(WorkspaceManager.get_active_workspace()),
-                is_above: win.is_above(),
-                is_fullscreen: win.is_fullscreen(),
-                is_on_all_workspaces: win.is_on_all_workspaces(),
-                is_always_on_all_workspaces: win.is_always_on_all_workspaces(),
-                is_skip_taskbar: win.is_skip_taskbar(),
-                is_sticky: is_sticky,
-                layer: win.get_layer(),
-                maximized: win.get_maximized(),
-                monitor: win.get_monitor(),
-                moveable: win.allows_move(),
-                pid: win.get_pid(),
-                resizeable: win.allows_resize(),
-                role: win.get_role(),
-                root_ancestor: win.find_root_ancestor(),
-                sandbox_app_id: win.get_sandboxed_app_id(),
-                title: win.get_title(),
-                user_time: win.get_user_time(),
-                window_type: win.get_window_type(),
-                wm_class_instance: win.get_wm_class_instance(),
-                wm_class: win.get_wm_class(),
-                workspace: win.get_workspace().index(),
-                x: win_actor.get_x(),
-                y: win_actor.get_y(),
-            });
-        } else {
-            throw new Error('Not found');
-        }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowDetails uint32:740651535
+
+    GetWindowDetails(winid) {
+
+        let win = this._get_window_by_wid(winid);
+
+        let winProperties = this._get_detailed_properties(win);
+
+        return JSON.stringify(winProperties);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq
@@ -727,27 +657,10 @@ var WindowFunctions = class WindowFunctions {
     GetWindows() {
         let wins = global.get_window_actors().map(w => w.meta_window);
 
-        var winJsonArr = [];
-        wins.forEach(function (win) {
+        // Map each window to its properties
+        let winPropertiesArr = wins.map(this._get_basic_properties);
 
-            let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
-
-            winJsonArr.push({
-                description: win.get_description(),
-                focus: win.has_focus(),
-                id: win.get_id(),
-                is_sticky: is_sticky,
-                layer: win.get_layer(),
-                pid: win.get_pid(),
-                root_ancestor: win.find_root_ancestor(),
-                title: win.get_title(),
-                window_type: win.get_window_type(),
-                wm_class_instance: win.get_wm_class_instance(),
-                wm_class: win.get_wm_class(),
-                workspace: win.get_workspace().index()
-            });
-        })
-        return JSON.stringify(winJsonArr);
+        return JSON.stringify(winPropertiesArr);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWMClass uint32:3931313482
