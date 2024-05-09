@@ -533,6 +533,8 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MinimizeOtherWindowsOfFocusedWindowWMClass
+
     MinimizeOtherWindowsOfFocusedWindowWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
 
