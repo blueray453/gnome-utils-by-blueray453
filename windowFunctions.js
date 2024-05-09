@@ -22,14 +22,14 @@ var MR_DBUS_IFACE = `
       </method>
       <method name="AlignNemoWindows">
       </method>
-      <method name="AlignWindowsCurrentWMClass">
+      <method name="AlignWindowsOfFocusedWindowWMClass">
       </method>
       <method name="Close">
          <arg type="u" direction="in" name="winid" />
       </method>
       <method name="CloseDuplicateNemoWindows">
       </method>
-      <method name="CloseOtherWindowsCurrentWorkspaceCurrentWMClass">
+      <method name="CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass">
       </method>
       <method name="Focus">
          <arg type="u" direction="in" name="winid" />
@@ -43,18 +43,15 @@ var MR_DBUS_IFACE = `
       <method name="GetWindowsCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetWindowsCurrentWorkspaceCurrentWMClass">
+      <method name="GetWindowsCurrentWorkspaceOfFocusedWindowWMClass">
+         <arg type="s" direction="out" name="win" />
+      </method>
+      <method name="GetWindowsForRofi">
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="GetWindowsGivenWMClass">
         <arg type="s" direction="in" name="wm_class" />
         <arg type="s" direction="out" name="windows" />
-      </method>
-      <method name="GetWindowsForRofi">
-         <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetWindowFocused">
-         <arg type="s" direction="out" name="win" />
       </method>
       <method name="Maximize">
          <arg type="u" direction="in" name="winid" />
@@ -62,7 +59,7 @@ var MR_DBUS_IFACE = `
       <method name="Minimize">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="MinimizeOtherWindowsCurrentWMClass">
+      <method name="MinimizeOtherWindowsOfFocusedWindowWMClass">
       </method>
       <method name="Move">
          <arg type="u" direction="in" name="winid" />
@@ -83,10 +80,6 @@ var MR_DBUS_IFACE = `
          <arg type="i" direction="in" name="y" />
          <arg type="i" direction="in" name="width" />
          <arg type="i" direction="in" name="height" />
-      </method>
-      <method name="MoveResizeFocusedWindowToLeftHalfWorkArea">
-      </method>
-      <method name="MoveResizeFocusedWindowToRightHalfWorkArea">
       </method>
       <method name="MoveWindowsSideBySide">
          <arg type="u" direction="in" name="winid1" />
@@ -109,7 +102,7 @@ var MR_DBUS_IFACE = `
       <method name="Unminimize">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="UnMinimizeOtherWindowsCurrentWMClass">
+      <method name="UnMinimizeOtherWindowsOfFocusedWindowWMClass">
       </method>
    </interface>
 </node>`;
@@ -370,9 +363,9 @@ var WindowFunctions = class WindowFunctions {
         this._align_windows(windows_array, windows_per_container, persistent_state_key);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsCurrentWMClass | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsOfFocusedWindowWMClass | jq .
 
-    AlignWindowsCurrentWMClass() {
+    AlignWindowsOfFocusedWindowWMClass() {
         let windows_array = this._get_normal_windows_current_workspace_current_wm_class_sorted();
         let persistent_state_key = "align_windows_state_all_windows";
         let windows_per_container = 2;
@@ -416,7 +409,7 @@ var WindowFunctions = class WindowFunctions {
         });
     }
 
-    CloseOtherWindowsCurrentWorkspaceCurrentWMClass() {
+    CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
         wins.forEach(function (w) {
             if (w.get_wm_class_instance() !== 'file_progress') {
@@ -445,14 +438,6 @@ var WindowFunctions = class WindowFunctions {
         // win.make_fullscreen();
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowFocused | jq '.[].id'
-
-    GetWindowFocused() {
-        let win = Display.get_focus_window();
-        let winProperties = this._get_properties_brief_given_meta_window(win);
-        return JSON.stringify(winProperties);
-    }
-
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq .
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq -r '.[].id'
@@ -477,11 +462,11 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceCurrentWMClass | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq .
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceCurrentWMClass | jq -r '.[].id'
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq -r '.[].id'
 
-    GetWindowsCurrentWorkspaceCurrentWMClass() {
+    GetWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
         let wins = this._get_normal_windows_current_workspace_current_wm_class();
 
         // Map each window to its properties
@@ -567,7 +552,7 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    MinimizeOtherWindowsCurrentWMClass() {
+    MinimizeOtherWindowsOfFocusedWindowWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
 
         wins.map(w => w.minimize());
@@ -628,34 +613,6 @@ var WindowFunctions = class WindowFunctions {
             win.activate(0);
         } else {
             log(`Window not found`);
-        }
-    }
-
-    MoveResizeFocusedWindowToLeftHalfWorkArea() {
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-        let work_area = win.get_work_area_current_monitor();
-        if (win && work_area) {
-            let left = 0;
-            let top = 0;
-            let width = work_area.width / 2;
-            let height = work_area.height;
-            // win.move_resize_frame(true, left, top, width, height);
-
-            this._move_resize_window(win, left, top, width, height);
-        }
-    }
-
-    MoveResizeFocusedWindowToRightHalfWorkArea() {
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-        let work_area = win.get_work_area_current_monitor();
-        if (win && work_area) {
-            let top = 0;
-            let width = work_area.width / 2;
-            let left = width;
-            let height = work_area.height;
-            // win.move_resize_frame(true, left, top, width, height);
-
-            this._move_resize_window(win, left, top, width, height);
         }
     }
 
@@ -725,7 +682,7 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    UnMinimizeOtherWindowsCurrentWMClass() {
+    UnMinimizeOtherWindowsOfFocusedWindowWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_current_wm_class();
 
         wins.map(w => {
