@@ -168,21 +168,21 @@ var WindowFunctions = class WindowFunctions {
 
 
     _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
-        return this._get_normal_windows_current_workspace.filter(w => w.get_wm_class() == wm_class);
+        return this._get_normal_windows_current_workspace().filter(w => w.get_wm_class() == wm_class);
     }
 
 
     _get_normal_windows_current_workspace_given_wm_class_sorted = function (wm_class) {
-        return this._get_normal_windows_current_workspace_given_wm_class.sort((a, b) => a.get_id() - b.get_id());
+        return this._get_normal_windows_current_workspace_given_wm_class().sort((a, b) => a.get_id() - b.get_id());
     }
 
     _get_normal_window_given_window_id = function (winid) {
-        let win = this._get_normal_windows.find(w => w.get_id() == winid);
+        let win = this._get_normal_windows().find(w => w.get_id() == winid);
         return win;
     }
 
     _get_normal_windows_given_wm_class = function (wm_class) {
-        return this._get_normal_windows.filter(w => w.get_wm_class() == wm_class);
+        return this._get_normal_windows().filter(w => w.get_wm_class() == wm_class);
     }
 
     _get_normal_windows_given_wm_class_sorted = function (wm_class) {
@@ -459,12 +459,10 @@ var WindowFunctions = class WindowFunctions {
 
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsGivenWMClass string:"firefox" | jq -r '.[]'
-
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsGivenWMClass string:"firefox" | jq -r '.[].id'
 
     GetWindowsGivenWMClass(wm_class) {
-        let wins = _get_normal_windows_current_workspace_given_wm_class(wm_class).map(w => w.get_id());
+        let wins = this._get_normal_windows_given_wm_class(wm_class);
 
         // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
