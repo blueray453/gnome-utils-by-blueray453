@@ -130,154 +130,7 @@ var WindowFunctions = class WindowFunctions {
     These are the building blocks of other utility functions
     */
 
-    _get_app_given_meta_window = function (win) {
-        // let tracker = global.get_window_tracker().get_default();
-        let tracker = Shell.WindowTracker.get_default();
-        let app = tracker.get_window_app(win);
-        return app;
-    }
-
-    _get_normal_windows = function () {
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
-        return wins;
-    }
-
-    _get_normal_windows_current_workspace = function () {
-        let current_workspace = WorkspaceManager.get_active_workspace();
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace);
-        return wins;
-    }
-
-    _get_window_actor_given_window_id = function (winid) {
-        let win = global.get_window_actors().find(w => w.get_meta_window().get_id() == winid);
-        return win;
-    }
-
-    _make_window_movable_and_resizable = function (win) {
-        if (win) {
-            if (win.minimized) {
-                win.unminimize();
-            }
-            if (win.maximized_horizontally || win.maximized_vertically) {
-                win.unmaximize(3);
-            }
-        } else {
-            log(`Window not found`);
-        }
-    }
-
-
-
-    /* Composite Utility Functions
-
-    The utility functions that use Atomic Utility Functions
-
-    These are the building blocks of regular functions
-    */
-
-    _get_normal_window_given_window_id = function (winid) {
-        let win = this._get_normal_windows.find(w => w.get_id() == winid);
-        return win;
-    }
-
-    _get_normal_window_given_wm_class = function (wm_class) {
-        let win = this._get_normal_windows.find(w => w.get_wm_class() == wm_class);
-        return win;
-    }
-
-    _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
-        return this._get_normal_windows_current_workspace.filter(w => w.get_wm_class() == wm_class);
-    }
-
-    _get_normal_windows_given_wm_class = function (wm_class) {
-        return this._get_normal_windows.filter(w => w.get_wm_class() == wm_class);
-    }
-
-    _move_resize_window = function (win, x_coordinate, y_coordinate, width, height) {
-
-        this._make_window_movable_and_resizable(win);
-
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            win.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
-            return GLib.SOURCE_REMOVE;
-        });
-
-    }
-
-    _move_windows_side_by_side = function (winid1, winid2) {
-        let win1 = this._get_normal_window_given_window_id(winid1);
-        let win2 = this._get_normal_window_given_window_id(winid2);
-
-        let work_area = win1.get_work_area_current_monitor();
-
-        //check if both are in current workspace
-        //check if both are in same monitor
-
-        let work_area_width = work_area.width;
-        let work_area_height = work_area.height;
-
-        let window_height = work_area_height;
-        let window_width = work_area_width / 2;
-
-        this._move_resize_window(win1, 0, 0, window_width, window_height);
-        this._move_resize_window(win2, window_width, 0, window_width, window_height);
-    }
-
-    _align_windows = function (windows_array, windows_per_container, persistent_state_key) {
-
-        // remove windows from windows_array that do not have a minimize() method
-        // This is just to check these are valid windows
-        // windows_array = windows_array.filter(win => typeof win.minimize === 'function');
-
-        let number_of_windows = windows_array.length;
-        let number_of_states = Math.ceil(number_of_windows / windows_per_container);
-
-        let state;
-
-        try {
-            state = global.get_persistent_state('n', persistent_state_key).get_int16();
-        } catch (error) {
-            // log(`Error : ${error}`);
-            // Set default value for persistent state
-            global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(0));
-            state = 0;
-        }
-
-        // log(`state : ${state}`);
-
-        if (state >= number_of_states) {
-            state = 0;
-        }
-
-        let monitor = Display.get_current_monitor();
-        let current_workspace = WorkspaceManager.get_active_workspace();
-        let work_area = current_workspace.get_work_area_for_monitor(monitor);
-        // let work_area = windows_array[0].get_work_area_current_monitor();
-        let work_area_width = work_area.width;
-        let work_area_height = work_area.height;
-
-        let window_height = work_area_height;
-        let window_width = work_area_width / windows_per_container;
-
-        let all_x = [];
-
-        for (let n = 0; n < windows_per_container; n++) {
-            all_x[n] = window_width * n;
-        }
-
-        // minimize all the windows
-        windows_array.forEach(win => win?.minimize() || log(`Win Not Found`));
-
-        for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
-            let win = windows_array[i];
-
-            this._move_resize_window(win, all_x[j], 0, window_width, window_height);
-
-            win.activate(0);
-        }
-
-        global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(state + 1));
-    }
+    /* Get Properties */
 
     _get_properties_brief_given_window_id = function (winid) {
         let win = this._get_normal_window_given_window_id(winid);
@@ -370,6 +223,47 @@ var WindowFunctions = class WindowFunctions {
     }
 
 
+    /* Get Normal Windows */
+
+    /*
+       There is a difference between _get_normal_window and _get_normal_windows
+
+       _get_normal_window use find
+       _get_normal_windows use filter
+
+       find returns first element of the array that satisfies the condition specified in the callback function.
+       filter returns all the elements of the array that satisfy the condition specified in the callback function.
+    */
+
+    _get_normal_windows = function () {
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
+        return wins;
+    }
+
+    _get_normal_windows_current_workspace = function () {
+        let current_workspace = WorkspaceManager.get_active_workspace();
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace);
+        return wins;
+    }
+
+    _get_normal_window_given_window_id = function (winid) {
+        let win = this._get_normal_windows.find(w => w.get_id() == winid);
+        return win;
+    }
+
+    _get_normal_window_given_wm_class = function (wm_class) {
+        let win = this._get_normal_windows.find(w => w.get_wm_class() == wm_class);
+        return win;
+    }
+
+    _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
+        return this._get_normal_windows_current_workspace.filter(w => w.get_wm_class() == wm_class);
+    }
+
+    _get_normal_windows_given_wm_class = function (wm_class) {
+        return this._get_normal_windows.filter(w => w.get_wm_class() == wm_class);
+    }
+
     _get_normal_windows_current_workspace_current_wm_class = function () {
         let win = Display.get_focus_window();
         let win_wm_class = win.get_wm_class();
@@ -396,6 +290,145 @@ var WindowFunctions = class WindowFunctions {
         let win = Display.get_focus_window();
         return this._get_normal_windows_current_workspace_given_wm_class().filter(w => win != w);
     }
+
+
+
+
+
+
+
+
+
+
+
+    _get_app_given_meta_window = function (win) {
+        // let tracker = global.get_window_tracker().get_default();
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(win);
+        return app;
+    }
+
+
+
+
+
+    _get_window_actor_given_window_id = function (winid) {
+        let win = global.get_window_actors().find(w => w.get_meta_window().get_id() == winid);
+        return win;
+    }
+
+    _make_window_movable_and_resizable = function (win) {
+        if (win) {
+            if (win.minimized) {
+                win.unminimize();
+            }
+            if (win.maximized_horizontally || win.maximized_vertically) {
+                win.unmaximize(3);
+            }
+        } else {
+            log(`Window not found`);
+        }
+    }
+
+
+
+    /* Composite Utility Functions
+
+    The utility functions that use Atomic Utility Functions
+
+    These are the building blocks of regular functions
+    */
+
+
+
+    _move_resize_window = function (win, x_coordinate, y_coordinate, width, height) {
+
+        this._make_window_movable_and_resizable(win);
+
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            win.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
+            return GLib.SOURCE_REMOVE;
+        });
+
+    }
+
+    _move_windows_side_by_side = function (winid1, winid2) {
+        let win1 = this._get_normal_window_given_window_id(winid1);
+        let win2 = this._get_normal_window_given_window_id(winid2);
+
+        let work_area = win1.get_work_area_current_monitor();
+
+        //check if both are in current workspace
+        //check if both are in same monitor
+
+        let work_area_width = work_area.width;
+        let work_area_height = work_area.height;
+
+        let window_height = work_area_height;
+        let window_width = work_area_width / 2;
+
+        this._move_resize_window(win1, 0, 0, window_width, window_height);
+        this._move_resize_window(win2, window_width, 0, window_width, window_height);
+    }
+
+    _align_windows = function (windows_array, windows_per_container, persistent_state_key) {
+
+        // remove windows from windows_array that do not have a minimize() method
+        // This is just to check these are valid windows
+        // windows_array = windows_array.filter(win => typeof win.minimize === 'function');
+
+        let number_of_windows = windows_array.length;
+        let number_of_states = Math.ceil(number_of_windows / windows_per_container);
+
+        let state;
+
+        try {
+            state = global.get_persistent_state('n', persistent_state_key).get_int16();
+        } catch (error) {
+            // log(`Error : ${error}`);
+            // Set default value for persistent state
+            global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(0));
+            state = 0;
+        }
+
+        // log(`state : ${state}`);
+
+        if (state >= number_of_states) {
+            state = 0;
+        }
+
+        let monitor = Display.get_current_monitor();
+        let current_workspace = WorkspaceManager.get_active_workspace();
+        let work_area = current_workspace.get_work_area_for_monitor(monitor);
+        // let work_area = windows_array[0].get_work_area_current_monitor();
+        let work_area_width = work_area.width;
+        let work_area_height = work_area.height;
+
+        let window_height = work_area_height;
+        let window_width = work_area_width / windows_per_container;
+
+        let all_x = [];
+
+        for (let n = 0; n < windows_per_container; n++) {
+            all_x[n] = window_width * n;
+        }
+
+        // minimize all the windows
+        windows_array.forEach(win => win?.minimize() || log(`Win Not Found`));
+
+        for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
+            let win = windows_array[i];
+
+            this._move_resize_window(win, all_x[j], 0, window_width, window_height);
+
+            win.activate(0);
+        }
+
+        global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(state + 1));
+    }
+
+
+
 
 
     _move_all_app_windows_to_current_workspace = function (wm_class) {
