@@ -31,9 +31,6 @@ var MR_DBUS_IFACE = `
       </method>
       <method name="CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass">
       </method>
-      <method name="Focus">
-         <arg type="u" direction="in" name="winid" />
-      </method>
       <method name="FullScreen">
          <arg type="u" direction="in" name="winid" />
       </method>
@@ -66,13 +63,8 @@ var MR_DBUS_IFACE = `
          <arg type="i" direction="in" name="x" />
          <arg type="i" direction="in" name="y" />
       </method>
-      <method name="MoveAllAlacrittyWindowsToCurrentWorkspace">
-      </method>
-      <method name="MoveAllFirefoxWindowsToCurrentWorkspace">
-      </method>
-      <method name="MoveAllFsearchWindowsToCurrentWorkspace">
-      </method>
-      <method name="MoveAllNemoWindowsToCurrentWorkspace">
+      <method name="MoveWindowsToCurrentWorkspaceGivenWMClass">
+         <arg type="u" direction="in" name="wm_class" />
       </method>
       <method name="MoveResize">
          <arg type="u" direction="in" name="winid" />
@@ -420,15 +412,6 @@ var WindowFunctions = class WindowFunctions {
         })
     }
 
-    Focus(winid) {
-        try {
-            let win = this._get_normal_window_given_window_id(winid);
-            win.focus(0);
-        } catch (error) {
-            log(`Error : ${error}`);
-        }
-    }
-
     FullScreen(winid) {
         let win = this._get_normal_window_given_window_id(winid);
         let win_workspace = win.get_workspace();
@@ -571,29 +554,12 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllNemoWindowsToCurrentWorkspace
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToCurrentWorkspaceGivenWMClass string:"firefox"
 
-    MoveAllAlacrittyWindowsToCurrentWorkspace() {
-        this._move_all_app_windows_to_current_workspace("Alacritty");
-    }
+    // "Alacritty" "firefox" "Fsearch" "Nemo"
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllFirefoxWindowsToCurrentWorkspace
-
-    MoveAllFirefoxWindowsToCurrentWorkspace() {
-        this._move_all_app_windows_to_current_workspace("firefox");
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllFsearchWindowsToCurrentWorkspace
-
-    MoveAllFsearchWindowsToCurrentWorkspace() {
-        this._move_all_app_windows_to_current_workspace("Fsearch");
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAllNemoWindowsToCurrentWorkspace
-
-    MoveAllNemoWindowsToCurrentWorkspace() {
-        this._move_all_app_windows_to_current_workspace("Nemo");
-
+    MoveWindowsToCurrentWorkspaceGivenWMClass(wm_class) {
+        this._move_all_app_windows_to_current_workspace(wm_class);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
