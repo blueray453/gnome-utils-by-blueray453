@@ -56,10 +56,6 @@ var MR_DBUS_IFACE = `
       <method name="GetWindowsForRofi">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetWindowDetails">
-         <arg type="u" direction="in" name="winid" />
-         <arg type="s" direction="out" name="win" />
-      </method>
       <method name="GetWindows">
          <arg type="s" direction="out" name="win" />
       </method>
@@ -162,66 +158,6 @@ var WindowFunctions = class WindowFunctions {
             icon: icon
         };
     }
-
-    _get_properties_detailed_given_meta_window = function (win) {
-
-        let win_actor = this._get_window_actor_given_window_id(win.get_id());
-
-        // frame bound create error for fsearch
-        // try {
-        //     let frame_bounds = win.get_frame_bounds();
-        // } catch (error) {
-        //     log(`Error : ${error}`);
-        // }
-
-        let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
-        let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
-
-        return {
-            width: win_actor.get_width(),
-            height: win_actor.get_height(),
-            flags: win_actor.get_flags(),
-            area_all: win.get_work_area_all_monitors(),
-            area_cust: win.get_work_area_for_monitor(Display.get_current_monitor()),
-            area: win.get_work_area_current_monitor(),
-            canclose: win.can_close(),
-            canmaximize: win.can_maximize(),
-            canminimize: win.can_minimize(),
-            canshade: win.can_shade(),
-            description: win.get_description(),
-            display: win.get_display(),
-            focus: win.has_focus(),
-            frame_type: win.get_frame_type(),
-            gtk_app_id: win.get_gtk_application_id(),
-            id: win.get_id(),
-            in_current_workspace: win.located_on_workspace(WorkspaceManager.get_active_workspace()),
-            is_above: win.is_above(),
-            is_fullscreen: win.is_fullscreen(),
-            is_on_all_workspaces: win.is_on_all_workspaces(),
-            is_always_on_all_workspaces: win.is_always_on_all_workspaces(),
-            is_skip_taskbar: win.is_skip_taskbar(),
-            is_sticky: is_sticky,
-            layer: win.get_layer(),
-            maximized: win.get_maximized(),
-            monitor: win.get_monitor(),
-            moveable: win.allows_move(),
-            pid: win.get_pid(),
-            resizeable: win.allows_resize(),
-            role: win.get_role(),
-            root_ancestor: win.find_root_ancestor(),
-            sandbox_app_id: win.get_sandboxed_app_id(),
-            title: win.get_title(),
-            user_time: win.get_user_time(),
-            window_type: win.get_window_type(),
-            wm_class_instance: win.get_wm_class_instance(),
-            wm_class: win.get_wm_class(),
-            workspace: win.get_workspace().index(),
-            x: win_actor.get_x(),
-            y: win_actor.get_y(),
-            tile_match: tileMatchId
-        };
-    }
-
 
     /* Get Normal Windows */
 
@@ -668,17 +604,6 @@ var WindowFunctions = class WindowFunctions {
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowDetails uint32:740651535
-
-    GetWindowDetails(winid) {
-
-        let win = this._get_normal_window_given_window_id(winid);
-
-        let winProperties = this._get_properties_detailed_given_meta_window(win);
-
-        return JSON.stringify(winProperties);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq
