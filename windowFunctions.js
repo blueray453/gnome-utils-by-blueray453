@@ -37,26 +37,23 @@ var MR_DBUS_IFACE = `
       <method name="FullScreen">
          <arg type="u" direction="in" name="winid" />
       </method>
-      <method name="GetFocusedWindow">
+      <method name="GetWindows">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetNormalWindows">
+      <method name="GetWindowsCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetNormalWindowsCurrentWorkspace">
+      <method name="GetWindowsCurrentWorkspaceCurrentWMClass">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetNormalWindowsCurrentWorkspaceCurrentWMClass">
-         <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetWindowsByWMClass">
+      <method name="GetWindowsGivenWMClass">
         <arg type="s" direction="in" name="wm_class" />
         <arg type="s" direction="out" name="windows" />
       </method>
       <method name="GetWindowsForRofi">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetWindows">
+      <method name="GetWindowFocused">
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="Maximize">
@@ -448,19 +445,19 @@ var WindowFunctions = class WindowFunctions {
         // win.make_fullscreen();
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetFocusedWindow | jq '.[].id'
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowFocused | jq '.[].id'
 
-    GetFocusedWindow() {
+    GetWindowFocused() {
         let win = Display.get_focus_window();
         let winProperties = this._get_properties_brief_given_meta_window(win);
         return JSON.stringify(winProperties);
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindows | jq .
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq .
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindows | jq -r '.[].id'
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq -r '.[].id'
 
-    GetNormalWindows() {
+    GetWindows() {
         let wins = this._get_normal_windows();
 
         // Map each window to its properties
@@ -469,9 +466,9 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspace | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspace | jq .
 
-    GetNormalWindowsCurrentWorkspace() {
+    GetWindowsCurrentWorkspace() {
         let wins = this._get_normal_windows_current_workspace();
 
         // Map each window to its properties
@@ -480,11 +477,11 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspaceCurrentWMClass | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceCurrentWMClass | jq .
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetNormalWindowsCurrentWorkspaceCurrentWMClass | jq -r '.[].id'
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceCurrentWMClass | jq -r '.[].id'
 
-    GetNormalWindowsCurrentWorkspaceCurrentWMClass() {
+    GetWindowsCurrentWorkspaceCurrentWMClass() {
         let wins = this._get_normal_windows_current_workspace_current_wm_class();
 
         // Map each window to its properties
@@ -494,11 +491,11 @@ var WindowFunctions = class WindowFunctions {
 
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsByWMClass string:"firefox" | jq -r '.[]'
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsGivenWMClass string:"firefox" | jq -r '.[]'
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsByWMClass string:"firefox" | jq -r '.[].id'
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsGivenWMClass string:"firefox" | jq -r '.[].id'
 
-    GetWindowsByWMClass(wm_class) {
+    GetWindowsGivenWMClass(wm_class) {
         let wins = _get_normal_windows_current_workspace_given_wm_class(wm_class).map(w => w.get_id());
 
         // Map each window to its properties
@@ -542,16 +539,7 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq
 
-    GetWindows() {
-        let wins = this._get_normal_windows();
-
-        // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
-
-        return JSON.stringify(winPropertiesArr);
-    }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Maximize uint32:3931313482
 
