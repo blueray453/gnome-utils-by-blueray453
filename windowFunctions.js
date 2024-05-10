@@ -423,7 +423,7 @@ var WindowFunctions = class WindowFunctions {
 
         //     return JSON.stringify(winPropertiesArr);
         // } catch (error) {
-        //     return JSON.stringify({ error: error.message });
+        //     return JSON.stringify({ error: error });
         // }
     }
 
