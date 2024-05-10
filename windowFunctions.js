@@ -6,10 +6,6 @@ const WorkspaceManager = Display.get_workspace_manager();
 
 // distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
 
-// brief and detailed
-
-// actions will log error
-
 // those functions which have output will output as json error
 
 var MR_DBUS_IFACE = `
@@ -115,7 +111,6 @@ var WindowFunctions = class WindowFunctions {
         return {
             id: win.get_id(),
             title: win.get_title(),
-            description: win.get_description(),
             wm_class: win.get_wm_class(),
             wm_class_instance: win.get_wm_class_instance(),
             workspace_id: workspace_id,
@@ -272,15 +267,13 @@ var WindowFunctions = class WindowFunctions {
     }
 
     _make_window_movable_and_resizable = function (win) {
-        if (win) {
-            if (win.minimized) {
-                win.unminimize();
-            }
-            if (win.maximized_horizontally || win.maximized_vertically) {
-                win.unmaximize(3);
-            }
-        } else {
-            log(`Window not found`);
+
+        if (win.minimized) {
+            win.unminimize();
+        }
+
+        if (win.maximized_horizontally || win.maximized_vertically) {
+            win.unmaximize(3);
         }
     }
 
@@ -296,6 +289,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     _move_windows_side_by_side = function (win_id_1, win_id_2) {
+
         let win1 = this._get_normal_window_given_window_id(win_id_1);
         let win2 = this._get_normal_window_given_window_id(win_id_2);
 
@@ -431,6 +425,17 @@ var WindowFunctions = class WindowFunctions {
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
+
+        // try {
+        //     let wins = this._get_normal_windows_current_workspace();
+
+        //     // Map each window to its properties
+        //     let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
+
+        //     return JSON.stringify(winPropertiesArr);
+        // } catch (error) {
+        //     return JSON.stringify({ error: error.message });
+        // }
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq .
