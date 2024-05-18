@@ -132,7 +132,7 @@ var WindowFunctions = class WindowFunctions {
     */
 
     _get_normal_windows = function () {
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null);
+        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).sort((a, b) => a.get_id() - b.get_id());
         return wins;
     }
 
