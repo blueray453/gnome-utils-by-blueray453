@@ -159,8 +159,8 @@ var WindowFunctions = class WindowFunctions {
         return win ?? null;
     }
 
-    _get_normal_windows_given_wm_class_sorted = function (wm_class) {
-        return this._get_normal_windows().filter(w => w.get_wm_class() == wm_class).sort((a, b) => a.get_id() - b.get_id());
+    _get_normal_windows_given_wm_class = function (wm_class) {
+        return this._get_normal_windows().filter(w => w.get_wm_class() == wm_class);
     }
 
     _get_other_normal_windows_current_workspace_of_focused_window_wm_class = function () {
@@ -229,7 +229,7 @@ var WindowFunctions = class WindowFunctions {
     _move_all_app_windows_to_current_workspace = function (wm_class) {
         let current_workspace = WorkspaceManager.get_active_workspace();
 
-        let windows_array = this._get_normal_windows_given_wm_class_sorted(wm_class);
+        let windows_array = this._get_normal_windows_given_wm_class(wm_class);
 
         let isAllInCurrentWorkspace = windows_array.every(function (win) {
             return win.get_workspace().index() === current_workspace.index();
@@ -441,7 +441,7 @@ var WindowFunctions = class WindowFunctions {
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsGivenWMClass string:"firefox" | jq -r '.[].id'
 
     GetWindowsGivenWMClass(wm_class) {
-        let wins = this._get_normal_windows_given_wm_class_sorted(wm_class);
+        let wins = this._get_normal_windows_given_wm_class(wm_class);
 
         // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
