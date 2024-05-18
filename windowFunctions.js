@@ -143,7 +143,7 @@ var WindowFunctions = class WindowFunctions {
         return wins;
     }
 
-    _get_normal_windows_current_workspace_of_focused_window_wm_class_sorted = function () {
+    _get_normal_windows_current_workspace_of_focused_window_wm_class = function () {
         let win = Display.get_focus_window();
         let win_wm_class = win.get_wm_class();
 
@@ -334,7 +334,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsOfFocusedWindowWMClass | jq .
 
     AlignWindowsOfFocusedWindowWMClass() {
-        let windows_array = this._get_normal_windows_current_workspace_of_focused_window_wm_class_sorted();
+        let windows_array = this._get_normal_windows_current_workspace_of_focused_window_wm_class();
         let persistent_state_key = "align_windows_state_all_windows";
         let windows_per_container = 2;
 
@@ -433,7 +433,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq -r '.[].id'
 
     GetWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-        let wins = this._get_normal_windows_current_workspace_of_focused_window_wm_class_sorted();
+        let wins = this._get_normal_windows_current_workspace_of_focused_window_wm_class();
 
         // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
