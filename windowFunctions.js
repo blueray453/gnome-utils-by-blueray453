@@ -132,6 +132,7 @@ var WindowFunctions = class WindowFunctions {
     */
 
     _get_normal_windows = function () {
+        // can also sort by get_user_time()
         let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).sort((a, b) => a.get_id() - b.get_id());
         return wins;
     }
@@ -155,6 +156,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     _get_normal_window_given_window_id = function (win_id) {
+        // find does not need filtered window. As it return one result. However keeping it for readability
         let win = this._get_normal_windows().find(w => w?.get_id() == win_id);
         return win ?? null;
     }
