@@ -138,7 +138,8 @@ var WindowFunctions = class WindowFunctions {
 
     _get_normal_windows_current_workspace = function () {
         let current_workspace = WorkspaceManager.get_active_workspace();
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace);
+        // let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace);
+        let wins = this._get_normal_windows().filter(w => w.get_workspace() == current_workspace);
         return wins;
     }
 
