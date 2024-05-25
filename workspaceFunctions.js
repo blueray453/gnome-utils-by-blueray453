@@ -6,7 +6,7 @@ var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWorkspaces">
       <method name="GetCurrentWorkspace">
-         <arg type="i" direction="out" name="workspaces" />
+         <arg type="s" direction="out" name="workspaces" />
       </method>
       <method name="MoveFocusedWindowToWorkspace">
          <arg type="i" direction="in" name="workspace_num" />
@@ -20,7 +20,7 @@ var MR_DBUS_IFACE = `
       </method>
       <method name="getWorkspaceIndexByName">
          <arg type="s" direction="in" name="workspace_name" />
-         <arg type="i" direction="out" name="workspace_num" />
+         <arg type="s" direction="out" name="workspace_num" />
       </method>
       <method name="MoveWindowToWorkspaceAndFocus">
          <arg type="u" direction="in" name="winid" />
@@ -36,8 +36,7 @@ var WorkspaceFunctions = class WorkspaceFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetCurrentWorkspace
     GetCurrentWorkspace() {
-
-        return WorkspaceManager.get_active_workspace().index();
+        return JSON.stringify(WorkspaceManager.get_active_workspace().index());
 
     }
 
@@ -85,7 +84,7 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         // win.activate_with_workspace(global.get_current_time(), metaWorkspace);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.getWorkspaceIndexByName string:"Codium/Books" | awk '/int32/ {print $2}'
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.getWorkspaceIndexByName string:"Codium"
 
     getWorkspaceIndexByName(workspaceName) {
 
@@ -100,11 +99,9 @@ var WorkspaceFunctions = class WorkspaceFunctions {
             // Check if the workspace name matches
             if (Meta.prefs_get_workspace_name(i) == workspaceName) {
                 // Return the index of the workspace
-                return i;
+                return JSON.stringify(i);
             }
         }
-        // Workspace not found
-        return -1;
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetWorkspaces | jq .
