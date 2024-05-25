@@ -42,6 +42,9 @@ var MR_DBUS_IFACE = `
       <method name="GetWindowsForRofi">
          <arg type="s" direction="out" name="win" />
       </method>
+      <method name="GetWindowFocused">
+        <arg type="s" direction="out" name="win" />
+      </method>
       <method name="GetWindowsGivenWMClass">
         <arg type="s" direction="in" name="wm_class" />
         <arg type="s" direction="out" name="windows" />
@@ -438,6 +441,15 @@ var WindowFunctions = class WindowFunctions {
 
         return JSON.stringify(winPropertiesArr);
 
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowFocused | jq -r '.[].id'
+
+    GetWindowFocused() {
+        let win = Display.get_focus_window();
+        let winPropertiesArr = this._get_properties_brief_given_meta_window(win);
+
+        return JSON.stringify(winPropertiesArr);
     }
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsGivenWMClass string:"firefox" | jq -r '.[].id'
