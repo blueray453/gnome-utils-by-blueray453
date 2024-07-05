@@ -1,4 +1,4 @@
-const { Gio, GLib, Meta, Shell } = imports.gi;
+const { Gio, GLib, Meta, Shell, St } = imports.gi;
 const Display = global.get_display();
 
 // const WorkspaceManager = global.get_workspace_manager();
@@ -13,6 +13,8 @@ var MR_DBUS_IFACE = `
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWindows">
       <method name="Activate">
          <arg type="u" direction="in" name="win_id" />
+      </method>
+      <method name="AddOrangeBorderToFocusedWindow">
       </method>
       <method name="AlignAlacrittyWindows">
       </method>
@@ -529,6 +531,28 @@ var WindowFunctions = class WindowFunctions {
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AddOrangeBorderToFocusedWindow
+
+    AddOrangeBorderToFocusedWindow() {
+
+        let border = new St.Bin({
+            style_class: 'border',
+            reactive: true,
+            can_focus: true,
+            track_hover: true,
+        });
+
+        global.window_group.add_child(border);
+
+        let win = Display.get_focus_window();
+
+        const BORDERSIZE = 3;
+
+        let rect = win.get_frame_rect();
+        border.set_position(rect.x, rect.y)
+        border.set_size(rect.width + BORDERSIZE, rect.height + BORDERSIZE)
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MarkWindows | jq .
