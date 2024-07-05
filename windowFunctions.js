@@ -201,13 +201,20 @@ var WindowFunctions = class WindowFunctions {
         let focusedWindow = Display.get_focus_window();
         let focusedWindowId = focusedWindow.get_id();
 
-        // Add the focused window ID to the array
-        myIntArray.push(focusedWindowId);
+        let mySet = new Set(myIntArray);
+
+        if (mySet.has(focusedWindowId)) {
+            mySet.delete(focusedWindowId);
+        } else {
+            mySet.add(focusedWindowId);
+        }
+
+        myIntArray = Array.from(mySet);
+
         let variantArray = GLib.Variant.new('ai', myIntArray);
 
         // Save the variant array to persistent state
         global.set_persistent_state('marked_windows', variantArray);
-
 
         let jsonResult = JSON.stringify(myIntArray);
 
