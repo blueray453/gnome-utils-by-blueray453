@@ -176,6 +176,8 @@ var WindowFunctions = class WindowFunctions {
     // MarkWindows (get focused window id in array in get_persistent_state)
     // _get_other_normal_windows_not_marked_current_workspace_of_focused_window_wm_class
     // CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
+    // Test
+
     /* Utility Functions */
 
     _align_windows = function (windows_array, windows_per_container, persistent_state_key) {
