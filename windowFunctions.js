@@ -405,6 +405,9 @@ var WindowFunctions = class WindowFunctions {
                 w.delete(0);
             }
         })
+
+        // Reset persistent state (clear 'persistent_state_key')
+        global.set_persistent_state('marked_windows', GLib.Variant.new('ai', []));
     }
 
     FullScreen(win_id) {
