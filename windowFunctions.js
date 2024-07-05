@@ -176,51 +176,6 @@ var WindowFunctions = class WindowFunctions {
         return this._get_normal_windows_current_workspace_given_wm_class(win.get_wm_class()).filter(w => win != w);
     }
 
-    // MarkWindows (get focused window id in array in get_persistent_state). Also change border color of marked window. win+m will toggle mark.
-    // _get_other_normal_windows_not_marked_current_workspace_of_focused_window_wm_class
-    // CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MarkWindows | jq .
-
-    MarkWindows() {
-        let markedWindows = [];
-
-        try {
-            let markedWindowsVariant = global.get_persistent_state('ai', 'marked_windows');
-
-            if (markedWindowsVariant) {
-                markedWindows = markedWindowsVariant.deep_unpack();
-            }
-        } catch (error) {
-            log(`Error : ${error}`);
-            // Set default value for persistent state
-            // global.set_persistent_state('marked_windows', GLib.Variant.new('ai', markedWindows));
-        }
-
-        let win = Display.get_focus_window();
-        let winID = win.get_id();
-
-        let mySet = new Set(markedWindows);
-
-        if (mySet.has(winID)) {
-            mySet.delete(winID);
-        } else {
-            mySet.add(winID);
-        }
-
-        markedWindows = Array.from(mySet);
-
-        let variantArray = GLib.Variant.new('ai', markedWindows);
-
-        // Save the variant array to persistent state
-        global.set_persistent_state('marked_windows', variantArray);
-
-        let jsonResult = JSON.stringify(markedWindows);
-
-        return jsonResult;
-
-    }
-
     /* Utility Functions */
 
     _align_windows = function (windows_array, windows_per_container, persistent_state_key) {
@@ -440,7 +395,6 @@ var WindowFunctions = class WindowFunctions {
             // global.set_persistent_state('marked_windows', GLib.Variant.new('ai', markedWindows));
         }
 
-
         wins.forEach(function (w) {
 
             if (markedWindows.includes(w.get_id())) {
@@ -565,7 +519,46 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MarkWindows | jq .
 
+    MarkWindows() {
+        let markedWindows = [];
+
+        try {
+            let markedWindowsVariant = global.get_persistent_state('ai', 'marked_windows');
+
+            if (markedWindowsVariant) {
+                markedWindows = markedWindowsVariant.deep_unpack();
+            }
+        } catch (error) {
+            log(`Error : ${error}`);
+            // Set default value for persistent state
+            // global.set_persistent_state('marked_windows', GLib.Variant.new('ai', markedWindows));
+        }
+
+        let win = Display.get_focus_window();
+        let winID = win.get_id();
+
+        let mySet = new Set(markedWindows);
+
+        if (mySet.has(winID)) {
+            mySet.delete(winID);
+        } else {
+            mySet.add(winID);
+        }
+
+        markedWindows = Array.from(mySet);
+
+        let variantArray = GLib.Variant.new('ai', markedWindows);
+
+        // Save the variant array to persistent state
+        global.set_persistent_state('marked_windows', variantArray);
+
+        let jsonResult = JSON.stringify(markedWindows);
+
+        return jsonResult;
+
+    }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Maximize uint32:3931313482
 
