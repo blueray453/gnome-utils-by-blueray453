@@ -186,30 +186,33 @@ var WindowFunctions = class WindowFunctions {
         let myIntArray = [];
 
         try {
-            persistedVariant = global.get_persistent_state('ai', marked_windows);
+            persistedVariant = global.get_persistent_state('ai', 'marked_windows');
 
             if (persistedVariant) {
                 myIntArray = persistedVariant.deep_unpack();
             }
-
         } catch (error) {
             log(`Error : ${error}`);
-            let focusedWindow = Display.get_focus_window();
-            if (focusedWindow) {
-                let focusedWindowId = focusedWindow.get_id();
+            // Set default value for persistent state
+            // global.set_persistent_state('marked_windows', GLib.Variant.new('ai', myIntArray));
+        }
 
-                // Add the focused window ID to the array
-                myIntArray.push(focusedWindowId);
-                let variantArray = GLib.Variant.new('ai', myIntArray);
 
-                // Save the variant array to persistent state
-                global.set_persistent_state('marked_windows', variantArray);
-            }
+        let focusedWindow = Display.get_focus_window();
+        let focusedWindowId = focusedWindow.get_id();
+
+        // Add the focused window ID to the array
+        myIntArray.push(focusedWindowId);
+        let variantArray = GLib.Variant.new('ai', myIntArray);
+
+        // Save the variant array to persistent state
+        global.set_persistent_state('marked_windows', variantArray);
+
 
         let jsonResult = JSON.stringify(myIntArray);
 
         return jsonResult;
-        }
+
     }
 
     // CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
