@@ -271,6 +271,24 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
+    _get_marked_windows = function () {
+        let markedWindows = [];
+
+        try {
+            let markedWindowsVariant = global.get_persistent_state('ai', 'marked_windows');
+
+            if (markedWindowsVariant) {
+                markedWindows = markedWindowsVariant.deep_unpack();
+            }
+        } catch (error) {
+            log(`Error : ${error}`);
+            // Set default value for persistent state if needed
+            // global.set_persistent_state('marked_windows', GLib.Variant.new('ai', markedWindows));
+        }
+
+        return markedWindows;
+    }
+
     _move_resize_window = function (win, x_coordinate, y_coordinate, width, height) {
 
         this._make_window_movable_and_resizable(win);
@@ -379,21 +397,10 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
 
     CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
+
         let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
 
-        let markedWindows = [];
-
-        try {
-            let markedWindowsVariant = global.get_persistent_state('ai', 'marked_windows');
-
-            if (markedWindowsVariant) {
-                markedWindows = markedWindowsVariant.deep_unpack();
-            }
-        } catch (error) {
-            log(`Error : ${error}`);
-            // Set default value for persistent state
-            // global.set_persistent_state('marked_windows', GLib.Variant.new('ai', markedWindows));
-        }
+        let markedWindows = this._get_marked_windows();
 
         wins.forEach(function (w) {
 
@@ -401,9 +408,11 @@ var WindowFunctions = class WindowFunctions {
                 return; // Skip this window if it's in the donotdelwindows array
             }
 
-            if (w.get_wm_class_instance() !== 'file_progress') {
-                w.delete(0);
+            if (w.get_wm_class_instance() == 'file_progress') {
+                return; // Skip this window if it's a 'file_progress' instance
             }
+
+            w.delete(0);
         })
 
         // Reset persistent state (clear 'persistent_state_key')
@@ -525,22 +534,13 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MarkWindows | jq .
 
     MarkWindows() {
-        let markedWindows = [];
-
-        try {
-            let markedWindowsVariant = global.get_persistent_state('ai', 'marked_windows');
-
-            if (markedWindowsVariant) {
-                markedWindows = markedWindowsVariant.deep_unpack();
-            }
-        } catch (error) {
-            log(`Error : ${error}`);
-            // Set default value for persistent state
-            // global.set_persistent_state('marked_windows', GLib.Variant.new('ai', markedWindows));
-        }
 
         let win = Display.get_focus_window();
         let winID = win.get_id();
+
+        let markedWindows = this._get_marked_windows();
+
+        // log(`Marked Windows : ${markedWindows}`);
 
         let mySet = new Set(markedWindows);
 
@@ -560,7 +560,6 @@ var WindowFunctions = class WindowFunctions {
         let jsonResult = JSON.stringify(markedWindows);
 
         return jsonResult;
-
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Maximize uint32:3931313482
