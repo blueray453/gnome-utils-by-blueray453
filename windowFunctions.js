@@ -186,7 +186,7 @@ var WindowFunctions = class WindowFunctions {
         let myIntArray = [];
 
         try {
-            persistedVariant = global.get_persistent_state('ai', 'marked_windows');
+            let persistedVariant = global.get_persistent_state('ai', 'marked_windows');
 
             if (persistedVariant) {
                 myIntArray = persistedVariant.deep_unpack();
