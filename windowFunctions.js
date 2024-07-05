@@ -49,6 +49,9 @@ var MR_DBUS_IFACE = `
         <arg type="s" direction="in" name="wm_class" />
         <arg type="s" direction="out" name="windows" />
       </method>
+      <method name="MarkWindows">
+        <arg type="s" direction="out" name="win" />
+      </method>
       <method name="Maximize">
          <arg type="u" direction="in" name="win_id" />
       </method>
@@ -173,10 +176,62 @@ var WindowFunctions = class WindowFunctions {
         return this._get_normal_windows_current_workspace_given_wm_class(win.get_wm_class()).filter(w => win != w);
     }
 
-    // MarkWindows (get focused window id in array in get_persistent_state)
+    // MarkWindows (get focused window id in array in get_persistent_state). Also change border color of marked window. win+m will toggle mark.
     // _get_other_normal_windows_not_marked_current_workspace_of_focused_window_wm_class
     // CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
-    // Test
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MarkWindows | jq .
+
+    MarkWindows() {
+        let myIntArray = [];
+
+        try {
+            persistedVariant = global.get_persistent_state('ai', marked_windows);
+
+            if (persistedVariant) {
+                myIntArray = persistedVariant.deep_unpack();
+            }
+
+        } catch (error) {
+            log(`Error : ${error}`);
+            let focusedWindow = Display.get_focus_window();
+            if (focusedWindow) {
+                let focusedWindowId = focusedWindow.get_id();
+
+                // Add the focused window ID to the array
+                myIntArray.push(focusedWindowId);
+                let variantArray = GLib.Variant.new('ai', myIntArray);
+
+                // Save the variant array to persistent state
+                global.set_persistent_state('marked_windows', variantArray);
+            }
+
+        let jsonResult = JSON.stringify(myIntArray);
+
+        return jsonResult;
+        }
+    }
+
+    // CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
+    //     let win = Display.get_focus_window();
+
+    //     // Retrieve the list of window IDs to preserve from persistent state
+    //     let preservedVariant = global.get_persistent_state('ai',mark_windows);
+    //     let preservedWindowIds = preservedVariant ? preservedVariant.deep_unpack() : [];
+
+    //     // Get normal windows in the current workspace with the same WM_CLASS
+    //     let wins = this._get_normal_windows_current_workspace_given_wm_class(win.get_wm_class())
+    //         .filter(w => win != w && !preservedWindowIds.includes(w.get_id()));
+
+    //     wins.forEach(function (w) {
+    //         if (w.get_wm_class_instance() !== 'file_progress') {
+    //             w.delete(0);
+    //         }
+    //     });
+
+    //     // Reset persistent state (clear 'persistent_state_key')
+    //     global.set_persistent_state('persistent_state_key', GLib.Variant.new('ai', []));
+    // }
 
     /* Utility Functions */
 
