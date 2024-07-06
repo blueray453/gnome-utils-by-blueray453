@@ -6,6 +6,8 @@ const WorkspaceManager = Display.get_workspace_manager();
 
 const border = new St.Bin({ style_class: 'border' });
 
+let sizeChangedId, positionChangedId, unmanagedId;
+
 let sizeChangedHandler = null;
 let positionChangedHandler = null;
 
@@ -544,14 +546,38 @@ var WindowFunctions = class WindowFunctions {
 
         let win = Display.get_focus_window();
 
-        win.get_compositor_private().get_parent().add_child(border);
-        // remove_child(child)
+        let actor = win.get_compositor_private().get_parent();
 
-        const BORDERSIZE = 3;
+        actor.add_child(border);
 
-        let rect = win.get_frame_rect();
-        border.set_position(rect.x, rect.y)
-        border.set_size(rect.width + BORDERSIZE, rect.height + BORDERSIZE)
+        // .add_child(border);
+
+        // setTimeout(function () {
+        //     win.get_compositor_private().get_parent().remove_child(border);
+        // }, 3000);
+
+        function redrawBorder() {
+            const BORDERSIZE = 3;
+            let rect = win.get_frame_rect();
+            border.set_position(rect.x - BORDERSIZE, rect.y - BORDERSIZE);
+            border.set_size(rect.width + 2 * BORDERSIZE, rect.height + 2 * BORDERSIZE);
+        }
+
+        redrawBorder();
+
+        // Connect to the size-changed and position-changed signals
+        sizeChangedId = win.connect('size-changed', redrawBorder);
+        positionChangedId = win.connect('position-changed', redrawBorder);
+
+        // Connect to the unmanaged signal to remove the border when the window is closed
+        unmanagedId = win.connect('unmanaged', () => {
+            actor.remove_child(border);
+            win.disconnect(sizeChangedId);
+            win.disconnect(positionChangedId);
+            win.disconnect(unmanagedId);
+            border = null;
+        });
+
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MarkWindows | jq .
