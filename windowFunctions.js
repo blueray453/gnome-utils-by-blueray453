@@ -612,17 +612,16 @@ var WindowFunctions = class WindowFunctions {
 
         // log(`Marked Windows : ${markedWindows}`);
 
-        let mySet = new Set(markedWindows);
-
-        if (mySet.has(winID)) {
-            mySet.delete(winID);
+        const index = markedWindows.indexOf(winID);
+        if (index !== -1) {
+            // If value exists in the array, remove it
+            markedWindows.splice(index, 1);
             this._remove_orange_border_from_window(win);
         } else {
-            mySet.add(winID);
+            // If value does not exist in the array, add it
+            markedWindows.push(winID);
             this._add_orange_border_to_window(win);
         }
-
-        markedWindows = Array.from(mySet);
 
         let variantArray = GLib.Variant.new('ai', markedWindows);
 
