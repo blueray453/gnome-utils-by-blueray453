@@ -7,9 +7,6 @@ const WorkspaceManager = Display.get_workspace_manager();
 let borders = {};
 let signalHandlers = {};
 
-let sizeChangedHandler = null;
-let positionChangedHandler = null;
-
 // distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
 
 // those functions which have output will output as json error
