@@ -1,6 +1,6 @@
 .border {
     border-style: solid;
-    border-color: #FFAD00;
+    border-color: #cb4b16; /* Solarized Dark's orange */
     border-radius: 5px;
     box-shadow: inset 0 0 0 1px rgba(200, 200, 200, 0);
     border-width: 3px;

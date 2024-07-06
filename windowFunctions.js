@@ -20,8 +20,6 @@ var MR_DBUS_IFACE = `
       <method name="Activate">
          <arg type="u" direction="in" name="win_id" />
       </method>
-      <method name="AddOrangeBorderToFocusedWindow">
-      </method>
       <method name="AlignAlacrittyWindows">
       </method>
       <method name="AlignNemoWindows">
@@ -538,14 +536,23 @@ var WindowFunctions = class WindowFunctions {
 
         return JSON.stringify(winPropertiesArr);
     }
+    _remove_orange_border_from_window = function (win) {
+        if (borders[win]) {
+            let actor = win.get_compositor_private().get_parent();
+            actor.remove_child(borders[win]);
+            win.disconnect(signalHandlers[win].sizeChangedId);
+            win.disconnect(signalHandlers[win].positionChangedId);
+            win.disconnect(signalHandlers[win].unmanagedId);
+            delete borders[win];
+            delete signalHandlers[win];
+        }
+    }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AddOrangeBorderToFocusedWindow
-
-    AddOrangeBorderToFocusedWindow() {
-
-        let win = Display.get_focus_window();
+    _add_orange_border_to_window = function (win) {
+        if (!win) return;
 
         let actor = win.get_compositor_private().get_parent();
+        if (!actor) return;
 
         if (!borders[win]) {
             borders[win] = new St.Bin({
@@ -554,16 +561,9 @@ var WindowFunctions = class WindowFunctions {
             actor.add_child(borders[win]);
         }
 
-        // .add_child(border);
-
-        // setTimeout(function () {
-        //     win.get_compositor_private().get_parent().remove_child(border);
-        // }, 3000);
-
         const BORDERSIZE = 3;
 
         function redrawBorder() {
-
             let rect = win.get_frame_rect();
             borders[win].set_position(rect.x - BORDERSIZE, rect.y - BORDERSIZE);
             borders[win].set_size(rect.width + 2 * BORDERSIZE, rect.height + 2 * BORDERSIZE);
@@ -601,8 +601,10 @@ var WindowFunctions = class WindowFunctions {
 
         if (mySet.has(winID)) {
             mySet.delete(winID);
+            this._remove_orange_border_from_window(win);
         } else {
             mySet.add(winID);
+            this._add_orange_border_to_window(win);
         }
 
         markedWindows = Array.from(mySet);
