@@ -571,12 +571,10 @@ var WindowFunctions = class WindowFunctions {
             global.window_group.add_child(borders[win]);
         }
 
-        const BORDERSIZE = 3;
-
         function redrawBorder() {
             let rect = win.get_frame_rect();
-            borders[win].set_position(rect.x - BORDERSIZE, rect.y - BORDERSIZE);
-            borders[win].set_size(rect.width + 2 * BORDERSIZE, rect.height + 2 * BORDERSIZE);
+            borders[win].set_position(rect.x, rect.y);
+            borders[win].set_size(rect.width , rect.height);
         }
 
         function restack() {
