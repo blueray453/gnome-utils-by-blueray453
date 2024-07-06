@@ -4,6 +4,11 @@ const Display = global.get_display();
 // const WorkspaceManager = global.get_workspace_manager();
 const WorkspaceManager = Display.get_workspace_manager();
 
+const border = new St.Bin({ style_class: 'border' });
+
+let sizeChangedHandler = null;
+let positionChangedHandler = null;
+
 // distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
 
 // those functions which have output will output as json error
@@ -537,16 +542,10 @@ var WindowFunctions = class WindowFunctions {
 
     AddOrangeBorderToFocusedWindow() {
 
-        let border = new St.Bin({
-            style_class: 'border',
-            reactive: true,
-            can_focus: true,
-            track_hover: true,
-        });
-
-        global.window_group.add_child(border);
-
         let win = Display.get_focus_window();
+
+        win.get_compositor_private().get_parent().add_child(border);
+        // remove_child(child)
 
         const BORDERSIZE = 3;
 
