@@ -545,6 +545,7 @@ var WindowFunctions = class WindowFunctions {
 
         return JSON.stringify(winPropertiesArr);
     }
+
     _remove_orange_border_from_window = function (win) {
         if (borders[win]) {
             let actor = win.get_compositor_private().get_parent();
@@ -560,25 +561,15 @@ var WindowFunctions = class WindowFunctions {
     _add_orange_border_to_window = function (win) {
         if (!win) return;
 
-        let actor = win.get_compositor_private().get_parent();
+        let actor = win.get_compositor_private();
         if (!actor) return;
-
-        // try {
-
-        // } catch (error) {
-
-        // }
 
         if (!borders[win]) {
             borders[win] = new St.Bin({
                 style_class: 'border'
             });
-            actor.add_child(borders[win]);
+            global.window_group.add_child(borders[win]);
         }
-
-        // this._log_object_details("win.get_compositor_private()", win.get_compositor_private());
-        // this._log_object_details("actor", actor);
-        // this._log_object_details("border", borders[win]);
 
         const BORDERSIZE = 3;
 
@@ -588,16 +579,23 @@ var WindowFunctions = class WindowFunctions {
             borders[win].set_size(rect.width + 2 * BORDERSIZE, rect.height + 2 * BORDERSIZE);
         }
 
+        function restack() {
+            global.window_group.set_child_above_sibling(borders[win], actor);  // Raise the border above the window
+        }
+
         redrawBorder();
+        restack();  // Ensure the border is initially stacked correctly
 
         // Connect to the size-changed and position-changed signals
         signalHandlers[win] = {
             sizeChangedId: win.connect('size-changed', redrawBorder),
             positionChangedId: win.connect('position-changed', redrawBorder),
+            restackHandlerID: Display.connect('restacked', restack),
             unmanagedId: win.connect('unmanaged', () => {
-                actor.remove_child(borders[win]);
+                global.window_group.remove_child(borders[win]);
                 win.disconnect(signalHandlers[win].sizeChangedId);
                 win.disconnect(signalHandlers[win].positionChangedId);
+                Display.disconnect(signalHandlers[win].restackHandlerID);
                 win.disconnect(signalHandlers[win].unmanagedId);
                 delete borders[win];
                 delete signalHandlers[win];
