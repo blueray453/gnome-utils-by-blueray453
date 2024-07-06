@@ -292,6 +292,18 @@ var WindowFunctions = class WindowFunctions {
         return markedWindows;
     }
 
+    _log_object_details = function (string, obj) {
+        log(`${string}`);
+        log(`=====`);
+        log(`Type: ${typeof obj}`);
+        log(`Constructor name: ${obj.constructor.name}`);
+        let proto = Object.getPrototypeOf(obj);
+        while (proto) {
+            log(`Prototype: ${proto.constructor.name}`);
+            proto = Object.getPrototypeOf(proto);
+        }
+    }
+
     _move_resize_window = function (win, x_coordinate, y_coordinate, width, height) {
 
         this._make_window_movable_and_resizable(win);
@@ -551,12 +563,22 @@ var WindowFunctions = class WindowFunctions {
         let actor = win.get_compositor_private().get_parent();
         if (!actor) return;
 
+        // try {
+
+        // } catch (error) {
+
+        // }
+
         if (!borders[win]) {
             borders[win] = new St.Bin({
                 style_class: 'border'
             });
             actor.add_child(borders[win]);
         }
+
+        // this._log_object_details("win.get_compositor_private()", win.get_compositor_private());
+        // this._log_object_details("actor", actor);
+        // this._log_object_details("border", borders[win]);
 
         const BORDERSIZE = 3;
 
