@@ -546,23 +546,9 @@ var WindowFunctions = class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    _remove_orange_border_from_window = function (win) {
-        if (borders[win]) {
-            let actor = win.get_compositor_private().get_parent();
-            actor.remove_child(borders[win]);
-            win.disconnect(signalHandlers[win].sizeChangedId);
-            win.disconnect(signalHandlers[win].positionChangedId);
-            win.disconnect(signalHandlers[win].unmanagedId);
-            delete borders[win];
-            delete signalHandlers[win];
-        }
-    }
-
     _add_orange_border_to_window = function (win) {
-        if (!win) return;
 
         let actor = win.get_compositor_private();
-        if (!actor) return;
 
         if (!borders[win]) {
             borders[win] = new St.Bin({
@@ -604,7 +590,6 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MarkWindows | jq .
 
     MarkWindows() {
-
         let win = Display.get_focus_window();
         let winID = win.get_id();
 
@@ -616,7 +601,13 @@ var WindowFunctions = class WindowFunctions {
         if (index !== -1) {
             // If value exists in the array, remove it
             markedWindows.splice(index, 1);
-            this._remove_orange_border_from_window(win);
+            let actor = win.get_compositor_private().get_parent();
+            actor.remove_child(borders[win]);
+            win.disconnect(signalHandlers[win].sizeChangedId);
+            win.disconnect(signalHandlers[win].positionChangedId);
+            win.disconnect(signalHandlers[win].unmanagedId);
+            delete borders[win];
+            delete signalHandlers[win];
         } else {
             // If value does not exist in the array, add it
             markedWindows.push(winID);
