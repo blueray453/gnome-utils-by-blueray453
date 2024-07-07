@@ -658,7 +658,19 @@ var WindowFunctions = class WindowFunctions {
 
     _add_orange_border_to_window = function (win) {
 
+        let winIds = Object.values(signalHandlers).map(handler => handler.win_id);
+        log(`winIds : ${winIds}`);
+
         if (!win) return;
+
+        // Get the win_id of the current window
+        let currentWinId = win.get_id();
+
+        // Check if the current window's win_id is already in winIds
+        if (winIds.includes(currentWinId)) {
+            log(`Window ID ${currentWinId} already has a border.`);
+            return;
+        }
 
         let actor = win.get_compositor_private();
         let actor_parent = actor.get_parent();
@@ -684,11 +696,12 @@ var WindowFunctions = class WindowFunctions {
 
         // Connect to the size-changed and position-changed signals
         signalHandlers[win] = {
+            win_id: win.get_id(),
             sizeChangedId: win.connect('size-changed', redrawBorder),
             positionChangedId: win.connect('position-changed', redrawBorder),
             restackHandlerID: Display.connect('restacked', restack),
             unmanagedId: win.connect('unmanaged', () => {
-                actor_parent.remove_child(border);
+                global.window_group.remove_child(border);
                 win.disconnect(signalHandlers[win].sizeChangedId);
                 win.disconnect(signalHandlers[win].positionChangedId);
                 Display.disconnect(signalHandlers[win].restackHandlerID);
