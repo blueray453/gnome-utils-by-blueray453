@@ -4,7 +4,6 @@ const Display = global.get_display();
 // const WorkspaceManager = global.get_workspace_manager();
 const WorkspaceManager = Display.get_workspace_manager();
 
-let borders = {};
 let signalHandlers = {};
 
 // distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
@@ -659,25 +658,25 @@ var WindowFunctions = class WindowFunctions {
 
     _add_orange_border_to_window = function (win) {
 
+        if (!win) return;
+
         let actor = win.get_compositor_private();
         let actor_parent = actor.get_parent();
 
-        if (!borders[win]) {
-            borders[win] = new St.Bin({
+        let border = new St.Bin({
                 style_class: 'border'
             });
-            actor_parent.add_child(borders[win]);
-        }
+        actor_parent.add_child(border);
 
         function redrawBorder() {
             let rect = win.get_frame_rect();
-            borders[win].set_position(rect.x, rect.y);
-            borders[win].set_size(rect.width, rect.height);
+            border.set_position(rect.x, rect.y);
+            border.set_size(rect.width, rect.height);
         }
 
         function restack(display) {
             let wg = Meta.get_window_group_for_display(display);
-            wg.set_child_above_sibling(borders[win], actor);  // Raise the border above the window
+            wg.set_child_above_sibling(border, actor);  // Raise the border above the window
         }
 
         redrawBorder();
@@ -689,12 +688,11 @@ var WindowFunctions = class WindowFunctions {
             positionChangedId: win.connect('position-changed', redrawBorder),
             restackHandlerID: Display.connect('restacked', restack),
             unmanagedId: win.connect('unmanaged', () => {
-                global.window_group.remove_child(borders[win]);
+                global.window_group.remove_child(border);
                 win.disconnect(signalHandlers[win].sizeChangedId);
                 win.disconnect(signalHandlers[win].positionChangedId);
                 Display.disconnect(signalHandlers[win].restackHandlerID);
                 win.disconnect(signalHandlers[win].unmanagedId);
-                delete borders[win];
                 delete signalHandlers[win];
             })
         };
