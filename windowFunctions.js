@@ -684,12 +684,13 @@ var WindowFunctions = class WindowFunctions {
             borders[win].set_size(rect.width, rect.height);
         }
 
-        function restack() {
-            global.window_group.set_child_above_sibling(borders[win], actor);  // Raise the border above the window
+        function restack(display) {
+            let wg = Meta.get_window_group_for_display(display);
+            wg.set_child_above_sibling(borders[win], actor);  // Raise the border above the window
         }
 
         redrawBorder();
-        restack();  // Ensure the border is initially stacked correctly
+        restack(Display);  // Ensure the border is initially stacked correctly
 
         // Connect to the size-changed and position-changed signals
         signalHandlers[win] = {
