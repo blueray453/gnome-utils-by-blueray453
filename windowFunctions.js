@@ -660,12 +660,13 @@ var WindowFunctions = class WindowFunctions {
     _add_orange_border_to_window = function (win) {
 
         let actor = win.get_compositor_private();
+        let actor_parent = actor.get_parent();
 
         if (!borders[win]) {
             borders[win] = new St.Bin({
                 style_class: 'border'
             });
-            global.window_group.add_child(borders[win]);
+            actor_parent.add_child(borders[win]);
         }
 
         function redrawBorder() {
