@@ -688,7 +688,7 @@ var WindowFunctions = class WindowFunctions {
             positionChangedId: win.connect('position-changed', redrawBorder),
             restackHandlerID: Display.connect('restacked', restack),
             unmanagedId: win.connect('unmanaged', () => {
-                global.window_group.remove_child(border);
+                actor_parent.remove_child(border);
                 win.disconnect(signalHandlers[win].sizeChangedId);
                 win.disconnect(signalHandlers[win].positionChangedId);
                 Display.disconnect(signalHandlers[win].restackHandlerID);
