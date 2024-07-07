@@ -53,7 +53,6 @@ var MR_DBUS_IFACE = `
         <arg type="s" direction="out" name="windows" />
       </method>
       <method name="MarkWindows">
-        <arg type="s" direction="out" name="win" />
       </method>
       <method name="Maximize">
          <arg type="u" direction="in" name="win_id" />
@@ -391,6 +390,26 @@ var WindowFunctions = class WindowFunctions {
         });
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
+
+    CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
+
+        let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
+
+        wins.forEach(function (w) {
+
+            // if (markedWindows.includes(w.get_id())) {
+            //     return; // Skip this window if it's in the donotdelwindows array
+            // }
+
+            if (w.get_wm_class_instance() == 'file_progress') {
+                return; // Skip this window if it's a 'file_progress' instance
+            }
+
+            w.delete(0);
+        })
+    }
+
     FullScreen(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
 
@@ -638,35 +657,6 @@ var WindowFunctions = class WindowFunctions {
         });
     }
 
-
-
-
-
-
-
-
-
-
-
-
-    _get_marked_windows = function () {
-        let markedWindows = [];
-
-        try {
-            let markedWindowsVariant = global.get_persistent_state('ai', 'marked_windows');
-
-            if (markedWindowsVariant) {
-                markedWindows = markedWindowsVariant.deep_unpack();
-            }
-        } catch (error) {
-            log(`Error : ${error}`);
-            // Set default value for persistent state if needed
-            // global.set_persistent_state('marked_windows', GLib.Variant.new('ai', markedWindows));
-        }
-
-        return markedWindows;
-    }
-
     _add_orange_border_to_window = function (win) {
 
         let actor = win.get_compositor_private();
@@ -711,69 +701,23 @@ var WindowFunctions = class WindowFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MarkWindows | jq .
 
+    // If window does not have Mark, Mark Windows
+    // If window does has Mark, Mark Unmark Windows
+    // Get List of All Marked Windows
+    // Remove Mark From All Marked Windows
     MarkWindows() {
         let win = Display.get_focus_window();
-        let winID = win.get_id();
 
-        let markedWindows = this._get_marked_windows();
+        // let actor = win.get_compositor_private().get_parent();
+        // actor.remove_child(borders[win]);
+        // win.disconnect(signalHandlers[win].sizeChangedId);
+        // win.disconnect(signalHandlers[win].positionChangedId);
+        // win.disconnect(signalHandlers[win].unmanagedId);
+        // delete borders[win];
+        // delete signalHandlers[win];
 
-        // log(`Marked Windows : ${markedWindows}`);
-
-        const index = markedWindows.indexOf(winID);
-        if (index !== -1) {
-            // If value exists in the array, remove it
-            markedWindows.splice(index, 1);
-            let actor = win.get_compositor_private().get_parent();
-            actor.remove_child(borders[win]);
-            win.disconnect(signalHandlers[win].sizeChangedId);
-            win.disconnect(signalHandlers[win].positionChangedId);
-            win.disconnect(signalHandlers[win].unmanagedId);
-            delete borders[win];
-            delete signalHandlers[win];
-        } else {
-            // If value does not exist in the array, add it
-            markedWindows.push(winID);
-            this._add_orange_border_to_window(win);
-        }
-
-        let variantArray = GLib.Variant.new('ai', markedWindows);
-
-        // Save the variant array to persistent state
-        global.set_persistent_state('marked_windows', variantArray);
-
-        let jsonResult = JSON.stringify(markedWindows);
-
-        return jsonResult;
+        this._add_orange_border_to_window(win);
     }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
-
-    CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-
-        let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
-
-        let markedWindows = this._get_marked_windows();
-
-        wins.forEach(function (w) {
-
-            if (markedWindows.includes(w.get_id())) {
-                return; // Skip this window if it's in the donotdelwindows array
-            }
-
-            if (w.get_wm_class_instance() == 'file_progress') {
-                return; // Skip this window if it's a 'file_progress' instance
-            }
-
-            w.delete(0);
-        })
-
-        // Reset persistent state (clear 'persistent_state_key')
-        global.set_persistent_state('marked_windows', GLib.Variant.new('ai', []));
-    }
-
-
-
-
 
 
 }
