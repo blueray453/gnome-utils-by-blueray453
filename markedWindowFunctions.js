@@ -5,6 +5,10 @@ const Display = global.get_display();
 // const Me = imports.misc.extensionUtils.getCurrentExtension();
 // const WindowFunctions = Me.imports.windowFunctions;
 
+// const Me = ExtensionUtils.getCurrentExtension();
+const Me = imports.misc.extensionUtils.getCurrentExtension();
+const { WindowFunctions } = Me.imports.windowFunctions;
+
 let markedWindowsData = {};
 
 // distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
@@ -60,6 +64,12 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         this._redraw_border(win, border);
 
+        try {
+            let win_id = win.get_id();
+        } catch (error) {
+            log(`WinID: ${error}`);
+        }
+
         markedWindowsData[win] = {
             win_id: win.get_id(),
             border: border,
@@ -85,11 +95,21 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     _unmark_window(win) {
         if (!win) return;
 
-        let currentWinId = win.get_id();
-
-        if (!markedWindowsData[win]) {
-            log(`Window ID ${currentWinId} is not marked.`);
-            return;
+        try {
+            let currentWinId = win.get_id();
+            if (!markedWindowsData[win]) {
+                log(`Window ID ${currentWinId} is not marked.`);
+                return;
+            }
+        } catch (error) {
+            log(`WinID _unmark_window: ${error}`);
+            log(`Type: ${typeof currentWinId}`);
+            log(`Constructor name: ${currentWinId.constructor.name}`);
+            let proto = Object.getPrototypeOf(currentWinId);
+            while (proto) {
+                log(`Prototype: ${proto.constructor.name}`);
+                proto = Object.getPrototypeOf(proto);
+            }
         }
 
         let actor = win.get_compositor_private();
@@ -122,7 +142,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-        let wins = new WindowFunctions._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
+        let wins = new WindowFunctions()._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
 
         wins.forEach(function (w) {
             if (w.get_wm_class_instance() === 'file_progress') {
