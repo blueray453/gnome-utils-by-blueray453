@@ -215,7 +215,7 @@ var WindowFunctions = class WindowFunctions {
         }
 
         // minimize all the windows
-        windows_array.forEach(win => win?.minimize() || log(`Win Not Found`));
+        // windows_array.forEach(win => win?.minimize() || log(`Win Not Found`));
 
         for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
             let win = windows_array[i];
