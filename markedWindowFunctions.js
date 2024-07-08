@@ -39,6 +39,13 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         border.set_size(rect.width, rect.height);
     }
 
+    _workspace_changed = function () {
+
+        log(`Check if notice workspace change`);
+        // if i move window to different workspace, delete the old border and add a new one
+
+    }
+
     _mark_window(win) {
         if (!win) return;
 
@@ -58,6 +65,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             border: border,
             sizeChangedId: win.connect('size-changed', () => this._redraw_border(win, border)),
             positionChangedId: win.connect('position-changed', () => this._redraw_border(win, border)),
+            workspaceChangedId: win.connect('workspace-changed', () => this._workspace_changed()),
             restackHandlerID: Display.connect('restacked', (display) => {
                 let wg = Meta.get_window_group_for_display(display);
                 wg.set_child_above_sibling(border, actor);
@@ -66,6 +74,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
                 global.window_group.remove_child(border);
                 win.disconnect(markedWindowsData[win].sizeChangedId);
                 win.disconnect(markedWindowsData[win].positionChangedId);
+                win.disconnect(markedWindowsData[win].workspaceChangedId);
                 Display.disconnect(markedWindowsData[win].restackHandlerID);
                 win.disconnect(markedWindowsData[win].unmanagedId);
                 delete markedWindowsData[win];
