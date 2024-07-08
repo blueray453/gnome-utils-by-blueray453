@@ -22,18 +22,16 @@ var markedWindowFunctions = class markedWindowFunctions {
         return Object.values(markedWindowsData).map(win => win.win_id);
     }
 
-    redrawBorder = function (win, border) {
+    _redraw_border = function (win, border) {
         let rect = win.get_frame_rect();
         border.set_position(rect.x, rect.y);
         border.set_size(rect.width, rect.height);
     }
 
-    _toggle_window_border = function (win) {
+    _mark_window(win) {
+        if (!win) return;
 
         let winIds = this.list_all_marked_windows();
-        log(`winIds : ${winIds}`);
-
-        if (!win) return;
 
         let actor = win.get_compositor_private();
         let actor_parent = actor.get_parent();
@@ -42,34 +40,18 @@ var markedWindowFunctions = class markedWindowFunctions {
             style_class: 'border'
         });
 
-        // Get the win_id of the current window
-        let currentWinId = win.get_id();
-
-        // Check if the current window's win_id is already in winIds
-        if (winIds.includes(currentWinId)) {
-            actor_parent.remove_child(markedWindowsData[win].border);
-            win.disconnect(markedWindowsData[win].sizeChangedId);
-            win.disconnect(markedWindowsData[win].positionChangedId);
-            win.disconnect(markedWindowsData[win].unmanagedId);
-            delete markedWindowsData[win];
-            log(`Window ID ${currentWinId} already has a border.`);
-            return;
-        }
-
         actor_parent.add_child(border);
 
-        this.redrawBorder(win, border);
-        // restack(Display);  // Ensure the border is initially stacked correctly
+        this._redraw_border(win, border);
 
-        // Connect to the size-changed and position-changed signals
         markedWindowsData[win] = {
             win_id: win.get_id(),
             border: border,
-            sizeChangedId: win.connect('size-changed', () => this.redrawBorder(win, border)),
-            positionChangedId: win.connect('position-changed', () => this.redrawBorder(win, border)),
+            sizeChangedId: win.connect('size-changed', () => this._redraw_border(win, border)),
+            positionChangedId: win.connect('position-changed', () => this._redraw_border(win, border)),
             restackHandlerID: Display.connect('restacked', (display) => {
                 let wg = Meta.get_window_group_for_display(display);
-                wg.set_child_above_sibling(border, actor);  // Raise the border above the window
+                wg.set_child_above_sibling(border, actor);
             }),
             unmanagedId: win.connect('unmanaged', () => {
                 global.window_group.remove_child(border);
@@ -82,6 +64,38 @@ var markedWindowFunctions = class markedWindowFunctions {
         };
     }
 
+    _unmark_window(win) {
+        if (!win) return;
+
+        let currentWinId = win.get_id();
+
+        if (!markedWindowsData[win]) {
+            log(`Window ID ${currentWinId} is not marked.`);
+            return;
+        }
+
+        let actor = win.get_compositor_private();
+        let actor_parent = actor.get_parent();
+
+        actor_parent.remove_child(markedWindowsData[win].border);
+        win.disconnect(markedWindowsData[win].sizeChangedId);
+        win.disconnect(markedWindowsData[win].positionChangedId);
+        win.disconnect(markedWindowsData[win].unmanagedId);
+        Display.disconnect(markedWindowsData[win].restackHandlerID);
+        delete markedWindowsData[win];
+    }
+
+
+    toggleMark(win) {
+        if (!win) return;
+
+        if (markedWindowsData[win]) {
+            this._unmark_window(win);
+        } else {
+            this._mark_window(win);
+        }
+    }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.MarkWindows | jq .
 
     // If window does not have Mark, Mark Windows
@@ -90,6 +104,6 @@ var markedWindowFunctions = class markedWindowFunctions {
     // Remove Mark From All Marked Windows
     MarkWindows() {
         let win = Display.get_focus_window();
-        this._toggle_window_border(win);
+        this.toggleMark(win);
     }
 }
