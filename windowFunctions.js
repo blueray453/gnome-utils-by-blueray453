@@ -4,6 +4,10 @@ const Display = global.get_display();
 // const WorkspaceManager = global.get_workspace_manager();
 const WorkspaceManager = Display.get_workspace_manager();
 
+// privamive global variables can not be passed by reference that is why using objects. Array also work.
+let align_windows_state_nemo = { value: 0 };
+let align_windows_state_all_windows = { value: 0 };
+
 let markedWindowsData = {};
 
 // distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
@@ -15,8 +19,6 @@ var MR_DBUS_IFACE = `
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWindows">
       <method name="Activate">
          <arg type="u" direction="in" name="win_id" />
-      </method>
-      <method name="AlignAlacrittyWindows">
       </method>
       <method name="AlignNemoWindows">
       </method>
@@ -179,7 +181,7 @@ var WindowFunctions = class WindowFunctions {
 
     /* Utility Functions */
 
-    _align_windows = function (windows_array, windows_per_container, persistent_state_key) {
+    _align_windows = function (windows_array, windows_per_container, global_object) {
 
         // remove windows from windows_array that do not have a minimize() method
         // This is just to check these are valid windows
@@ -188,16 +190,7 @@ var WindowFunctions = class WindowFunctions {
         let number_of_windows = windows_array.length;
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
 
-        let state;
-
-        try {
-            state = global.get_persistent_state('n', persistent_state_key).get_int16();
-        } catch (error) {
-            // log(`Error : ${error}`);
-            // Set default value for persistent state
-            global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(0));
-            state = 0;
-        }
+        let state = global_object.value;
 
         // log(`state : ${state}`);
 
@@ -232,7 +225,7 @@ var WindowFunctions = class WindowFunctions {
             win.activate(0);
         }
 
-        global.set_persistent_state(persistent_state_key, GLib.Variant.new_int16(state + 1));
+        global_object.value = state + 1;
     }
 
     _move_all_app_windows_to_current_workspace = function (wm_class) {
@@ -328,34 +321,22 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignAlacrittyWindows | jq .
-
-    AlignAlacrittyWindows() {
-        let windows_array = this._get_normal_windows_current_workspace_given_wm_class("Alacritty");
-        let persistent_state_key = "align_windows_state_nemo";
-        let windows_per_container = 2;
-
-        this._align_windows(windows_array, windows_per_container, persistent_state_key);
-    }
-
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNemoWindows | jq .
 
     AlignNemoWindows() {
         let windows_array = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
-        let persistent_state_key = "align_windows_state_nemo";
         let windows_per_container = 2;
 
-        this._align_windows(windows_array, windows_per_container, persistent_state_key);
+        this._align_windows(windows_array, windows_per_container, align_windows_state_nemo);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsOfFocusedWindowWMClass | jq .
 
     AlignWindowsOfFocusedWindowWMClass() {
         let windows_array = this._get_normal_windows_current_workspace_of_focused_window_wm_class();
-        let persistent_state_key = "align_windows_state_all_windows";
         let windows_per_container = 2;
 
-        this._align_windows(windows_array, windows_per_container, persistent_state_key);
+        this._align_windows(windows_array, windows_per_container, align_windows_state_all_windows);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Close uint32:44129093
