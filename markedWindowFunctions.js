@@ -13,8 +13,8 @@ var MR_DBUS_IFACE = `
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows">
       <method name="ToggleWindowsFocusedWindow">
       </method>
-    <method name="CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass">
-    </method>
+      <method name="CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass">
+      </method>
    </interface>
 </node>`;
 
@@ -91,7 +91,7 @@ var markedWindowFunctions = class markedWindowFunctions {
         delete markedWindowsData[win];
     }
 
-    toggleMark(win) {
+    _toggle_mark(win) {
         if (!win) return;
 
         if (markedWindowsData[win]) {
@@ -106,7 +106,7 @@ var markedWindowFunctions = class markedWindowFunctions {
     // Remove Mark From All Marked Windows
     ToggleWindowsFocusedWindow() {
         let win = Display.get_focus_window();
-        this.toggleMark(win);
+        this._toggle_mark(win);
     }
 
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
