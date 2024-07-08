@@ -40,7 +40,7 @@ class Extension {
         this._dbus_windows = Gio.DBusExportedObject.wrapJSObject(windowFunctions.MR_DBUS_IFACE, new windowFunctions.WindowFunctions());
         this._dbus_windows.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
 
-        this._dbus_marked_windows = Gio.DBusExportedObject.wrapJSObject(markedWindowFunctions.MR_DBUS_IFACE, new markedWindowFunctions.markedWindowFunctions());
+        this._dbus_marked_windows = Gio.DBusExportedObject.wrapJSObject(markedWindowFunctions.MR_DBUS_IFACE, new markedWindowFunctions.MarkedWindowFunctions());
         this._dbus_marked_windows.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows');
 
         this._dbus_workspaces = Gio.DBusExportedObject.wrapJSObject(workspaceFunctions.MR_DBUS_IFACE, new workspaceFunctions.WorkspaceFunctions());

@@ -2,6 +2,9 @@ const { Meta, St } = imports.gi;
 
 const Display = global.get_display();
 
+// const Me = imports.misc.extensionUtils.getCurrentExtension();
+// const WindowFunctions = Me.imports.windowFunctions;
+
 let markedWindowsData = {};
 
 // distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
@@ -18,7 +21,7 @@ var MR_DBUS_IFACE = `
    </interface>
 </node>`;
 
-var markedWindowFunctions = class markedWindowFunctions {
+var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _list_all_marked_windows = function () {
         return Object.values(markedWindowsData).map(win => win.win_id);
@@ -110,7 +113,7 @@ var markedWindowFunctions = class markedWindowFunctions {
     }
 
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-        let wins = windowFunctions._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
+        let wins = new WindowFunctions._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
 
         wins.forEach(function (w) {
             if (w.get_wm_class_instance() === 'file_progress') {
