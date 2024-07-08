@@ -27,13 +27,17 @@ var MR_DBUS_IFACE = `
 
 var MarkedWindowFunctions = class MarkedWindowFunctions {
 
+    constructor() {
+        this.windowFunctionsInstance = new WindowFunctions();
+    }
+
     _list_all_marked_windows = function () {
         return Object.values(markedWindowsData).map(data => data.win_id);
     }
 
     _remove_marks_on_all_marked_windows() {
         Object.values(markedWindowsData).forEach(data => {
-        let win = new WindowFunctions()._get_normal_window_given_window_id(data.win_id);
+            let win = this.windowFunctionsInstance._get_normal_window_given_window_id(data.win_id);
         this._unmark_window(win);
         });
     }
@@ -119,7 +123,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-        let wins = new WindowFunctions()._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
+        let wins = this.windowFunctionsInstance._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
 
         wins.forEach(function (w) {
             if (w.get_wm_class_instance() === 'file_progress') {
