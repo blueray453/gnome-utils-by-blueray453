@@ -1,4 +1,5 @@
-const { Gio, GLib, Meta, Shell, St } = imports.gi;
+const { Meta, St } = imports.gi;
+
 const Display = global.get_display();
 
 let markedWindowsData = {};

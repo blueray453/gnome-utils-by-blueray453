@@ -1,5 +1,7 @@
 const { Gio, GLib, Shell, Meta } = imports.gi;
 
+// I think Gio, GLib, Shell are unused
+
 const WorkspaceManager = global.get_workspace_manager();
 
 var MR_DBUS_IFACE = `

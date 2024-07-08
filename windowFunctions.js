@@ -1,4 +1,7 @@
 const { Gio, GLib, Meta, Shell } = imports.gi;
+
+// I think Gio, Shell are unused
+
 const Display = global.get_display();
 
 // const WorkspaceManager = global.get_workspace_manager();
