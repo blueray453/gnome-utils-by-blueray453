@@ -11,15 +11,23 @@ let markedWindowsData = {};
 var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows">
-      <method name="MarkWindows">
+      <method name="ToggleWindowsFocusedWindow">
       </method>
+    <method name="CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass">
+    </method>
    </interface>
 </node>`;
 
 var markedWindowFunctions = class markedWindowFunctions {
 
-    list_all_marked_windows = function () {
+    _list_all_marked_windows = function () {
         return Object.values(markedWindowsData).map(win => win.win_id);
+    }
+
+    _remove_marks_on_all_marked_windows() {
+        Object.keys(markedWindowsData).forEach(win => {
+            this._unmark_window(win);
+        });
     }
 
     _redraw_border = function (win, border) {
@@ -30,8 +38,6 @@ var markedWindowFunctions = class markedWindowFunctions {
 
     _mark_window(win) {
         if (!win) return;
-
-        let winIds = this.list_all_marked_windows();
 
         let actor = win.get_compositor_private();
         let actor_parent = actor.get_parent();
@@ -85,7 +91,6 @@ var markedWindowFunctions = class markedWindowFunctions {
         delete markedWindowsData[win];
     }
 
-
     toggleMark(win) {
         if (!win) return;
 
@@ -98,12 +103,29 @@ var markedWindowFunctions = class markedWindowFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.MarkWindows | jq .
 
-    // If window does not have Mark, Mark Windows
-    // If window does has Mark, Mark Unmark Windows
-    // Get List of All Marked Windows
     // Remove Mark From All Marked Windows
-    MarkWindows() {
+    ToggleWindowsFocusedWindow() {
         let win = Display.get_focus_window();
         this.toggleMark(win);
+    }
+
+    CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
+        let wins = windowFunctions._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
+
+        wins.forEach(function (w) {
+            if (w.get_wm_class_instance() === 'file_progress') {
+                return; // Skip this window if it's a 'file_progress' instance
+            }
+
+            // Check if the window is marked
+            if (markedWindowsData[w]) {
+                return; // Skip this window if it's marked
+            }
+
+            w.delete(0);
+        });
+
+        // Unmark all windows after closing others
+        this._remove_marks_on_all_marked_windows();
     }
 }
