@@ -1,6 +1,7 @@
 const { Meta, St } = imports.gi;
 
 const Display = global.get_display();
+const WorkspaceManager = global.workspace_manager;
 
 // const Me = imports.misc.extensionUtils.getCurrentExtension();
 // const WindowFunctions = Me.imports.windowFunctions;
@@ -27,8 +28,28 @@ var MR_DBUS_IFACE = `
 
 var MarkedWindowFunctions = class MarkedWindowFunctions {
 
+    _update_borders() {
+        let currentWorkspace = WorkspaceManager.get_active_workspace();
+        Object.values(markedWindowsData).forEach(data => {
+            let win = this.windowFunctionsInstance._get_normal_window_given_window_id(data.win_id);
+            if (win.get_workspace() !== currentWorkspace) {
+                this._unmark_window(win);
+            } else {
+                this._mark_window(win);
+            }
+        });
+    }
+
     constructor() {
         this.windowFunctionsInstance = new WindowFunctions();
+        this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => this._update_borders());
+    }
+
+    destroy() {
+        if (this._workspaceChangedId) {
+            WorkspaceManager.disconnect(this._workspaceChangedId);
+            this._workspaceChangedId = null;
+        }
     }
 
     _list_all_marked_windows = function () {
