@@ -32,8 +32,9 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _remove_marks_on_all_marked_windows() {
-        Object.keys(markedWindowsData).forEach(data => {
-            this._unmark_window(data.win_id);
+        Object.values(markedWindowsData).forEach(data => {
+        let win = new WindowFunctions()._get_normal_window_given_window_id(data.win_id);
+        this._unmark_window(win);
         });
     }
 
@@ -44,7 +45,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _workspace_changed = function () {
-
         log(`Check if notice workspace change`);
         // if i move window to different workspace, delete the old border and add a new one
 
@@ -87,7 +87,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _unmark_window(win) {
-        if (!win) return;
+        // if (!win) return;
 
         let actor = win.get_compositor_private();
         let actor_parent = actor.get_parent();
@@ -130,7 +130,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             if (markedWindowsData[w]) {
                 return; // Skip this window if it's marked
             }
-
             w.delete(0);
         });
 
