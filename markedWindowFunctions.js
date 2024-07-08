@@ -19,7 +19,13 @@ var MR_DBUS_IFACE = `
 var markedWindowFunctions = class markedWindowFunctions {
 
     list_all_marked_windows = function () {
-        return Object.values(markedWindowsData).map(win => win.win_id);;
+        return Object.values(markedWindowsData).map(win => win.win_id);
+    }
+
+    redrawBorder = function (win, border) {
+        let rect = win.get_frame_rect();
+        border.set_position(rect.x, rect.y);
+        border.set_size(rect.width, rect.height);
     }
 
     _toggle_window_border = function (win) {
@@ -52,21 +58,15 @@ var markedWindowFunctions = class markedWindowFunctions {
 
         actor_parent.add_child(border);
 
-        function redrawBorder() {
-            let rect = win.get_frame_rect();
-            border.set_position(rect.x, rect.y);
-            border.set_size(rect.width, rect.height);
-        }
-
-        redrawBorder();
+        this.redrawBorder(win, border);
         // restack(Display);  // Ensure the border is initially stacked correctly
 
         // Connect to the size-changed and position-changed signals
         markedWindowsData[win] = {
             win_id: win.get_id(),
             border: border,
-            sizeChangedId: win.connect('size-changed', redrawBorder),
-            positionChangedId: win.connect('position-changed', redrawBorder),
+            sizeChangedId: win.connect('size-changed', () => this.redrawBorder(win, border)),
+            positionChangedId: win.connect('position-changed', () => this.redrawBorder(win, border)),
             restackHandlerID: Display.connect('restacked', (display) => {
                 let wg = Meta.get_window_group_for_display(display);
                 wg.set_child_above_sibling(border, actor);  // Raise the border above the window
