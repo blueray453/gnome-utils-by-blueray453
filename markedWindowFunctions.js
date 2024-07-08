@@ -28,12 +28,12 @@ var MR_DBUS_IFACE = `
 var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _list_all_marked_windows = function () {
-        return Object.values(markedWindowsData).map(win => win.win_id);
+        return Object.values(markedWindowsData).map(data => data.win_id);
     }
 
     _remove_marks_on_all_marked_windows() {
-        Object.keys(markedWindowsData).forEach(win => {
-            this._unmark_window(win);
+        Object.keys(markedWindowsData).forEach(data => {
+            this._unmark_window(data.win_id);
         });
     }
 
@@ -64,12 +64,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         this._redraw_border(win, border);
 
-        try {
-            let win_id = win.get_id();
-        } catch (error) {
-            log(`WinID: ${error}`);
-        }
-
         markedWindowsData[win] = {
             win_id: win.get_id(),
             border: border,
@@ -94,23 +88,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _unmark_window(win) {
         if (!win) return;
-
-        try {
-            let currentWinId = win.get_id();
-            if (!markedWindowsData[win]) {
-                log(`Window ID ${currentWinId} is not marked.`);
-                return;
-            }
-        } catch (error) {
-            log(`WinID _unmark_window: ${error}`);
-            log(`Type: ${typeof currentWinId}`);
-            log(`Constructor name: ${currentWinId.constructor.name}`);
-            let proto = Object.getPrototypeOf(currentWinId);
-            while (proto) {
-                log(`Prototype: ${proto.constructor.name}`);
-                proto = Object.getPrototypeOf(proto);
-            }
-        }
 
         let actor = win.get_compositor_private();
         let actor_parent = actor.get_parent();
