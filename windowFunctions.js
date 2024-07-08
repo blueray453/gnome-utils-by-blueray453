@@ -4,7 +4,7 @@ const Display = global.get_display();
 // const WorkspaceManager = global.get_workspace_manager();
 const WorkspaceManager = Display.get_workspace_manager();
 
-let signalHandlers = {};
+let markedWindowsData = {};
 
 // distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
 
@@ -656,9 +656,13 @@ var WindowFunctions = class WindowFunctions {
         });
     }
 
-    _add_orange_border_to_window = function (win) {
+    list_all_marked_windows = function () {
+        return Object.values(markedWindowsData).map(win => win.win_id);;
+    }
 
-        let winIds = Object.values(signalHandlers).map(handler => handler.win_id);
+    _toggle_window_border = function (win) {
+
+        let winIds = this.list_all_marked_windows();
         log(`winIds : ${winIds}`);
 
         if (!win) return;
@@ -675,11 +679,11 @@ var WindowFunctions = class WindowFunctions {
 
         // Check if the current window's win_id is already in winIds
         if (winIds.includes(currentWinId)) {
-            actor_parent.remove_child(signalHandlers[win].border);
-            win.disconnect(signalHandlers[win].sizeChangedId);
-            win.disconnect(signalHandlers[win].positionChangedId);
-            win.disconnect(signalHandlers[win].unmanagedId);
-            delete signalHandlers[win];
+            actor_parent.remove_child(markedWindowsData[win].border);
+            win.disconnect(markedWindowsData[win].sizeChangedId);
+            win.disconnect(markedWindowsData[win].positionChangedId);
+            win.disconnect(markedWindowsData[win].unmanagedId);
+            delete markedWindowsData[win];
             log(`Window ID ${currentWinId} already has a border.`);
             return;
         }
@@ -692,28 +696,26 @@ var WindowFunctions = class WindowFunctions {
             border.set_size(rect.width, rect.height);
         }
 
-        function restack(display) {
-            let wg = Meta.get_window_group_for_display(display);
-            wg.set_child_above_sibling(border, actor);  // Raise the border above the window
-        }
-
         redrawBorder();
-        restack(Display);  // Ensure the border is initially stacked correctly
+        // restack(Display);  // Ensure the border is initially stacked correctly
 
         // Connect to the size-changed and position-changed signals
-        signalHandlers[win] = {
+        markedWindowsData[win] = {
             win_id: win.get_id(),
             border: border,
             sizeChangedId: win.connect('size-changed', redrawBorder),
             positionChangedId: win.connect('position-changed', redrawBorder),
-            restackHandlerID: Display.connect('restacked', restack),
+            restackHandlerID: Display.connect('restacked', (display) => {
+                let wg = Meta.get_window_group_for_display(display);
+                wg.set_child_above_sibling(border, actor);  // Raise the border above the window
+            }),
             unmanagedId: win.connect('unmanaged', () => {
                 global.window_group.remove_child(border);
-                win.disconnect(signalHandlers[win].sizeChangedId);
-                win.disconnect(signalHandlers[win].positionChangedId);
-                Display.disconnect(signalHandlers[win].restackHandlerID);
-                win.disconnect(signalHandlers[win].unmanagedId);
-                delete signalHandlers[win];
+                win.disconnect(markedWindowsData[win].sizeChangedId);
+                win.disconnect(markedWindowsData[win].positionChangedId);
+                Display.disconnect(markedWindowsData[win].restackHandlerID);
+                win.disconnect(markedWindowsData[win].unmanagedId);
+                delete markedWindowsData[win];
             })
         };
     }
@@ -726,7 +728,7 @@ var WindowFunctions = class WindowFunctions {
     // Remove Mark From All Marked Windows
     MarkWindows() {
         let win = Display.get_focus_window();
-        this._add_orange_border_to_window(win);
+        this._toggle_window_border(win);
     }
 
 
