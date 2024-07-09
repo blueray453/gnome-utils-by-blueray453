@@ -141,6 +141,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         this._redraw_border(win, border);
 
+        markedWindowsData[win].sizeChangedId = win.connect('size-changed', () => this._redraw_border(win, border));
+        markedWindowsData[win].positionChangedId = win.connect('position-changed', () => this._redraw_border(win, border));
         markedWindowsData[win].restackHandlerID = Display.connect('restacked', (display) => this._restack_window(display, actor, border));
     }
 
@@ -153,6 +155,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         actor_parent.remove_child(markedWindowsData[win].border);
 
+        win.disconnect(markedWindowsData[win].sizeChangedId);
+        win.disconnect(markedWindowsData[win].positionChangedId);
         Display.disconnect(markedWindowsData[win].restackHandlerID);
 
         markedWindowsData[win].border = null;
