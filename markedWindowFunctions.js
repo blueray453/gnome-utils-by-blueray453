@@ -92,7 +92,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     _add_border(win) {
         // if (markedWindowsData[win].border) return;
         let actor = win.get_compositor_private();
-        log(`_add_border actor_n_children: ${actor.get_n_children()}`);
         let actor_parent = actor.get_parent();
 
         let border = new St.Bin({
