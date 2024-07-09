@@ -60,6 +60,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     _workspace_changed = function () {
         // log(`Check if notice workspace change`);
         // if i move window to different workspace, delete the old border and add a new one
+        // this._update_borders();
 
     }
 
@@ -100,9 +101,16 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _add_border(win) {
+
+        let currentWorkspace = WorkspaceManager.get_active_workspace();
+
+        if (win.get_workspace() !== currentWorkspace) {
+            return;
+        }
+
         // if (markedWindowsData[win].border) return;
         let actor = win.get_compositor_private();
-        log(`_add_border actor_name: ${actor.get_name()}`);
+        log(`_add_border actor_n_children: ${actor.get_n_children()}`);
         let actor_parent = actor.get_parent();
 
         let border = new St.Bin({
@@ -139,9 +147,13 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         Object.values(markedWindowsData).forEach(data => {
             let win = this.windowFunctionsInstance._get_normal_window_given_window_id(data.win_id);
             if (win.get_workspace() !== currentWorkspace) {
-                this._remove_border(win);
+                if (markedWindowsData[win].border) {
+                    this._remove_border(win);
+                }
             } else {
-                this._add_border(win);
+                if (!markedWindowsData[win].border) {
+                    this._add_border(win);
+                }
             }
         });
     }
