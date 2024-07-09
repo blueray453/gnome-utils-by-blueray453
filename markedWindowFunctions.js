@@ -73,8 +73,13 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let positionChangedId = win.connect('position-changed', () => this._redraw_border(win, border));
         let workspaceChangedId = win.connect('workspace-changed', () => this._workspace_changed());
         let restackHandlerID = Display.connect('restacked', (display) => this._restack_window(display, actor, border));
-        let unmanagedId = win.connect('unmanaged', () => {
-            this._remove_border(win);
+        let unmanagedId = win.connect('unmanaging', () => {
+            try {
+                this._unmark_window(win);
+            } catch (error) {
+                log(`_connect_signals _unmark_window: ${error}`);
+            }
+
         });
 
         markedWindowsData[win].sizeChangedId = sizeChangedId;
@@ -85,7 +90,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _disconnect_signals(win) {
-        if (!win || !markedWindowsData[win]) return;
+        // if (!win || !markedWindowsData[win]) return;
 
         win.disconnect(markedWindowsData[win].sizeChangedId);
         win.disconnect(markedWindowsData[win].positionChangedId);
@@ -95,10 +100,9 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _add_border(win) {
-
-        if (markedWindowsData[win].border) return;
-
+        // if (markedWindowsData[win].border) return;
         let actor = win.get_compositor_private();
+        log(`_add_border actor_name: ${actor.get_name()}`);
         let actor_parent = actor.get_parent();
 
         let border = new St.Bin({
@@ -108,15 +112,18 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         actor_parent.add_child(border);
         this._redraw_border(win, border);
 
+        // if (!markedWindowsData[win]) {
+        //     markedWindowsData[win] = {};
+        // }
+
         markedWindowsData[win].border = border;
 
         this._connect_signals(win, actor, border);
     }
 
     _remove_border(win) {
-        if (!markedWindowsData[win].border) return;
+        // if (!markedWindowsData[win].border) return;
         // if (!win) return;
-
         let actor = win.get_compositor_private();
         let actor_parent = actor.get_parent();
 
