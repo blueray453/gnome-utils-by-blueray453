@@ -57,13 +57,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         border.set_size(rect.width, rect.height);
     }
 
-    _workspace_changed = function () {
-        // log(`Check if notice workspace change`);
-        // if i move window to different workspace, delete the old border and add a new one
-        // this._update_borders();
-
-    }
-
     _restack_window(display, actor, border) {
         let wg = Meta.get_window_group_for_display(display);
         wg.set_child_above_sibling(border, actor);
@@ -72,7 +65,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     _connect_signals(win, actor, border) {
         let sizeChangedId = win.connect('size-changed', () => this._redraw_border(win, border));
         let positionChangedId = win.connect('position-changed', () => this._redraw_border(win, border));
-        let workspaceChangedId = win.connect('workspace-changed', () => this._workspace_changed());
         let restackHandlerID = Display.connect('restacked', (display) => this._restack_window(display, actor, border));
         let unmanagedId = win.connect('unmanaging', () => {
             try {
@@ -80,13 +72,11 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             } catch (error) {
                 log(`_connect_signals _unmark_window: ${error}`);
             }
-
         });
 
         markedWindowsData[win].sizeChangedId = sizeChangedId;
         markedWindowsData[win].positionChangedId = positionChangedId;
         markedWindowsData[win].restackHandlerID = restackHandlerID;
-        markedWindowsData[win].workspaceChangedId = workspaceChangedId;
         markedWindowsData[win].unmanagedId = unmanagedId;
     }
 
@@ -95,7 +85,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         win.disconnect(markedWindowsData[win].sizeChangedId);
         win.disconnect(markedWindowsData[win].positionChangedId);
-        win.disconnect(markedWindowsData[win].workspaceChangedId);
         win.disconnect(markedWindowsData[win].unmanagedId);
         Display.disconnect(markedWindowsData[win].restackHandlerID);
     }
