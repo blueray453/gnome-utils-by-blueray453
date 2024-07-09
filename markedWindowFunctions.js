@@ -90,13 +90,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _add_border(win) {
-
-        let currentWorkspace = WorkspaceManager.get_active_workspace();
-
-        if (win.get_workspace() !== currentWorkspace) {
-            return;
-        }
-
         // if (markedWindowsData[win].border) return;
         let actor = win.get_compositor_private();
         log(`_add_border actor_n_children: ${actor.get_n_children()}`);
