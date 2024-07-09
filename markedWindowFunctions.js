@@ -31,6 +31,22 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     constructor() {
         this.windowFunctionsInstance = new WindowFunctions();
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => this._update_borders());
+        this._minimizeId = global.window_manager.connect('minimize', (wm, actor) => this._on_window_minimize(actor));
+        this._unminimizeId = global.window_manager.connect('unminimize', (wm, actor) => this._on_window_unminimize(actor));
+    }
+
+    _on_window_minimize(actor) {
+        let win = actor.meta_window;
+        if (markedWindowsData[win]) {
+            this._remove_border(win);
+        }
+    }
+
+    _on_window_unminimize(actor) {
+        let win = actor.meta_window;
+        if (markedWindowsData[win]) {
+            this._add_border(win);
+        }
     }
 
     destroy() {
