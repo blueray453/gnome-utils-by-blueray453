@@ -28,18 +28,6 @@ var MR_DBUS_IFACE = `
 
 var MarkedWindowFunctions = class MarkedWindowFunctions {
 
-    _update_borders() {
-        let currentWorkspace = WorkspaceManager.get_active_workspace();
-        Object.values(markedWindowsData).forEach(data => {
-            let win = this.windowFunctionsInstance._get_normal_window_given_window_id(data.win_id);
-            if (win.get_workspace() !== currentWorkspace) {
-                this._unmark_window(win);
-            } else {
-                this._mark_window(win);
-            }
-        });
-    }
-
     constructor() {
         this.windowFunctionsInstance = new WindowFunctions();
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => this._update_borders());
@@ -70,9 +58,14 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _workspace_changed = function () {
-        log(`Check if notice workspace change`);
+        // log(`Check if notice workspace change`);
         // if i move window to different workspace, delete the old border and add a new one
 
+    }
+
+    _restack_window(display, actor, border) {
+        let wg = Meta.get_window_group_for_display(display);
+        wg.set_child_above_sibling(border, actor);
     }
 
     _mark_window(win) {
@@ -95,10 +88,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             sizeChangedId: win.connect('size-changed', () => this._redraw_border(win, border)),
             positionChangedId: win.connect('position-changed', () => this._redraw_border(win, border)),
             workspaceChangedId: win.connect('workspace-changed', () => this._workspace_changed()),
-            restackHandlerID: Display.connect('restacked', (display) => {
-                let wg = Meta.get_window_group_for_display(display);
-                wg.set_child_above_sibling(border, actor);
-            }),
+            restackHandlerID: Display.connect('restacked', (display) => this._restack_window(display, actor, border)),
             unmanagedId: win.connect('unmanaged', () => {
                 global.window_group.remove_child(border);
                 win.disconnect(markedWindowsData[win].sizeChangedId);
@@ -113,15 +103,15 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _unmark_window(win) {
         // if (!win) return;
-
         let actor = win.get_compositor_private();
         let actor_parent = actor.get_parent();
 
         actor_parent.remove_child(markedWindowsData[win].border);
         win.disconnect(markedWindowsData[win].sizeChangedId);
         win.disconnect(markedWindowsData[win].positionChangedId);
-        win.disconnect(markedWindowsData[win].unmanagedId);
+        win.disconnect(markedWindowsData[win].workspaceChangedId);
         Display.disconnect(markedWindowsData[win].restackHandlerID);
+        win.disconnect(markedWindowsData[win].unmanagedId);
         delete markedWindowsData[win];
     }
 
@@ -133,6 +123,51 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         } else {
             this._mark_window(win);
         }
+    }
+
+    _add_border(win) {
+
+        if (markedWindowsData[win].border) return;
+
+        let actor = win.get_compositor_private();
+        let actor_parent = actor.get_parent();
+
+        let border = new St.Bin({
+            style_class: 'border'
+        });
+
+        actor_parent.add_child(border);
+        markedWindowsData[win].border = border;
+
+        this._redraw_border(win, border);
+
+        markedWindowsData[win].restackHandlerID = Display.connect('restacked', (display) => this._restack_window(display, actor, border));
+    }
+
+    _remove_border(win) {
+        if (!markedWindowsData[win].border) return;
+        // if (!win) return;
+
+        let actor = win.get_compositor_private();
+        let actor_parent = actor.get_parent();
+
+        actor_parent.remove_child(markedWindowsData[win].border);
+
+        Display.disconnect(markedWindowsData[win].restackHandlerID);
+
+        markedWindowsData[win].border = null;
+    }
+
+    _update_borders() {
+        let currentWorkspace = WorkspaceManager.get_active_workspace();
+        Object.values(markedWindowsData).forEach(data => {
+            let win = this.windowFunctionsInstance._get_normal_window_given_window_id(data.win_id);
+            if (win.get_workspace() !== currentWorkspace) {
+                this._remove_border(win);
+            } else {
+                this._add_border(win);
+            }
+        });
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.ToggleMarksFocusedWindow | jq .
