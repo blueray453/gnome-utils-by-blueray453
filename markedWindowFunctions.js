@@ -2,6 +2,7 @@ const { Meta, St } = imports.gi;
 
 const Display = global.get_display();
 const WorkspaceManager = global.workspace_manager;
+const WindowManager = global.window_manager;
 
 // const Me = imports.misc.extensionUtils.getCurrentExtension();
 // const WindowFunctions = Me.imports.windowFunctions;
@@ -10,7 +11,7 @@ const WorkspaceManager = global.workspace_manager;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { WindowFunctions } = Me.imports.windowFunctions;
 
-let markedWindowsData = {};
+let markedWindowsData = new Map();
 
 // distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
 
@@ -31,22 +32,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     constructor() {
         this.windowFunctionsInstance = new WindowFunctions();
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => this._update_borders());
-        this._minimizeId = global.window_manager.connect('minimize', (wm, actor) => this._on_window_minimize(actor));
-        this._unminimizeId = global.window_manager.connect('unminimize', (wm, actor) => this._on_window_unminimize(actor));
-    }
-
-    _on_window_minimize(actor) {
-        let win = actor.meta_window;
-        if (markedWindowsData[win]) {
-            this._remove_border(win);
-        }
-    }
-
-    _on_window_unminimize(actor) {
-        let win = actor.meta_window;
-        if (markedWindowsData[win]) {
-            this._add_border(win);
-        }
+        this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._on_window_minimize(actor));
+        this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => this._on_window_unminimize(actor));
     }
 
     destroy() {
@@ -54,16 +41,60 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             WorkspaceManager.disconnect(this._workspaceChangedId);
             this._workspaceChangedId = null;
         }
+        if (this._minimizeId) {
+            global.window_manager.disconnect(this._minimizeId);
+            this._minimizeId = null;
+        }
+        if (this._unminimizeId) {
+            global.window_manager.disconnect(this._unminimizeId);
+            this._unminimizeId = null;
+        }
     }
 
-    _list_all_marked_windows = function () {
-        return Object.values(markedWindowsData).map(data => data.win_id);
+    _on_window_minimize(actor) {
+        let win = actor.meta_window;
+        if (markedWindowsData.has(win)) {
+            this._remove_border(win);
+        }
+    }
+
+    _on_window_unminimize(actor) {
+        let win = actor.meta_window;
+        if (markedWindowsData.has(win)) {
+            this._add_border(win);
+        }
+    }
+
+    _set_marked_window_data(metaWindow, key, value) {
+        if (!markedWindowsData.has(metaWindow)) {
+            markedWindowsData.set(metaWindow, new Map());
+        }
+        markedWindowsData.get(metaWindow).set(key, value);
+    }
+
+    _get_marked_window_data(metaWindow, key) {
+        if (markedWindowsData.has(metaWindow)) {
+            return markedWindowsData.get(metaWindow).get(key);
+        }
+        return null;
+    }
+
+    _remove_marked_window_data(metaWindow, key) {
+        if (markedWindowsData.has(metaWindow)) {
+            markedWindowsData.get(metaWindow).delete(key);
+            if (markedWindowsData.get(metaWindow).size === 0) {
+                markedWindowsData.delete(metaWindow);
+            }
+        }
+    }
+
+    _list_all_marked_windows() {
+        return Array.from(markedWindowsData.keys()).map(win => win.get_id());
     }
 
     _remove_marks_on_all_marked_windows() {
-        Object.values(markedWindowsData).forEach(data => {
-            let win = this.windowFunctionsInstance._get_normal_window_given_window_id(data.win_id);
-        this._unmark_window(win);
+        markedWindowsData.forEach((_, win) => {
+            this._unmark_window(win);
         });
     }
 
@@ -90,23 +121,20 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             }
         });
 
-        markedWindowsData[win].sizeChangedId = sizeChangedId;
-        markedWindowsData[win].positionChangedId = positionChangedId;
-        markedWindowsData[win].restackHandlerID = restackHandlerID;
-        markedWindowsData[win].unmanagedId = unmanagedId;
+        this._set_marked_window_data(win, 'sizeChangedId', sizeChangedId);
+        this._set_marked_window_data(win, 'positionChangedId', positionChangedId);
+        this._set_marked_window_data(win, 'restackHandlerID', restackHandlerID);
+        this._set_marked_window_data(win, 'unmanagedId', unmanagedId);
     }
 
     _disconnect_signals(win) {
-        // if (!win || !markedWindowsData[win]) return;
-
-        win.disconnect(markedWindowsData[win].sizeChangedId);
-        win.disconnect(markedWindowsData[win].positionChangedId);
-        win.disconnect(markedWindowsData[win].unmanagedId);
-        Display.disconnect(markedWindowsData[win].restackHandlerID);
+        win.disconnect(this._get_marked_window_data(win, 'sizeChangedId'));
+        win.disconnect(this._get_marked_window_data(win, 'positionChangedId'));
+        win.disconnect(this._get_marked_window_data(win, 'unmanagedId'));
+        Display.disconnect(this._get_marked_window_data(win, 'restackHandlerID'));
     }
 
     _add_border(win) {
-        // if (markedWindowsData[win].border) return;
         let actor = win.get_compositor_private();
         let actor_parent = actor.get_parent();
 
@@ -117,38 +145,31 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         actor_parent.add_child(border);
         this._redraw_border(win, border);
 
-        // if (!markedWindowsData[win]) {
-        //     markedWindowsData[win] = {};
-        // }
-
-        markedWindowsData[win].border = border;
+        this._set_marked_window_data(win, 'border', border);
 
         this._connect_signals(win, actor, border);
     }
 
     _remove_border(win) {
-        // if (!markedWindowsData[win].border) return;
-        // if (!win) return;
         let actor = win.get_compositor_private();
         let actor_parent = actor.get_parent();
 
-        actor_parent.remove_child(markedWindowsData[win].border);
+        actor_parent.remove_child(this._get_marked_window_data(win, 'border'));
 
         this._disconnect_signals(win);
 
-        delete markedWindowsData[win].border;
+        this._remove_marked_window_data(win, 'border');
     }
 
     _update_borders() {
         let currentWorkspace = WorkspaceManager.get_active_workspace();
-        Object.values(markedWindowsData).forEach(data => {
-            let win = this.windowFunctionsInstance._get_normal_window_given_window_id(data.win_id);
+        markedWindowsData.forEach((_, win) => {
             if (win.get_workspace() !== currentWorkspace) {
-                if (markedWindowsData[win].border) {
+                if (this._get_marked_window_data(win, 'border')) {
                     this._remove_border(win);
                 }
             } else {
-                if (!markedWindowsData[win].border) {
+                if (!this._get_marked_window_data(win, 'border')) {
                     this._add_border(win);
                 }
             }
@@ -156,32 +177,23 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _mark_window(win) {
-        if (!win) return;
-
-        if (!markedWindowsData[win]) {
-            markedWindowsData[win] = { win_id: win.get_id() };
-        }
-
         this._add_border(win);
     }
 
     _unmark_window(win) {
-        if (!win) return;
-
         this._remove_border(win);
-        delete markedWindowsData[win];
+        markedWindowsData.delete(win);
     }
 
     _toggle_mark(win) {
         if (!win) return;
 
-        if (markedWindowsData[win]) {
+        if (markedWindowsData.has(win)) {
             this._unmark_window(win);
         } else {
             this._mark_window(win);
         }
     }
-
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.ToggleMarksFocusedWindow | jq .
 
     // Remove Mark From All Marked Windows
@@ -201,7 +213,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             }
 
             // Check if the window is marked
-            if (markedWindowsData[w]) {
+            if (markedWindowsData.has(w)) {
                 return; // Skip this window if it's marked
             }
             w.delete(0);
