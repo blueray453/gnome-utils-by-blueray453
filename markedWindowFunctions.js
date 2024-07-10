@@ -114,11 +114,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let positionChangedId = win.connect('position-changed', () => this._redraw_border(win, border));
         let restackHandlerID = Display.connect('restacked', (display) => this._restack_window(display, actor, border));
         let unmanagedId = win.connect('unmanaging', () => {
-            try {
-                this._unmark_window(win);
-            } catch (error) {
-                log(`_connect_signals _unmark_window: ${error}`);
-            }
+            this._unmark_window(win);
         });
 
         this._set_marked_window_data(win, 'sizeChangedId', sizeChangedId);
