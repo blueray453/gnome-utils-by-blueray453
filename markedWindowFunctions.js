@@ -99,15 +99,18 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _remove_border(actor) {
-        let actor_parent = actor.get_parent();
-
-        actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
-        this._remove_marked_window_data(actor, 'border');
-        log(`border after _remove_border: ${this._get_marked_window_data(actor, 'border')}`);
 
         if (this._get_marked_window_data(actor, 'border')) {
-            log(`This will not do anything as border is undefined`);
+            let actor_parent = actor.get_parent();
+
+            actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
+            this._remove_marked_window_data(actor, 'border');
+            // log(`This will not do anything as border is undefined`);
         }
+
+        // log(`border after _remove_border: ${this._get_marked_window_data(actor, 'border')}`);
+
+
     }
 
     _add_border(actor) {
@@ -157,13 +160,9 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         markedWindowsData.forEach((_, actor) => {
             let win = actor.get_meta_window();
             if (win.get_workspace() !== currentWorkspace) {
-                if (this._get_marked_window_data(actor, 'border')) {
-                    this._remove_border(actor);
-                }
+                this._remove_border(actor);
             } else {
-                if (!this._get_marked_window_data(actor, 'border')) {
-                    this._add_border(actor);
-                }
+                this._add_border(actor);
             }
         });
     }
