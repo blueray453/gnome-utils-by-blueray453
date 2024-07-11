@@ -96,19 +96,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._add_border(actor);
     }
 
-    _add_border(actor) {
-
+    _add_window_signals(actor) {
         let win = actor.get_meta_window();
-        let actor_parent = actor.get_parent();
-        let rect = win.get_frame_rect();
-
-        let border = new St.Bin({
-            style_class: 'border'
-        });
-
-        actor_parent.add_child(border);
-        border.set_position(rect.x, rect.y);
-        border.set_size(rect.width, rect.height);
 
         let positionChangedId = win.connect('position-changed', () => {
             let actor = win.get_compositor_private();
@@ -121,20 +110,38 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             this._unmark_window(actor);
         });
 
-        this._set_marked_window_data(actor, 'border', border);
         this._set_marked_window_data(actor, 'positionChangedId', positionChangedId);
         this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
     }
 
-    _remove_border(actor) {
+    _add_border(actor) {
         let win = actor.get_meta_window();
+        let actor_parent = actor.get_parent();
+        let rect = win.get_frame_rect();
+
+        let border = new St.Bin({
+            style_class: 'border'
+        });
+
+        actor_parent.add_child(border);
+        border.set_position(rect.x, rect.y);
+        border.set_size(rect.width, rect.height);
+
+        this._set_marked_window_data(actor, 'border', border);
+    }
+
+    _remove_window_signals(actor) {
+        let win = actor.get_meta_window();
+
+        win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
+        win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
+    }
+
+    _remove_border(actor) {
         let actor_parent = actor.get_parent();
 
         actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
         this._remove_marked_window_data(actor, 'border');
-
-        win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
-        win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
     }
 
     _update_borders() {
@@ -155,6 +162,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _mark_window(actor) {
         this._add_border(actor);
+        this._add_window_signals(actor);
     }
 
     /* Please note that _unmark_window and _remove_border is not same.
@@ -170,6 +178,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     */
     _unmark_window(actor) {
         this._remove_border(actor);
+        this._remove_window_signals(actor);
         markedWindowsData.delete(actor);
     }
 
