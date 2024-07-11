@@ -192,7 +192,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     _unmark_windows() {
         markedWindowsData.forEach((_, actor) => {
             this._unmark_window(actor);
-            markedWindowsData.delete(actor);
         });
     }
 
@@ -203,6 +202,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             this._mark_window(actor);
         }
     }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
 
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
         let wins = this.windowFunctionsInstance._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
@@ -222,6 +223,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._unmark_windows();
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.GetMarkedWindows
+
     GetMarkedWindows() {
         let markedWindows =  Array.from(markedWindowsData.keys()).map(actor =>
             actor.get_meta_window().get_id()
@@ -229,6 +232,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         return JSON.stringify(markedWindows);
     }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.ToggleMarksFocusedWindow
 
     ToggleMarksFocusedWindow() {
         let win = Display.get_focus_window();
