@@ -90,10 +90,12 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _redraw_border(actor) {
-        if (markedWindowsData.get(actor).get('border')){
+        if (markedWindowsData.has(actor)) {
+            log(`_redraw_border start`);
             this._remove_border(actor);
+            this._add_border(actor);
+            log(`_redraw_border success`);
         }
-        this._add_border(actor);
     }
 
     _remove_border(actor) {
@@ -131,9 +133,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         let positionChangedId = win.connect('position-changed', () => {
             let actor = win.get_compositor_private();
-            if (markedWindowsData.has(actor)) {
-                this._redraw_border(actor);
-            }
+            this._redraw_border(actor);
+
         });
 
         let unmanagedId = win.connect('unmanaging', () => {
@@ -191,6 +192,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     This is also true for _redraw_border. We have to add border to the window again.
     */
+
     _unmark_window(actor) {
         this._remove_border(actor);
         this._remove_window_signals(actor);
