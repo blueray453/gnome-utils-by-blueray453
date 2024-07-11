@@ -96,6 +96,24 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._add_border(actor);
     }
 
+    _add_border(actor) {
+        let win = actor.get_meta_window();
+        let actor_parent = actor.get_parent();
+        let rect = win.get_frame_rect();
+
+        let border = new St.Bin({
+            style_class: 'border'
+        });
+
+        actor_parent.add_child(border);
+        border.set_position(rect.x, rect.y);
+        border.set_size(rect.width, rect.height);
+
+        this._set_marked_window_data(actor, 'border', border);
+
+        log(`border after _add_border: ${this._get_marked_window_data(actor, 'border')}`);
+    }
+
     _add_window_signals(actor) {
         let win = actor.get_meta_window();
 
@@ -114,20 +132,12 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
     }
 
-    _add_border(actor) {
-        let win = actor.get_meta_window();
+    _remove_border(actor) {
         let actor_parent = actor.get_parent();
-        let rect = win.get_frame_rect();
 
-        let border = new St.Bin({
-            style_class: 'border'
-        });
-
-        actor_parent.add_child(border);
-        border.set_position(rect.x, rect.y);
-        border.set_size(rect.width, rect.height);
-
-        this._set_marked_window_data(actor, 'border', border);
+        actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
+        this._remove_marked_window_data(actor, 'border');
+        log(`border after _remove_border: ${this._get_marked_window_data(actor, 'border')}`);
     }
 
     _remove_window_signals(actor) {
@@ -135,13 +145,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
         win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
-    }
-
-    _remove_border(actor) {
-        let actor_parent = actor.get_parent();
-
-        actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
-        this._remove_marked_window_data(actor, 'border');
     }
 
     _update_borders() {
