@@ -127,8 +127,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let actor_parent = actor.get_parent();
 
         actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
-
         this._remove_marked_window_data(actor, 'border');
+
         win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
         win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
     }
@@ -153,6 +153,17 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._add_border(actor);
     }
 
+    /* Please note that _unmark_window and _remove_border is not same.
+    remove border remove the value but keep the key. While _unmark_window remove
+    the key and all it's data.
+
+    This is important because when minimizing window, we are _remove_border but we
+    have to get the border back when we unminimize. If we remove the key then we can not do it.
+
+    This is also true for _update_borders. We have to add border to the window again.
+
+    This is also true for _redraw_border. We have to add border to the window again.
+    */
     _unmark_window(actor) {
         this._remove_border(actor);
         markedWindowsData.delete(actor);
