@@ -84,46 +84,47 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-    _remove_border(actor) {
+    _update_borders() {
+        let currentWorkspace = WorkspaceManager.get_active_workspace();
+        markedWindowsData.forEach((_, actor) => {
+            let win = actor.get_meta_window();
+            if (win.get_workspace() !== currentWorkspace) {
+                log(`_update_borders _remove_border`);
+                this._remove_border(actor);
+            } else {
+                log(`_update_borders _add_border`);
+                this._add_border(actor);
+            }
+        });
+    }
 
-        if (this._get_marked_window_data(actor, 'border')) {
-            let actor_parent = actor.get_parent();
-
-            actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
-            this._remove_marked_window_data(actor, 'border');
-            // log(`This will not do anything as border is undefined`);
-        }
-
-        // log(`border after _remove_border: ${this._get_marked_window_data(actor, 'border')}`);
-
-
+    _mark_window(actor) {
+        this._add_border(actor);
+        this._add_window_signals(actor);
     }
 
     _add_border(actor) {
         let win = actor.get_meta_window();
-        let actor_parent = actor.get_parent();
+
         let rect = win.get_frame_rect();
 
-        let border = new St.Bin({
-            style_class: 'border'
-        });
+        let border;
 
-        actor_parent.add_child(border);
+        if (this._get_marked_window_data(actor, 'border')) {
+            border = this._get_marked_window_data(actor, 'border');
+            log(`_add_border: border exists`);
+        } else {
+            log(`_add_border: create new border`);
+            border = new St.Bin({
+                style_class: 'border'
+            });
+            let actor_parent = actor.get_parent();
+            actor_parent.add_child(border);
+            this._set_marked_window_data(actor, 'border', border);
+        }
+
         border.set_position(rect.x, rect.y);
         border.set_size(rect.width, rect.height);
-
-        this._set_marked_window_data(actor, 'border', border);
-
-        log(`border after _add_border: ${this._get_marked_window_data(actor, 'border')}`);
-    }
-
-    _redraw_border(actor) {
-        if (markedWindowsData.has(actor)) {
-            log(`_redraw_border start`);
-            this._remove_border(actor);
-            this._add_border(actor);
-            log(`_redraw_border success`);
-        }
     }
 
     _add_window_signals(actor) {
@@ -131,13 +132,13 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         let positionChangedId = win.connect('position-changed', () => {
             let actor = win.get_compositor_private();
-            this._redraw_border(actor);
+            this._add_border(actor);
 
         });
 
         let sizeChangedId = win.connect('size-changed', () => {
             let actor = win.get_compositor_private();
-            this._redraw_border(actor);
+            this._add_border(actor);
 
         });
 
@@ -148,31 +149,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._set_marked_window_data(actor, 'positionChangedId', positionChangedId);
         this._set_marked_window_data(actor, 'sizeChangedId', sizeChangedId);
         this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
-    }
-
-    _remove_window_signals(actor) {
-        let win = actor.get_meta_window();
-
-        win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
-        win.disconnect(this._get_marked_window_data(actor, 'sizeChangedId'));
-        win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
-    }
-
-    _update_borders() {
-        let currentWorkspace = WorkspaceManager.get_active_workspace();
-        markedWindowsData.forEach((_, actor) => {
-            let win = actor.get_meta_window();
-            if (win.get_workspace() !== currentWorkspace) {
-                this._remove_border(actor);
-            } else {
-                this._add_border(actor);
-            }
-        });
-    }
-
-    _mark_window(actor) {
-        this._add_border(actor);
-        this._add_window_signals(actor);
     }
 
     /*
@@ -192,8 +168,14 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     This is also true for _update_borders. We have to add border to the window again.
 
-    This is also true for _redraw_border. We have to add border to the window again.
+    This is also true for _add_border. We have to add border to the window again.
     */
+
+    _unmark_windows() {
+        markedWindowsData.forEach((_, actor) => {
+            this._unmark_window(actor);
+        });
+    }
 
     _unmark_window(actor) {
         this._remove_border(actor);
@@ -201,10 +183,27 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         markedWindowsData.delete(actor);
     }
 
-    _unmark_windows() {
-        markedWindowsData.forEach((_, actor) => {
-            this._unmark_window(actor);
-        });
+    _remove_border(actor) {
+
+        if (this._get_marked_window_data(actor, 'border')) {
+            let actor_parent = actor.get_parent();
+
+            actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
+            this._remove_marked_window_data(actor, 'border');
+            // log(`This will not do anything as border is undefined`);
+        }
+
+        // log(`border after _remove_border: ${this._get_marked_window_data(actor, 'border')}`);
+
+
+    }
+
+    _remove_window_signals(actor) {
+        let win = actor.get_meta_window();
+
+        win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
+        win.disconnect(this._get_marked_window_data(actor, 'sizeChangedId'));
+        win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
     }
 
     _toggle_mark(actor) {
