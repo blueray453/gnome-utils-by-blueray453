@@ -29,7 +29,11 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this.windowFunctionsInstance = new WindowFunctions();
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => this._update_borders());
         this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._remove_border(actor));
-        this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => this._add_border(actor));
+        this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
+            if (markedWindowsData.has(actor)) {
+                this._add_border(actor);
+            }
+        });
         this._sizeChangedId = WindowManager.connect('size-changed', (wm, actor) => this._redraw_border(actor));
         this._restackedId = Display.connect('restacked', (display) => {
             markedWindowsData.forEach((data, actor) => {
