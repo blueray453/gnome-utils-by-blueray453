@@ -76,7 +76,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             }
         });
 
-
         let unmanagedId = win.connect('unmanaging', () => {
             this._unmark_window(actor);
         });
@@ -112,12 +111,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
                 markedWindowsData.delete(actor);
             }
         }
-    }
-
-    _remove_marks_on_all_marked_windows() {
-        markedWindowsData.forEach((_, actor) => {
-            this._unmark_window(actor);
-        });
     }
 
     _redraw_border(actor, border) {
@@ -177,6 +170,13 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         markedWindowsData.delete(actor);
     }
 
+    _unmark_windows() {
+        markedWindowsData.forEach((_, actor) => {
+            this._unmark_window(actor);
+            markedWindowsData.delete(actor);
+        });
+    }
+
     _toggle_mark(actor) {
         if (markedWindowsData.has(actor)) {
             this._unmark_window(actor);
@@ -200,7 +200,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             w.delete(0);
         });
 
-        this._remove_marks_on_all_marked_windows();
+        this._unmark_windows();
     }
 
     GetMarkedWindows() {
