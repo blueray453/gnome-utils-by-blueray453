@@ -49,8 +49,10 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         this._restackedId = Display.connect('restacked', (display) => {
             markedWindowsData.forEach((data, actor) => {
-                let wg = Meta.get_window_group_for_display(display);
-                wg.set_child_above_sibling(data.get('border'), actor);
+                if (data.get('border')) {
+                    let wg = Meta.get_window_group_for_display(display);
+                    wg.set_child_above_sibling(data.get('border'), actor);
+                }
             });
         });
     }
@@ -73,6 +75,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             this._restackedId = null;
         }
     }
+
+    // markedWindowsData Utility Functions
 
     _set_marked_window_data(actor, key, value) {
         if (!markedWindowsData.has(actor)) {
@@ -156,7 +160,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _remove_border(actor) {
-
         if (this._get_marked_window_data(actor, 'border')) {
             let actor_parent = actor.get_parent();
 
@@ -166,23 +169,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     // Windows Mark
-
-    _mark_window(actor) {
-        this._add_border(actor);
-        this._add_window_signals(actor);
-    }
-
-    _unmark_windows() {
-        markedWindowsData.forEach((_, actor) => {
-            this._unmark_window(actor);
-        });
-    }
-
-    _unmark_window(actor) {
-        this._remove_border(actor);
-        this._remove_window_signals(actor);
-        markedWindowsData.delete(actor);
-    }
 
     /*
     By marking window, i mean markedWindowsData.has(actor). it normally has signals attached to it.
@@ -203,6 +189,23 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     This is also true for _add_border. We have to add border to the window again.
     */
+
+    _mark_window(actor) {
+        this._add_border(actor);
+        this._add_window_signals(actor);
+    }
+
+    _unmark_window(actor) {
+        this._remove_border(actor);
+        this._remove_window_signals(actor);
+        markedWindowsData.delete(actor);
+    }
+
+    _unmark_windows() {
+        markedWindowsData.forEach((_, actor) => {
+            this._unmark_window(actor);
+        });
+    }
 
     _toggle_mark(actor) {
         if (markedWindowsData.has(actor)) {
