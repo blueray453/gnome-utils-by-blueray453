@@ -172,12 +172,20 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._add_window_signals(actor);
     }
 
-    /* Please note that _unmark_window and _remove_border is not same.
-    remove border remove the value but keep the key. While _unmark_window remove
-    the key and all it's data.
+    /*
+    By marking window, i mean markedWindowsData.has(actor). it normally has signals attached to it.
+    We generally only remove the signals when we unmark.
 
-    This is important because when minimizing window, we are _remove_border but we
-    have to get the border back when we unminimize. If we remove the key then we can not do it.
+    However, Whether it has border or not is irrelevant.
+    A marked window may not have border attached to it.
+
+    The only one way to unmark a marked window is _unmark_window
+    */
+
+    /* Please note that _unmark_window and _remove_border is not same.
+
+    This is important because when minimizing window, we _remove_border
+    but we have to get the border back when we unminimize.
 
     This is also true for _update_borders. We have to add border to the window again.
 
