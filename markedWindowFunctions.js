@@ -38,12 +38,15 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
                 }
             });
         });
+
         this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._remove_border(actor));
+
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
             if (markedWindowsData.has(actor)) {
                 this._add_border(actor);
             }
         });
+
         this._restackedId = Display.connect('restacked', (display) => {
             markedWindowsData.forEach((data, actor) => {
                 let wg = Meta.get_window_group_for_display(display);
@@ -94,34 +97,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-
-
-    _mark_window(actor) {
-        this._add_border(actor);
-        this._add_window_signals(actor);
-    }
-
-    _add_border(actor) {
-        let actor_parent = actor.get_parent();
-        let win = actor.get_meta_window();
-        let rect = win.get_frame_rect();
-
-        let border;
-
-        if (this._get_marked_window_data(actor, 'border')) {
-            border = this._get_marked_window_data(actor, 'border');
-        } else {
-            border = new St.Bin({
-                style_class: 'border'
-            });
-            this._set_marked_window_data(actor, 'border', border);
-        }
-
-        actor_parent.add_child(border);
-
-        border.set_position(rect.x, rect.y);
-        border.set_size(rect.width, rect.height);
-    }
+    // Window Signals
 
     _add_window_signals(actor) {
         let win = actor.get_meta_window();
@@ -147,6 +123,67 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
     }
 
+    _remove_window_signals(actor) {
+        let win = actor.get_meta_window();
+
+        win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
+        win.disconnect(this._get_marked_window_data(actor, 'sizeChangedId'));
+        win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
+    }
+
+    // Window Borders
+
+    _add_border(actor) {
+        let actor_parent = actor.get_parent();
+        let win = actor.get_meta_window();
+        let rect = win.get_frame_rect();
+
+        let border;
+
+        if (this._get_marked_window_data(actor, 'border')) {
+            border = this._get_marked_window_data(actor, 'border');
+        } else {
+            border = new St.Bin({
+                style_class: 'border'
+            });
+            this._set_marked_window_data(actor, 'border', border);
+        }
+
+        actor_parent.add_child(border);
+
+        border.set_position(rect.x, rect.y);
+        border.set_size(rect.width, rect.height);
+    }
+
+    _remove_border(actor) {
+
+        if (this._get_marked_window_data(actor, 'border')) {
+            let actor_parent = actor.get_parent();
+
+            actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
+            this._remove_marked_window_data(actor, 'border');
+        }
+    }
+
+    // Windows Mark
+
+    _mark_window(actor) {
+        this._add_border(actor);
+        this._add_window_signals(actor);
+    }
+
+    _unmark_windows() {
+        markedWindowsData.forEach((_, actor) => {
+            this._unmark_window(actor);
+        });
+    }
+
+    _unmark_window(actor) {
+        this._remove_border(actor);
+        this._remove_window_signals(actor);
+        markedWindowsData.delete(actor);
+    }
+
     /*
     By marking window, i mean markedWindowsData.has(actor). it normally has signals attached to it.
     We generally only remove the signals when we unmark.
@@ -166,36 +203,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     This is also true for _add_border. We have to add border to the window again.
     */
-
-    _unmark_windows() {
-        markedWindowsData.forEach((_, actor) => {
-            this._unmark_window(actor);
-        });
-    }
-
-    _unmark_window(actor) {
-        this._remove_border(actor);
-        this._remove_window_signals(actor);
-        markedWindowsData.delete(actor);
-    }
-
-    _remove_border(actor) {
-
-        if (this._get_marked_window_data(actor, 'border')) {
-            let actor_parent = actor.get_parent();
-
-            actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
-            this._remove_marked_window_data(actor, 'border');
-        }
-    }
-
-    _remove_window_signals(actor) {
-        let win = actor.get_meta_window();
-
-        win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
-        win.disconnect(this._get_marked_window_data(actor, 'sizeChangedId'));
-        win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
-    }
 
     _toggle_mark(actor) {
         if (markedWindowsData.has(actor)) {
