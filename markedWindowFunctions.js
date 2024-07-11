@@ -13,9 +13,12 @@ let markedWindowsData = new Map();
 var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows">
-      <method name="ToggleMarksFocusedWindow">
-      </method>
       <method name="CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass">
+      </method>
+      <method name="GetMarkedWindows">
+        <arg type="s" direction="out" name="win" />
+      </method>
+      <method name="ToggleMarksFocusedWindow">
       </method>
    </interface>
 </node>`;
@@ -111,12 +114,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-    _list_all_marked_windows() {
-        return Array.from(markedWindowsData.keys()).map(actor =>
-            actor.get_meta_window().get_id()
-        );
-    }
-
     _remove_marks_on_all_marked_windows() {
         markedWindowsData.forEach((_, actor) => {
             this._unmark_window(actor);
@@ -188,12 +185,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-    ToggleMarksFocusedWindow() {
-        let win = Display.get_focus_window();
-        let actor = win.get_compositor_private();
-        this._toggle_mark(actor);
-    }
-
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
         let wins = this.windowFunctionsInstance._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
 
@@ -210,5 +201,19 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         });
 
         this._remove_marks_on_all_marked_windows();
+    }
+
+    GetMarkedWindows() {
+        let markedWindows =  Array.from(markedWindowsData.keys()).map(actor =>
+            actor.get_meta_window().get_id()
+        );
+
+        return JSON.stringify(markedWindows);
+    }
+
+    ToggleMarksFocusedWindow() {
+        let win = Display.get_focus_window();
+        let actor = win.get_compositor_private();
+        this._toggle_mark(actor);
     }
 };
