@@ -5,18 +5,10 @@ const WorkspaceManager = global.workspace_manager;
 const WindowManager = global.window_manager;
 const WindowGroup = global.window_group;
 
-// const Me = imports.misc.extensionUtils.getCurrentExtension();
-// const WindowFunctions = Me.imports.windowFunctions;
-
-// const Me = ExtensionUtils.getCurrentExtension();
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { WindowFunctions } = Me.imports.windowFunctions;
 
 let markedWindowsData = new Map();
-
-// distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
-
-// those functions which have output will output as json error
 
 var MR_DBUS_IFACE = `
 <node>
@@ -35,6 +27,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => this._update_borders());
         this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._on_window_minimize(actor));
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => this._on_window_unminimize(actor));
+        this._restackedId = Display.connect('restacked', (display) => this._on_restacked(display));
     }
 
     destroy() {
@@ -43,13 +36,21 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             this._workspaceChangedId = null;
         }
         if (this._minimizeId) {
-            global.window_manager.disconnect(this._minimizeId);
+            WindowManager.disconnect(this._minimizeId);
             this._minimizeId = null;
         }
         if (this._unminimizeId) {
-            global.window_manager.disconnect(this._unminimizeId);
+            WindowManager.disconnect(this._unminimizeId);
             this._unminimizeId = null;
         }
+        if (this._restackedId) {
+            Display.disconnect(this._restackedId);
+            this._restackedId = null;
+        }
+
+        markedWindowsData.forEach((data, actor) => {
+            this._disconnect_window_signals(actor);
+        });
     }
 
     _on_window_minimize(actor) {
@@ -62,6 +63,46 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         if (markedWindowsData.has(actor)) {
             this._add_border(actor);
         }
+    }
+
+    _on_window_size_changed(win) {
+        let actor = win.get_compositor_private();
+        if (markedWindowsData.has(actor)) {
+            this._redraw_border(actor, markedWindowsData.get(actor).get('border'));
+        }
+    }
+
+    _on_window_position_changed(win) {
+        let actor = win.get_compositor_private();
+        if (markedWindowsData.has(actor)) {
+            this._redraw_border(actor, markedWindowsData.get(actor).get('border'));
+        }
+    }
+
+    _on_restacked(display) {
+        markedWindowsData.forEach((data, actor) => {
+            this._restack_window(display, actor, data.get('border'));
+        });
+    }
+
+    _connect_window_signals(actor) {
+        let win = actor.get_meta_window();
+        let sizeChangedId = win.connect('size-changed', () => this._on_window_size_changed(win));
+        let positionChangedId = win.connect('position-changed', () => this._on_window_position_changed(win));
+        let unmanagedId = win.connect('unmanaging', () => {
+            this._unmark_window(actor);
+        });
+
+        this._set_marked_window_data(actor, 'sizeChangedId', sizeChangedId);
+        this._set_marked_window_data(actor, 'positionChangedId', positionChangedId);
+        this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
+    }
+
+    _disconnect_window_signals(actor) {
+        let win = actor.get_meta_window();
+        win.disconnect(this._get_marked_window_data(actor, 'sizeChangedId'));
+        win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
+        win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
     }
 
     _set_marked_window_data(actor, key, value) {
@@ -111,41 +152,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         wg.set_child_above_sibling(border, actor);
     }
 
-    _connect_signals(actor, border) {
-        let win = actor.get_meta_window();
-
-        let sizeChangedId = win.connect('size-changed', () => {
-            this._redraw_border(actor, border);
-        });
-
-        let positionChangedId = win.connect('position-changed', () => {
-            this._redraw_border(actor, border);
-        });
-
-        let restackHandlerID = Display.connect('restacked', (display) => {
-            this._restack_window(display, actor, border);
-        });
-
-        let unmanagedId = win.connect('unmanaging', () => {
-            this._unmark_window(actor);
-        });
-
-        this._set_marked_window_data(actor, 'sizeChangedId', sizeChangedId);
-        this._set_marked_window_data(actor, 'positionChangedId', positionChangedId);
-        this._set_marked_window_data(actor, 'restackHandlerID', restackHandlerID);
-        this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
-    }
-
-    _disconnect_signals(actor) {
-        let win = actor.get_meta_window();
-        log(`Disconnecting signals for window ID: ${win.get_id()}`);
-
-        win.disconnect(this._get_marked_window_data(actor, 'sizeChangedId'));
-        win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
-        win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
-        Display.disconnect(this._get_marked_window_data(actor, 'restackHandlerID'));
-    }
-
     _add_border(actor) {
         let actor_parent = actor.get_parent();
 
@@ -158,7 +164,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         this._set_marked_window_data(actor, 'border', border);
 
-        this._connect_signals(actor, border);
+        this._connect_window_signals(actor);
     }
 
     _remove_border(actor) {
@@ -166,7 +172,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
 
-        this._disconnect_signals(actor);
+        this._disconnect_window_signals(actor);
 
         this._remove_marked_window_data(actor, 'border');
     }
@@ -204,26 +210,20 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.ToggleMarksFocusedWindow | jq .
-
-    // Remove Mark From All Marked Windows
     ToggleMarksFocusedWindow() {
         let win = Display.get_focus_window();
         let actor = win.get_compositor_private();
         this._toggle_mark(actor);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq .
-
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
         let wins = this.windowFunctionsInstance._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
 
-        wins.forEach(function (w) {
+        wins.forEach((w) => {
             if (w.get_wm_class_instance() === 'file_progress') {
                 return; // Skip this window if it's a 'file_progress' instance
             }
 
-            // Check if the window is marked
             let actor = w.get_compositor_private();
             if (markedWindowsData.has(actor)) {
                 return; // Skip this window if it's marked
@@ -231,7 +231,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             w.delete(0);
         });
 
-        // Unmark all windows after closing others
         this._remove_marks_on_all_marked_windows();
     }
-}
+};
