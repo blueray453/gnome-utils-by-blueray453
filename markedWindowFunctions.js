@@ -30,7 +30,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => this._update_borders());
         this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._remove_border(actor));
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => this._add_border(actor));
-        this._sizeChangedId = WindowManager.connect('size-changed', (wm, actor) => this._redraw_border(actor, markedWindowsData.get(actor).get('border')));
+        this._sizeChangedId = WindowManager.connect('size-changed', (wm, actor) => this._redraw_border(actor));
         this._restackedId = Display.connect('restacked', (display) => {
             markedWindowsData.forEach((data, actor) => {
                 let wg = Meta.get_window_group_for_display(display);
@@ -72,7 +72,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let positionChangedId = win.connect('position-changed', () => {
             let actor = win.get_compositor_private();
             if (markedWindowsData.has(actor)) {
-                this._redraw_border(actor, markedWindowsData.get(actor).get('border'));
+                this._redraw_border(actor);
             }
         });
 
@@ -113,11 +113,11 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-    _redraw_border(actor, border) {
-        let win = actor.get_meta_window();
-        let rect = win.get_frame_rect();
-        border.set_position(rect.x, rect.y);
-        border.set_size(rect.width, rect.height);
+    _redraw_border(actor) {
+        if (markedWindowsData.get(actor).get('border')){
+            this._remove_border(actor);
+        }
+        this._add_border(actor);
     }
 
     _add_border(actor) {
@@ -128,7 +128,10 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         });
 
         actor_parent.add_child(border);
-        this._redraw_border(actor, border);
+        let win = actor.get_meta_window();
+        let rect = win.get_frame_rect();
+        border.set_position(rect.x, rect.y);
+        border.set_size(rect.width, rect.height);
 
         this._set_marked_window_data(actor, 'border', border);
 
