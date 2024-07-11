@@ -109,7 +109,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let positionChangedId = win.connect('position-changed', () => {
             let actor = win.get_compositor_private();
             this._add_border(actor);
-
         });
 
         let sizeChangedId = win.connect('size-changed', () => {
@@ -122,9 +121,14 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             this._unmark_window(actor);
         });
 
+        let workspaceChangedId = win.connect('workspace-changed', () => {
+            this._add_border(actor);
+        });
+
         this._set_marked_window_data(actor, 'positionChangedId', positionChangedId);
         this._set_marked_window_data(actor, 'sizeChangedId', sizeChangedId);
         this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
+        this._set_marked_window_data(actor, 'workspaceChangedId', workspaceChangedId);
     }
 
     _remove_window_signals(actor) {
@@ -133,6 +137,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
         win.disconnect(this._get_marked_window_data(actor, 'sizeChangedId'));
         win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
+        win.disconnect(this._get_marked_window_data(actor, 'workspaceChangedId'));
     }
 
     // Window Borders
