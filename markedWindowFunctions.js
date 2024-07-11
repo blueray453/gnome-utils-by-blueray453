@@ -27,7 +27,17 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     constructor() {
         this.windowFunctionsInstance = new WindowFunctions();
-        this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => this._update_borders());
+        this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => {
+            let currentWorkspace = WorkspaceManager.get_active_workspace();
+            markedWindowsData.forEach((_, actor) => {
+                let win = actor.get_meta_window();
+                if (win.get_workspace() !== currentWorkspace) {
+                    this._remove_border(actor);
+                } else {
+                    this._add_border(actor);
+                }
+            });
+        });
         this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._remove_border(actor));
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
             if (markedWindowsData.has(actor)) {
@@ -84,19 +94,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-    _update_borders() {
-        let currentWorkspace = WorkspaceManager.get_active_workspace();
-        markedWindowsData.forEach((_, actor) => {
-            let win = actor.get_meta_window();
-            if (win.get_workspace() !== currentWorkspace) {
-                log(`_update_borders _remove_border`);
-                this._remove_border(actor);
-            } else {
-                log(`_update_borders _add_border`);
-                this._add_border(actor);
-            }
-        });
-    }
+
 
     _mark_window(actor) {
         this._add_border(actor);
@@ -104,24 +102,22 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _add_border(actor) {
+        let actor_parent = actor.get_parent();
         let win = actor.get_meta_window();
-
         let rect = win.get_frame_rect();
 
         let border;
 
         if (this._get_marked_window_data(actor, 'border')) {
             border = this._get_marked_window_data(actor, 'border');
-            log(`_add_border: border exists`);
         } else {
-            log(`_add_border: create new border`);
             border = new St.Bin({
                 style_class: 'border'
             });
-            let actor_parent = actor.get_parent();
-            actor_parent.add_child(border);
             this._set_marked_window_data(actor, 'border', border);
         }
+
+        actor_parent.add_child(border);
 
         border.set_position(rect.x, rect.y);
         border.set_size(rect.width, rect.height);
@@ -190,12 +186,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
             actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
             this._remove_marked_window_data(actor, 'border');
-            // log(`This will not do anything as border is undefined`);
         }
-
-        // log(`border after _remove_border: ${this._get_marked_window_data(actor, 'border')}`);
-
-
     }
 
     _remove_window_signals(actor) {
