@@ -96,6 +96,18 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._add_border(actor);
     }
 
+    _remove_border(actor) {
+        let actor_parent = actor.get_parent();
+
+        actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
+        this._remove_marked_window_data(actor, 'border');
+        log(`border after _remove_border: ${this._get_marked_window_data(actor, 'border')}`);
+
+        if (this._get_marked_window_data(actor, 'border')) {
+            log(`This will not do anything as border is undefined`);
+        }
+    }
+
     _add_border(actor) {
         let win = actor.get_meta_window();
         let actor_parent = actor.get_parent();
@@ -130,14 +142,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         this._set_marked_window_data(actor, 'positionChangedId', positionChangedId);
         this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
-    }
-
-    _remove_border(actor) {
-        let actor_parent = actor.get_parent();
-
-        actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
-        this._remove_marked_window_data(actor, 'border');
-        log(`border after _remove_border: ${this._get_marked_window_data(actor, 'border')}`);
     }
 
     _remove_window_signals(actor) {
