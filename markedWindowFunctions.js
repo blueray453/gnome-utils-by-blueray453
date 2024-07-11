@@ -27,6 +27,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => this._update_borders());
         this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._on_window_minimize(actor));
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => this._on_window_unminimize(actor));
+        this._sizeChangedId = WindowManager.connect('size-changed', (wm, actor) => this._on_window_size_changed(actor));
         this._restackedId = Display.connect('restacked', (display) => this._on_restacked(display));
     }
 
@@ -42,6 +43,10 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         if (this._unminimizeId) {
             WindowManager.disconnect(this._unminimizeId);
             this._unminimizeId = null;
+        }
+        if (this._sizeChangedId) {
+            WindowManager.disconnect(this._sizeChangedId);
+            this._sizeChangedId = null;
         }
         if (this._restackedId) {
             Display.disconnect(this._restackedId);
@@ -87,20 +92,17 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _connect_window_signals(actor) {
         let win = actor.get_meta_window();
-        let sizeChangedId = win.connect('size-changed', () => this._on_window_size_changed(win));
         let positionChangedId = win.connect('position-changed', () => this._on_window_position_changed(win));
         let unmanagedId = win.connect('unmanaging', () => {
             this._unmark_window(actor);
         });
 
-        this._set_marked_window_data(actor, 'sizeChangedId', sizeChangedId);
         this._set_marked_window_data(actor, 'positionChangedId', positionChangedId);
         this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
     }
 
     _disconnect_window_signals(actor) {
         let win = actor.get_meta_window();
-        win.disconnect(this._get_marked_window_data(actor, 'sizeChangedId'));
         win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
         win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
     }
