@@ -10,10 +10,10 @@ var MR_DBUS_IFACE = `
       <method name="GetCurrentWorkspace">
          <arg type="s" direction="out" name="workspaces" />
       </method>
-      <method name="MoveFocusedWindowToWorkspace">
+      <method name="GoToGivenWorkspace">
          <arg type="i" direction="in" name="workspace_num" />
       </method>
-      <method name="MoveToWorkspace">
+      <method name="MoveFocusedWindowToGivenWorkspace">
          <arg type="i" direction="in" name="workspace_num" />
       </method>
       <method name="MoveWindowToWorkspace">
@@ -24,7 +24,7 @@ var MR_DBUS_IFACE = `
          <arg type="u" direction="in" name="winid" />
          <arg type="i" direction="in" name="workspace_num" />
       </method>
-      <method name="getWorkspaceIndexByName">
+      <method name="GetWorkspaceIndexByName">
          <arg type="s" direction="in" name="workspace_name" />
          <arg type="s" direction="out" name="workspace_num" />
       </method>
@@ -37,29 +37,33 @@ var MR_DBUS_IFACE = `
 var WorkspaceFunctions = class WorkspaceFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetCurrentWorkspace
+
     GetCurrentWorkspace() {
         return JSON.stringify(WorkspaceManager.get_active_workspace().index());
 
     }
 
-    MoveFocusedWindowToWorkspace(workspaceNum) {
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
-        if (win) {
-            // change_workspace(workspace)
-            win.change_workspace_by_index(workspaceNum, false);
-        } else {
-            throw new Error('Not found');
-        }
-    }
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GoToGivenWorkspace int32:4
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveToWorkspace int32:4
-    MoveToWorkspace(workspaceNum) {
+    GoToGivenWorkspace(workspaceNum) {
         let current_workspace = WorkspaceManager.get_active_workspace();
         let given_workspace = WorkspaceManager.get_workspace_by_index(workspaceNum);
 
         // Check if the given workspace exists and is different from the current workspace
         if (given_workspace.index() !== current_workspace.index()) {
             given_workspace.activate(global.get_current_time());
+        }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveFocusedWindowToGivenWorkspace int32:4
+
+    MoveFocusedWindowToGivenWorkspace(workspaceNum) {
+        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        if (win) {
+            // change_workspace(workspace)
+            win.change_workspace_by_index(workspaceNum, false);
+        } else {
+            throw new Error('Not found');
         }
     }
 
@@ -86,9 +90,9 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         // win.activate_with_workspace(global.get_current_time(), metaWorkspace);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.getWorkspaceIndexByName string:"Codium"
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetWorkspaceIndexByName string:"Codium"
 
-    getWorkspaceIndexByName(workspaceName) {
+    GetWorkspaceIndexByName(workspaceName) {
 
         // Get the total number of workspaces
         let number_of_workspaces = global.workspace_manager.n_workspaces;
@@ -163,53 +167,3 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         });
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveToWorkspace uint32:4121447925 int32:2
-
-    // // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetWorkspaces
-
-    // MoveWindowToWorkspace() {
-    //
-    // }
-
-
-
-
-
-
-
-
-
-// Meta.prefs_change_workspace_name
-// Meta.prefs_get_dynamic_workspaces
-// Meta.prefs_get_num_workspaces
-// Meta.prefs_get_workspace_name
-// Meta.prefs_get_workspaces_only_on_primary
-// Meta.prefs_set_num_workspaces
