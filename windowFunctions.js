@@ -545,6 +545,18 @@ var WindowFunctions = class WindowFunctions {
         }
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToCurrentWorkspace uint32:44129093
+
+    MoveWindowToCurrentWorkspace(win_id) {
+        let win = this._get_normal_window_given_window_id(win_id);
+
+        if (win !== null) {
+            let current_workspace = WorkspaceManager.get_active_workspace();
+            win.change_workspace(current_workspace);
+            current_workspace.activate_with_focus(win, 0);
+        }
+    }
+
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToCurrentWorkspaceGivenWMClass string:"firefox"
 
     // "Alacritty" "firefox" "Fsearch" "Nemo"
@@ -575,18 +587,6 @@ var WindowFunctions = class WindowFunctions {
 
     MoveWindowsSideBySide(win_id_1, win_id_2) {
         this._move_windows_side_by_side(win_id_1, win_id_2);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToCurrentWorkspace uint32:44129093
-
-    MoveWindowToCurrentWorkspace(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-
-        if (win !== null) {
-            let current_workspace = WorkspaceManager.get_active_workspace();
-            win.change_workspace(current_workspace);
-            current_workspace.activate_with_focus(win, 0);
-        }
     }
 
     Raise(win_id) {
