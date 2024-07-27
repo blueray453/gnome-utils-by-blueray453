@@ -27,10 +27,6 @@ var MR_DBUS_IFACE = `
          <arg type="u" direction="in" name="winid" />
          <arg type="i" direction="in" name="workspace_num" />
       </method>
-      <method name="MoveWindowToWorkspaceAndFocus">
-         <arg type="u" direction="in" name="winid" />
-         <arg type="i" direction="in" name="workspace_num" />
-      </method>
    </interface>
 </node>`;
 
@@ -52,8 +48,6 @@ var WorkspaceFunctions = class WorkspaceFunctions {
 
         // Iterate through each workspace
         for (let i = 0; i < number_of_workspaces; i++) {
-            // Get the workspace
-            const workspace = WorkspaceManager.get_workspace_by_index(i);
 
             // Check if the workspace name matches
             if (Meta.prefs_get_workspace_name(i) == workspaceName) {
@@ -68,12 +62,6 @@ var WorkspaceFunctions = class WorkspaceFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetWorkspaces | jq -r '.workspace_names[].name'
 
     GetWorkspaces() {
-        // let w = global.workspace_manager;
-        // return JSON.stringify({
-        //     workspace_number: w.get_n_workspaces(),
-        //     workspace_index: w.get_active_workspace_index(),
-        //     windows: global.screen.get_active_workspace().list_windows(),
-        // });
 
         let workspaces = []
         // let current_workspace = Meta.prefs_get_workspace_name(WorkspaceManager.get_active_workspace().index());
@@ -87,8 +75,6 @@ var WorkspaceFunctions = class WorkspaceFunctions {
             // let temp = ;
 
             workspaces.push({ index: wks, name: Meta.prefs_get_workspace_name(wks) });
-
-
 
             // let workspace_name = wks+'_'+Meta.prefs_get_workspace_name(wks);
             let workspace_name = Meta.prefs_get_workspace_name(wks);
@@ -154,16 +140,5 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         } else {
             throw new Error('Not found');
         }
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveWindowToWorkspaceAndFocus uint32:1903985885 int32:4
-
-    MoveWindowToWorkspaceAndFocus(winid, workspace) {
-        let win = global.get_window_actors().find(w => w.meta_window.get_id() == winid).meta_window;
-        let metaWorkspace = global.workspace_manager.get_workspace_by_index(workspace);
-        win.change_workspace_by_index(workspace, false);
-        // Here 0 instead of global.get_current_time() will also work
-        metaWorkspace.activate_with_focus(win, global.get_current_time());
-        // win.activate_with_workspace(global.get_current_time(), metaWorkspace);
     }
 }
