@@ -553,7 +553,7 @@ var WindowFunctions = class WindowFunctions {
         if (win !== null) {
             let current_workspace = WorkspaceManager.get_active_workspace();
             win.change_workspace(current_workspace);
-            current_workspace.activate_with_focus(win, 0);
+            // current_workspace.activate_with_focus(win, 0);
         }
     }
 
