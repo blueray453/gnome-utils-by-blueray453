@@ -3,7 +3,6 @@ const { Meta, St } = imports.gi;
 const Display = global.get_display();
 const WorkspaceManager = global.workspace_manager;
 const WindowManager = global.window_manager;
-const WindowGroup = global.window_group;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { WindowFunctions } = Me.imports.windowFunctions;
