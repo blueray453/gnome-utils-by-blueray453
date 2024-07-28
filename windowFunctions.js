@@ -42,6 +42,7 @@ var MR_DBUS_IFACE = `
       </method>
       <method name="GetWindowDetailsGivenWindowID">
          <arg type="u" direction="in" name="win_id" />
+         <arg type="s" direction="out" name="win" />
       </method>
       <method name="GetWindowsCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
