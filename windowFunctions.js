@@ -40,6 +40,9 @@ var MR_DBUS_IFACE = `
       <method name="GetWindows">
          <arg type="s" direction="out" name="win" />
       </method>
+      <method name="GetWindowDetailsGivenWindowID">
+         <arg type="u" direction="in" name="win_id" />
+      </method>
       <method name="GetWindowsCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
       </method>
@@ -399,6 +402,14 @@ var WindowFunctions = class WindowFunctions {
             win.maximize(3);
             win_workspace.activate_with_focus(win, 0);
         }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowDetailsGivenWindowID uint32:44129093
+
+    GetWindowDetailsGivenWindowID(win_id) {
+        let win = this._get_normal_window_given_window_id(win_id);
+
+        return JSON.stringify(this._get_properties_brief_given_meta_window(win));
     }
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq .
