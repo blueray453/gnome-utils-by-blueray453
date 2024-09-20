@@ -23,6 +23,9 @@ var MR_DBUS_IFACE = `
       <method name="Activate">
          <arg type="u" direction="in" name="win_id" />
       </method>
+      <method name="ActivateWindowsGivenWMClass">
+        <arg type="s" direction="in" name="wm_class" />
+      </method>
       <method name="AlignNemoWindows">
       </method>
       <method name="AlignWindowsOfFocusedWindowWMClass">
@@ -325,6 +328,22 @@ var WindowFunctions = class WindowFunctions {
             win_workspace.activate_with_focus(win, 0);
         }
     }
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ActivateWindowsGivenWMClass string:"firefox"
+
+    ActivateWindowsGivenWMClass(wm_class) {
+        let wins = this._get_normal_windows_given_wm_class(wm_class);
+
+
+        wins.forEach(win => {
+            let win_workspace = win.get_workspace();
+            // Here global.get_current_time() instead of 0 will also work
+            win_workspace.activate_with_focus(win, 0);
+        });
+    }
+
+
+
+
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNemoWindows | jq .
 
