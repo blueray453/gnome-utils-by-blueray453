@@ -50,6 +50,9 @@ var MR_DBUS_IFACE = `
       <method name="GetWindowsCurrentWorkspace">
          <arg type="s" direction="out" name="win" />
       </method>
+      <method name="GetWindowsCurrentWorkspaceCurrentMonitor">
+         <arg type="s" direction="out" name="win" />
+      </method>
       <method name="GetWindowsCurrentWorkspaceOfFocusedWindowWMClass">
          <arg type="s" direction="out" name="win" />
       </method>
@@ -196,6 +199,10 @@ var WindowFunctions = class WindowFunctions {
         return this._get_normal_windows_current_workspace_given_wm_class(win_wm_class);
     }
 
+    _get_normal_windows_current_workspace_current_monitor_given_wm_class = function (wm_class) {
+        return this._get_normal_windows_current_workspace_current_monitor().filter(w => w.get_wm_class() == wm_class);
+    }
+
     _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
         return this._get_normal_windows_current_workspace().filter(w => w.get_wm_class() == wm_class);
     }
@@ -210,6 +217,11 @@ var WindowFunctions = class WindowFunctions {
         return this._get_normal_windows().filter(w => w.get_wm_class() == wm_class);
     }
 
+    _get_other_normal_windows_current_workspace_current_monitor_of_focused_window_wm_class = function () {
+        let win = Display.get_focus_window();
+        return this._get_normal_windows_current_workspace_current_monitor_given_wm_class(win.get_wm_class()).filter(w => win != w);
+
+    }
     _get_other_normal_windows_current_workspace_of_focused_window_wm_class = function () {
         let win = Display.get_focus_window();
         return this._get_normal_windows_current_workspace_given_wm_class(win.get_wm_class()).filter(w => win != w);
@@ -490,6 +502,17 @@ var WindowFunctions = class WindowFunctions {
         // } catch (error) {
         //     return JSON.stringify({ error: error });
         // }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceCurrentMonitor | jq .
+
+    GetWindowsCurrentWorkspaceCurrentMonitor() {
+        let wins = this._get_normal_windows_current_workspace_current_monitor();
+
+        // Map each window to its properties
+        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
+
+        return JSON.stringify(winPropertiesArr);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq .
