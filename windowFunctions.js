@@ -132,6 +132,7 @@ var WindowFunctions = class WindowFunctions {
             wm_class_instance: win.get_wm_class_instance(),
             workspace_id: workspace_id,
             workspace_name: Meta.prefs_get_workspace_name(workspace_id),
+            monitor: win.get_monitor(),
             icon: icon
         };
     }
@@ -147,6 +148,27 @@ var WindowFunctions = class WindowFunctions {
        find returns first element of the array that satisfies the condition specified in the callback function.
        filter returns all the elements of the array that satisfy the condition specified in the callback function.
     */
+    _get_monitor_current = function () {
+        // can also sort by get_user_time()
+        let monitors = Display.get_current_monitor();
+        return monitors;
+    }
+
+    _get_monitors = function () {
+        // can also sort by get_user_time()
+        let monitors = Display.get_n_monitors();
+        return monitors;
+    }
+    // Meta.Display
+    // get_current_monitor()
+    // get_n_monitors()
+    // Meta.Workspace
+    // get_work_area_all_monitors()
+    // get_work_area_for_monitor(which_monitor)
+    // Meta.Window
+    // get_work_area_all_monitors()
+    // get_work_area_for_monitor(which_monitor)
+    // get_work_area_current_monitor()
 
     _get_normal_windows = function () {
         // can also sort by get_user_time()
