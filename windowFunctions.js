@@ -148,17 +148,6 @@ var WindowFunctions = class WindowFunctions {
        find returns first element of the array that satisfies the condition specified in the callback function.
        filter returns all the elements of the array that satisfy the condition specified in the callback function.
     */
-    _get_monitor_current = function () {
-        // can also sort by get_user_time()
-        let monitors = Display.get_current_monitor();
-        return monitors;
-    }
-
-    _get_monitors = function () {
-        // can also sort by get_user_time()
-        let monitors = Display.get_n_monitors();
-        return monitors;
-    }
 
     // Meta.Display
     // get_current_monitor()
@@ -180,7 +169,23 @@ var WindowFunctions = class WindowFunctions {
     _get_normal_windows_current_workspace = function () {
         let current_workspace = WorkspaceManager.get_active_workspace();
         // let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace);
-        let wins = this._get_normal_windows().filter(w => w.get_workspace() == current_workspace);
+        let wins = this._get_normal_windows().filter(w => w.get_workspace() === current_workspace);
+        return wins;
+    }
+
+    _get_normal_windows_current_workspace_current_monitor = function () {
+        // Get the active workspace
+        let current_workspace = WorkspaceManager.get_active_workspace();
+
+        // Get the current monitor (in focus)
+        let current_monitor = Display.get_current_monitor();
+
+        // Filter windows based on both workspace and monitor
+        let wins = this._get_normal_windows().filter(w =>
+            w.get_workspace() === current_workspace &&
+            w.get_monitor() === current_monitor
+        );
+
         return wins;
     }
 
@@ -230,7 +235,7 @@ var WindowFunctions = class WindowFunctions {
         }
 
         let current_workspace = WorkspaceManager.get_active_workspace();
-        // let monitor = this._get_monitor_current();
+        // let monitor = this._get_current_monitor();
         // let work_area = current_workspace.get_work_area_for_monitor(monitor);
         let work_area = current_workspace.get_work_area_all_monitors();
         // let work_area = windows_array[0].get_work_area_current_monitor();
@@ -364,10 +369,6 @@ var WindowFunctions = class WindowFunctions {
             win_workspace.activate_with_focus(win, 0);
         });
     }
-
-
-
-
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNemoWindows | jq .
 
