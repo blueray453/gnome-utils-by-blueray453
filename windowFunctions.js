@@ -7,6 +7,9 @@ const Display = global.get_display();
 // const WorkspaceManager = global.get_workspace_manager();
 const WorkspaceManager = Display.get_workspace_manager();
 
+// Add this near the top of the file with other imports
+const TilingWindowManager = imports.misc.extensionUtils.getCurrentExtension().imports.tilingWindowManager;
+
 // privamive global variables can not be passed by reference that is why using objects. Array also work.
 let align_windows_state_nemo = { value: 0 };
 let align_windows_state_all_windows = { value: 0 };
@@ -103,6 +106,12 @@ var MR_DBUS_IFACE = `
          <arg type="u" direction="in" name="win_id" />
          <arg type="i" direction="in" name="width" />
          <arg type="i" direction="in" name="height" />
+      </method>
+      <method name="TileWindowLeft">
+         <arg type="u" direction="in" name="win_id" />
+      </method>
+      <method name="TileWindowRight">
+         <arg type="u" direction="in" name="win_id" />
       </method>
       <method name="Unmaximize">
          <arg type="u" direction="in" name="win_id" />
@@ -684,6 +693,16 @@ var WindowFunctions = class WindowFunctions {
             this._move_resize_window(win, win.get_x(), win.get_y(), width, height);
             win.activate(0);
         }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.TileWindowLeft uint32:44129093
+    TileWindowLeft(win_id) {
+        TilingWindowManager.TilingManager.tileWindowLeft(win_id, this);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.TileWindowRight uint32:44129093
+    TileWindowRight(win_id) {
+        TilingWindowManager.TilingManager.tileWindowRight(win_id, this);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Resize uint32:44129093 int32:800 int32:600
