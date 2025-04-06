@@ -6,7 +6,10 @@ var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsClipboard">
       <method name="SetClipboard">
-         <arg type="s" direction="in" name="wm_class" />
+         <arg type="s" direction="in" name="input" />
+      </method>
+      <method name="GetClipboard">
+         <arg type="s" direction="out" name="output" />
       </method>
    </interface>
 </node>`;
@@ -46,6 +49,22 @@ var clipboardFunctions = class clipboardFunctions {
         // }
         // return selection;
     }
+
+   // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsClipboard org.gnome.Shell.Extensions.GnomeUtilsClipboard.GetClipboard
+
+   GetClipboard() {
+      St.Clipboard.get_default().get_text(St.ClipboardType.CLIPBOARD, (_, text) => {
+         log(`Inside GetClipboard`);
+         if (text) {
+            text = text.trim();
+            log(`Inside Text`);
+            return text;
+         } else {
+            log(`No Text`);
+            return "";
+         }
+      });
+   }
 }
 
 
