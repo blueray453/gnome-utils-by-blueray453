@@ -257,12 +257,30 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let actor = win.get_compositor_private();
         this._toggle_mark(actor);
 
-        // log(`markedWindowsData : ${[...markedWindowsData.entries()]}`);
-        // log(`markedWindowsData : ${JSON.stringify([...markedWindowsData.entries()])}`);
-        // // [[{},{}],[{},{}]]
-        // log(`markedWindowsData : ${[...markedWindowsData.keys()]}`);
-        // log(`markedWindowsData : ${JSON.stringify([...markedWindowsData.keys()])}`);
-        // log(`markedWindowsData : ${[...markedWindowsData.values()]}`);
-        // log(`markedWindowsData : ${JSON.stringify([...markedWindowsData.values()])}`);
+        // markedWindowsData.forEach((innerMap, actor) => {
+        //     const win = actor.get_meta_window();                // nicer key info
+        //     log(`Window ID: ${win.get_id()}`);
+
+        //     if (innerMap instanceof Map) {
+        //         innerMap.forEach((v, k) => {
+        //             log(`   ├─ ${k} → ${JSON.stringify(v)}`);
+        //         });
+        //     } else {
+        //         log(`   └─ ${JSON.stringify(innerMap, null, 2)}`);
+        //     }
+        // });
+
+
+        markedWindowsData.forEach((innerMap, actor) => {
+            const win = actor.get_meta_window();          // human‑readable window
+            const windowId = win.get_id();
+
+            let markedValue = null;
+            if (innerMap instanceof Map) {
+                markedValue = innerMap.get('markedKey');  // undefined if not present
+            }
+
+            log(`Window ID: ${windowId} → markedKey = ${JSON.stringify(markedValue)}`);
+        });
     }
 };
