@@ -31,27 +31,30 @@ const workspaceFunctions = Me.imports.workspaceFunctions;
 
 class Extension {
 
+    _registerDbusInterface(instanceName, module, className, path) {
+        this[instanceName] = Gio.DBusExportedObject.wrapJSObject(
+            module.MR_DBUS_IFACE,
+            new module[className]()
+        );
+        this[instanceName].export(Gio.DBus.session, path);
+    }
+
+    _unregisterDbusInterface(instanceName) {
+        this[instanceName].flush();
+        this[instanceName].unexport();
+        delete this[instanceName];
+    }
+
     enable() {
 
         log(`enabling ${Me.metadata.name}`);
 
-        this._dbus_apps = Gio.DBusExportedObject.wrapJSObject(appFunctions.MR_DBUS_IFACE, new appFunctions.AppFunctions());
-        this._dbus_apps.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsApps');
-
-        this._dbus_windows = Gio.DBusExportedObject.wrapJSObject(windowFunctions.MR_DBUS_IFACE, new windowFunctions.WindowFunctions());
-        this._dbus_windows.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
-
-        this._dbus_marked_windows = Gio.DBusExportedObject.wrapJSObject(markedWindowFunctions.MR_DBUS_IFACE, new markedWindowFunctions.MarkedWindowFunctions());
-        this._dbus_marked_windows.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows');
-
-        this._dbus_pinned_windows = Gio.DBusExportedObject.wrapJSObject(pinnedWindowFunctions.MR_DBUS_IFACE, new pinnedWindowFunctions.PinnedWindowFunctions());
-        this._dbus_pinned_windows.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsPinnedWindows');
-
-        this._dbus_workspaces = Gio.DBusExportedObject.wrapJSObject(workspaceFunctions.MR_DBUS_IFACE, new workspaceFunctions.WorkspaceFunctions());
-        this._dbus_workspaces.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces');
-
-        this._dbus_clipboard = Gio.DBusExportedObject.wrapJSObject(clipboardFunctions.MR_DBUS_IFACE, new clipboardFunctions.clipboardFunctions());
-        this._dbus_clipboard.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsClipboard');
+        this._registerDbusInterface('_dbus_apps', appFunctions, 'AppFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsApps');
+        this._registerDbusInterface('_dbus_windows', windowFunctions, 'WindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
+        this._registerDbusInterface('_dbus_marked_windows', markedWindowFunctions, 'MarkedWindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows');
+        this._registerDbusInterface('_dbus_pinned_windows', pinnedWindowFunctions, 'PinnedWindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsPinnedWindows');
+        this._registerDbusInterface('_dbus_workspaces', workspaceFunctions, 'WorkspaceFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces');
+        this._registerDbusInterface('_dbus_clipboard', clipboardFunctions, 'clipboardFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsClipboard');
 
         // Register keybindings
         // this._keyBinding = global.display.connect('key-press-event', this._onKeyPress.bind(this));
@@ -60,29 +63,12 @@ class Extension {
     disable() {
         log(`disabling ${Me.metadata.name}`);
 
-        this._dbus_apps.flush();
-        this._dbus_apps.unexport();
-        delete this._dbus_apps;
-
-        this._dbus_windows.flush();
-        this._dbus_windows.unexport();
-        delete this._dbus_windows;
-
-        this._dbus_marked_windows.flush();
-        this._dbus_marked_windows.unexport();
-        delete this._dbus_marked_windows;
-
-        this._dbus_pinned_windows.flush();
-        this._dbus_pinned_windows.unexport();
-        delete this._dbus_pinned_windows;
-
-        this._dbus_workspaces.flush();
-        this._dbus_workspaces.unexport();
-        delete this._dbus_workspaces;
-
-        this._dbus_clipboard.flush();
-        this._dbus_clipboard.unexport();
-        delete this._dbus_clipboard;
+        this._unregisterDbusInterface('_dbus_apps');
+        this._unregisterDbusInterface('_dbus_windows');
+        this._unregisterDbusInterface('_dbus_marked_windows');
+        this._unregisterDbusInterface('_dbus_pinned_windows');
+        this._unregisterDbusInterface('_dbus_workspaces');
+        this._unregisterDbusInterface('_dbus_clipboard');
 
         // Disconnect the keybinding
         // global.display.disconnect(this._keyBinding);
