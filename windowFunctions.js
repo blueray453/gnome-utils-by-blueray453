@@ -11,8 +11,6 @@ const WorkspaceManager = Display.get_workspace_manager();
 let align_windows_state_nemo = { value: 0 };
 let align_windows_state_all_windows = { value: 0 };
 
-let markedWindowsData = {};
-
 // distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
 
 // those functions which have output will output as json error
