@@ -7,14 +7,12 @@ const WindowManager = global.window_manager;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { WindowFunctions } = Me.imports.windowFunctions;
 
-let markedWindowsData = new Map();
+let pinnedWindowsData = new Map();
 
 var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows">
-      <method name="CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass">
-      </method>
-      <method name="GetMarkedWindows">
+      <method name="GetPinnedWindows">
         <arg type="s" direction="out" name="win" />
       </method>
       <method name="ToggleMarksFocusedWindow">
@@ -28,7 +26,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this.windowFunctionsInstance = new WindowFunctions();
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => {
             let currentWorkspace = WorkspaceManager.get_active_workspace();
-            markedWindowsData.forEach((_, actor) => {
+            pinnedWindowsData.forEach((_, actor) => {
                 let win = actor.get_meta_window();
                 if (win.get_workspace() !== currentWorkspace) {
                     this._remove_border(actor);
@@ -41,13 +39,13 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._remove_border(actor));
 
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
-            if (markedWindowsData.has(actor)) {
+            if (pinnedWindowsData.has(actor)) {
                 this._add_border(actor);
             }
         });
 
         this._restackedId = Display.connect('restacked', (display) => {
-            markedWindowsData.forEach((data, actor) => {
+            pinnedWindowsData.forEach((data, actor) => {
                 if (data.get('border')) {
                     let wg = Meta.get_window_group_for_display(display);
                     wg.set_child_above_sibling(data.get('border'), actor);
@@ -75,27 +73,27 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-    // markedWindowsData Utility Functions
+    // pinnedWindowsData Utility Functions
 
     _set_marked_window_data(actor, key, value) {
-        if (!markedWindowsData.has(actor)) {
-            markedWindowsData.set(actor, new Map());
+        if (!pinnedWindowsData.has(actor)) {
+            pinnedWindowsData.set(actor, new Map());
         }
-        markedWindowsData.get(actor).set(key, value);
+        pinnedWindowsData.get(actor).set(key, value);
     }
 
     _get_marked_window_data(actor, key) {
-        if (markedWindowsData.has(actor)) {
-            return markedWindowsData.get(actor).get(key);
+        if (pinnedWindowsData.has(actor)) {
+            return pinnedWindowsData.get(actor).get(key);
         }
         return null;
     }
 
     _remove_marked_window_data(actor, key) {
-        if (markedWindowsData.has(actor)) {
-            markedWindowsData.get(actor).delete(key);
-            if (markedWindowsData.get(actor).size === 0) {
-                markedWindowsData.delete(actor);
+        if (pinnedWindowsData.has(actor)) {
+            pinnedWindowsData.get(actor).delete(key);
+            if (pinnedWindowsData.get(actor).size === 0) {
+                pinnedWindowsData.delete(actor);
             }
         }
     }
@@ -117,7 +115,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         });
 
         let unmanagedId = win.connect('unmanaging', () => {
-            this._unmark_window(actor);
+            this._unpin_window(actor);
         });
 
         let workspaceChangedId = win.connect('workspace-changed', () => {
@@ -175,16 +173,16 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     // Windows Mark
 
     /*
-    By marking window, i mean markedWindowsData.has(actor). it normally has signals attached to it.
+    By marking window, i mean pinnedWindowsData.has(actor). it normally has signals attached to it.
     We generally only remove the signals when we unmark.
 
     However, Whether it has border or not is irrelevant.
     A marked window may not have border attached to it.
 
-    The only one way to unmark a marked window is _unmark_window
+    The only one way to unmark a marked window is _unpin_window
     */
 
-    /* Please note that _unmark_window and _remove_border is not same.
+    /* Please note that _unpin_window and _remove_border is not same.
 
     This is important because when minimizing window, we _remove_border
     but we have to get the border back when we unminimize.
@@ -199,50 +197,30 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._add_window_signals(actor);
     }
 
-    _unmark_window(actor) {
+    _unpin_window(actor) {
         this._remove_border(actor);
         this._remove_window_signals(actor);
-        markedWindowsData.delete(actor);
+        pinnedWindowsData.delete(actor);
     }
 
-    _unmark_windows() {
-        markedWindowsData.forEach((_, actor) => {
-            this._unmark_window(actor);
+    _unpin_windows() {
+        pinnedWindowsData.forEach((_, actor) => {
+            this._unpin_window(actor);
         });
     }
 
-    _toggle_mark(actor) {
-        if (markedWindowsData.has(actor)) {
-            this._unmark_window(actor);
+    _toggle_pin(actor) {
+        if (pinnedWindowsData.has(actor)) {
+            this._unpin_window(actor);
         } else {
             this._mark_window(actor);
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.GetPinnedWindows
 
-    CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-        let wins = this.windowFunctionsInstance._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
-
-        wins.forEach((w) => {
-            if (w.get_wm_class_instance() === 'file_progress') {
-                return; // Skip this window if it's a 'file_progress' instance
-            }
-
-            let actor = w.get_compositor_private();
-            if (markedWindowsData.has(actor)) {
-                return; // Skip this window if it's marked
-            }
-            w.delete(0);
-        });
-
-        this._unmark_windows();
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.GetMarkedWindows
-
-    GetMarkedWindows() {
-        let markedWindows =  Array.from(markedWindowsData.keys()).map(actor =>
+    GetPinnedWindows() {
+        let markedWindows =  Array.from(pinnedWindowsData.keys()).map(actor =>
             actor.get_meta_window().get_id()
         );
 
@@ -254,14 +232,14 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     ToggleMarksFocusedWindow() {
         let win = Display.get_focus_window();
         let actor = win.get_compositor_private();
-        this._toggle_mark(actor);
+        this._toggle_pin(actor);
 
-        // log(`markedWindowsData : ${[...markedWindowsData.entries()]}`);
-        // log(`markedWindowsData : ${JSON.stringify([...markedWindowsData.entries()])}`);
+        // log(`pinnedWindowsData : ${[...pinnedWindowsData.entries()]}`);
+        // log(`pinnedWindowsData : ${JSON.stringify([...pinnedWindowsData.entries()])}`);
         // // [[{},{}],[{},{}]]
-        // log(`markedWindowsData : ${[...markedWindowsData.keys()]}`);
-        // log(`markedWindowsData : ${JSON.stringify([...markedWindowsData.keys()])}`);
-        // log(`markedWindowsData : ${[...markedWindowsData.values()]}`);
-        // log(`markedWindowsData : ${JSON.stringify([...markedWindowsData.values()])}`);
+        // log(`pinnedWindowsData : ${[...pinnedWindowsData.keys()]}`);
+        // log(`pinnedWindowsData : ${JSON.stringify([...pinnedWindowsData.keys()])}`);
+        // log(`pinnedWindowsData : ${[...pinnedWindowsData.values()]}`);
+        // log(`pinnedWindowsData : ${JSON.stringify([...pinnedWindowsData.values()])}`);
     }
 };
