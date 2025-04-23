@@ -25,6 +25,7 @@ const Me = ExtensionUtils.getCurrentExtension();
 const appFunctions = Me.imports.appFunctions;
 const clipboardFunctions = Me.imports.clipboardFunctions;
 const markedWindowFunctions = Me.imports.markedWindowFunctions;
+const pinnedWindowFunctions = Me.imports.pinnedWindowFunctions;
 const windowFunctions = Me.imports.windowFunctions;
 const workspaceFunctions = Me.imports.workspaceFunctions;
 
@@ -42,6 +43,9 @@ class Extension {
 
         this._dbus_marked_windows = Gio.DBusExportedObject.wrapJSObject(markedWindowFunctions.MR_DBUS_IFACE, new markedWindowFunctions.MarkedWindowFunctions());
         this._dbus_marked_windows.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows');
+
+        this._dbus_pinned_windows = Gio.DBusExportedObject.wrapJSObject(pinnedWindowFunctions.MR_DBUS_IFACE, new pinnedWindowFunctions.PinnedWindowFunctions());
+        this._dbus_pinned_windows.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsPinnedWindows');
 
         this._dbus_workspaces = Gio.DBusExportedObject.wrapJSObject(workspaceFunctions.MR_DBUS_IFACE, new workspaceFunctions.WorkspaceFunctions());
         this._dbus_workspaces.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces');
@@ -67,6 +71,10 @@ class Extension {
         this._dbus_marked_windows.flush();
         this._dbus_marked_windows.unexport();
         delete this._dbus_marked_windows;
+
+        this._dbus_pinned_windows.flush();
+        this._dbus_pinned_windows.unexport();
+        delete this._dbus_pinned_windows;
 
         this._dbus_workspaces.flush();
         this._dbus_workspaces.unexport();
