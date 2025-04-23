@@ -120,6 +120,8 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
         });
 
         let workspaceChangedId = win.connect('workspace-changed', () => {
+            // let current_workspace = WorkspaceManager.get_active_workspace();
+            // win.change_workspace(current_workspace);
             this._add_border(actor);
         });
 
@@ -199,7 +201,7 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsPinnedWindows org.gnome.Shell.Extensions.GnomeUtilsPinnedWindows.GetPinnedWindows
 
     GetPinnedWindows() {
-        let pinnedWindows =  Array.from(pinnedWindowsData.keys()).map(actor =>
+        let pinnedWindows = Array.from(pinnedWindowsData.keys()).map(actor =>
             actor.get_meta_window().get_id()
         );
 
