@@ -243,7 +243,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.GetMarkedWindows
 
     GetMarkedWindows() {
-        let markedWindows =  Array.from(markedWindowsData.keys()).map(actor =>
+        let markedWindows = Array.from(markedWindowsData.keys()).map(actor =>
             actor.get_meta_window().get_id()
         );
 
