@@ -8,6 +8,7 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { WindowFunctions } = Me.imports.windowFunctions;
 
 let markedWindowsData = new Map();
+const markedWindowsDataKey = 'border';
 
 var MR_DBUS_IFACE = `
 <node>
@@ -48,9 +49,9 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         this._restackedId = Display.connect('restacked', (display) => {
             markedWindowsData.forEach((data, actor) => {
-                if (data.get('border')) {
+                if (data.get(markedWindowsDataKey)) {
                     let wg = Meta.get_window_group_for_display(display);
-                    wg.set_child_above_sibling(data.get('border'), actor);
+                    wg.set_child_above_sibling(data.get(markedWindowsDataKey), actor);
                 }
             });
         });
@@ -148,13 +149,13 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         let border;
 
-        if (this._get_marked_window_data(actor, 'border')) {
-            border = this._get_marked_window_data(actor, 'border');
+        if (this._get_marked_window_data(actor, markedWindowsDataKey)) {
+            border = this._get_marked_window_data(actor, markedWindowsDataKey);
         } else {
             border = new St.Bin({
                 style_class: 'marked-border'
             });
-            this._set_marked_window_data(actor, 'border', border);
+            this._set_marked_window_data(actor, markedWindowsDataKey, border);
         }
 
         actor_parent.add_child(border);
@@ -164,11 +165,11 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _remove_border(actor) {
-        if (this._get_marked_window_data(actor, 'border')) {
+        if (this._get_marked_window_data(actor, markedWindowsDataKey)) {
             let actor_parent = actor.get_parent();
 
-            actor_parent.remove_child(this._get_marked_window_data(actor, 'border'));
-            this._remove_marked_window_data(actor, 'border');
+            actor_parent.remove_child(this._get_marked_window_data(actor, markedWindowsDataKey));
+            this._remove_marked_window_data(actor, markedWindowsDataKey);
         }
     }
 
