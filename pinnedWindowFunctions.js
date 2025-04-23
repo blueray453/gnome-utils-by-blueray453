@@ -8,6 +8,7 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { WindowFunctions } = Me.imports.windowFunctions;
 
 let pinnedWindowsData = new Map();
+const pinnedWindowsDataKey = 'border';
 
 var MR_DBUS_IFACE = `
 <node>
@@ -46,9 +47,9 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
 
         this._restackedId = Display.connect('restacked', (display) => {
             pinnedWindowsData.forEach((data, actor) => {
-                if (data.get('border')) {
+                if (data.get(pinnedWindowsDataKey)) {
                     let wg = Meta.get_window_group_for_display(display);
-                    wg.set_child_above_sibling(data.get('border'), actor);
+                    wg.set_child_above_sibling(data.get(pinnedWindowsDataKey), actor);
                 }
             });
         });
@@ -146,13 +147,13 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
 
         let border;
 
-        if (this._get_pinned_window_data(actor, 'border')) {
-            border = this._get_pinned_window_data(actor, 'border');
+        if (this._get_pinned_window_data(actor, pinnedWindowsDataKey)) {
+            border = this._get_pinned_window_data(actor, pinnedWindowsDataKey);
         } else {
             border = new St.Bin({
-                style_class: 'border'
+                style_class: 'pinned-border'
             });
-            this._set_pinned_window_data(actor, 'border', border);
+            this._set_pinned_window_data(actor, pinnedWindowsDataKey, border);
         }
 
         actor_parent.add_child(border);
@@ -162,11 +163,11 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
     }
 
     _remove_border(actor) {
-        if (this._get_pinned_window_data(actor, 'border')) {
+        if (this._get_pinned_window_data(actor, pinnedWindowsDataKey)) {
             let actor_parent = actor.get_parent();
 
-            actor_parent.remove_child(this._get_pinned_window_data(actor, 'border'));
-            this._remove_pinned_window_data(actor, 'border');
+            actor_parent.remove_child(this._get_pinned_window_data(actor, pinnedWindowsDataKey));
+            this._remove_pinned_window_data(actor, pinnedWindowsDataKey);
         }
     }
 
