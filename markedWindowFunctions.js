@@ -8,7 +8,7 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { WindowFunctions } = Me.imports.windowFunctions;
 
 let markedWindowsData = new Map();
-const markedWindowsDataKey = 'border';
+const markedWindowsDataKey = 'markedKey';
 
 var MR_DBUS_IFACE = `
 <node>

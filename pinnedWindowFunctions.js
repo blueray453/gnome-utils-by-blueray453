@@ -8,7 +8,7 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { WindowFunctions } = Me.imports.windowFunctions;
 
 let pinnedWindowsData = new Map();
-const pinnedWindowsDataKey = 'border';
+const pinnedWindowsDataKey = 'pinnedKey';
 
 var MR_DBUS_IFACE = `
 <node>
@@ -30,8 +30,7 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
             pinnedWindowsData.forEach((_, actor) => {
                 let win = actor.get_meta_window();
                 if (win.get_workspace() !== currentWorkspace) {
-                    this._remove_border(actor);
-                } else {
+                    win.change_workspace(currentWorkspace);
                     this._add_border(actor);
                 }
             });
@@ -120,8 +119,6 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
         });
 
         let workspaceChangedId = win.connect('workspace-changed', () => {
-            // let current_workspace = WorkspaceManager.get_active_workspace();
-            // win.change_workspace(current_workspace);
             this._add_border(actor);
         });
 
