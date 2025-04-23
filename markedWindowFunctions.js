@@ -152,7 +152,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             border = this._get_marked_window_data(actor, 'border');
         } else {
             border = new St.Bin({
-                style_class: 'border'
+                style_class: 'marked-border'
             });
             this._set_marked_window_data(actor, 'border', border);
         }
