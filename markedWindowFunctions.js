@@ -105,7 +105,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     _get_border_for_actor(actor){
         if (markedWindowsData.has(actor)) {
             const border_for_marked_window_actor = markedWindowsData.get(actor)[BORDER_FOR_MARKED_WINDOW_ACTOR];
-            log(`Actor's Border: ${border_for_marked_window_actor}`);
+            // log(`Actor's Border: ${border_for_marked_window_actor}`);
             return border_for_marked_window_actor;
         }
         return null;
@@ -289,9 +289,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             const windowId = win.get_id();
 
             ;
-            log(`Window ID: ${windowId}`);
-            log(`Window ID: ${actor[BORDER_FOR_MARKED_WINDOW_ACTOR]}`);
-            // this._get_border_for_actor(actor);
+            log(`Marked Window ID: ${windowId}`);
+            log(`Window Border (Marked): ${this._get_border_for_actor(actor)}`);
         });
     }
 };
