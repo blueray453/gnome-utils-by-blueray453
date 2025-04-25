@@ -66,7 +66,8 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
                     let wg = Meta.get_window_group_for_display(display);
                     wg.set_child_above_sibling(this._get_border_for_pinned_actor(actor), actor);
                 }
-            }); this._get_border_for_pinned_actor(actor);
+            });
+            this._get_border_for_pinned_actor(actor);
         });
     }
 
