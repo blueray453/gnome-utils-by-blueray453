@@ -102,9 +102,12 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _get_border_for_actor(actor){
-        const border_for_actor = markedWindowsData.get(actor).get(markedWindowsDataKey);
-        log(`Actor's Border: ${border_for_actor}`);
-        return border_for_actor;
+        if (markedWindowsData.has(actor)) {
+            const border_for_actor = markedWindowsData.get(actor).get(markedWindowsDataKey);
+            log(`Actor's Border: ${border_for_actor}`);
+            return border_for_actor;
+        }
+        return null;
     }
 
     // Window Signals
@@ -155,8 +158,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         let border;
 
-        if (this._get_marked_window_data(actor, markedWindowsDataKey)) {
-            border = this._get_marked_window_data(actor, markedWindowsDataKey);
+        if (this._get_border_for_actor(actor)) {
+            border = this._get_border_for_actor(actor);
         } else {
             border = new St.Bin({
                 style_class: 'marked-border'
@@ -171,10 +174,10 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _remove_border(actor) {
-        if (this._get_marked_window_data(actor, markedWindowsDataKey)) {
+        if (this._get_border_for_actor(actor)) {
             let actor_parent = actor.get_parent();
 
-            actor_parent.remove_child(this._get_marked_window_data(actor, markedWindowsDataKey));
+            actor_parent.remove_child(this._get_border_for_actor(actor));
             this._remove_marked_window_data(actor, markedWindowsDataKey);
         }
     }
