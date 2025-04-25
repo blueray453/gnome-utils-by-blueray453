@@ -116,45 +116,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         return null;
     }
 
-    // Window Signals
-
-    _add_window_signals(actor) {
-        let win = actor.get_meta_window();
-
-        let positionChangedId = win.connect('position-changed', () => {
-            let actor = win.get_compositor_private();
-            this._add_border_marked_actor(actor);
-        });
-
-        let sizeChangedId = win.connect('size-changed', () => {
-            let actor = win.get_compositor_private();
-            this._add_border_marked_actor(actor);
-
-        });
-
-        let unmanagedId = win.connect('unmanaging', () => {
-            this._unmark_window(actor);
-        });
-
-        let workspaceChangedId = win.connect('workspace-changed', () => {
-            this._add_border_marked_actor(actor);
-        });
-
-        this._set_marked_window_data(actor, 'positionChangedId', positionChangedId);
-        this._set_marked_window_data(actor, 'sizeChangedId', sizeChangedId);
-        this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
-        this._set_marked_window_data(actor, 'workspaceChangedId', workspaceChangedId);
-    }
-
-    _remove_window_signals(actor) {
-        let win = actor.get_meta_window();
-
-        win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
-        win.disconnect(this._get_marked_window_data(actor, 'sizeChangedId'));
-        win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
-        win.disconnect(this._get_marked_window_data(actor, 'workspaceChangedId'));
-    }
-
     // Window Borders
 
     _add_border_marked_actor(actor) {
@@ -216,12 +177,42 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _mark_window(actor) {
         this._add_border_marked_actor(actor);
-        this._add_window_signals(actor);
+        let win = actor.get_meta_window();
+
+        let positionChangedId = win.connect('position-changed', () => {
+            let actor = win.get_compositor_private();
+            this._add_border_marked_actor(actor);
+        });
+
+        let sizeChangedId = win.connect('size-changed', () => {
+            let actor = win.get_compositor_private();
+            this._add_border_marked_actor(actor);
+
+        });
+
+        let unmanagedId = win.connect('unmanaging', () => {
+            this._unmark_window(actor);
+        });
+
+        let workspaceChangedId = win.connect('workspace-changed', () => {
+            this._add_border_marked_actor(actor);
+        });
+
+        this._set_marked_window_data(actor, 'positionChangedId', positionChangedId);
+        this._set_marked_window_data(actor, 'sizeChangedId', sizeChangedId);
+        this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
+        this._set_marked_window_data(actor, 'workspaceChangedId', workspaceChangedId);
     }
 
     _unmark_window(actor) {
         this._remove_border_marked_actor(actor);
-        this._remove_window_signals(actor);
+        let win = actor.get_meta_window();
+
+        win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
+        win.disconnect(this._get_marked_window_data(actor, 'sizeChangedId'));
+        win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
+        win.disconnect(this._get_marked_window_data(actor, 'workspaceChangedId'));
+
         markedWindowsData.delete(actor);
     }
 

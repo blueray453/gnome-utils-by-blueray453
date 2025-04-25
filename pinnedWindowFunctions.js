@@ -117,45 +117,6 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
         return null;
     }
 
-    // Window Signals
-
-    _add_window_signals(actor) {
-        let win = actor.get_meta_window();
-
-        let positionChangedId = win.connect('position-changed', () => {
-            let actor = win.get_compositor_private();
-            this._add_border_pinned_actor(actor);
-        });
-
-        let sizeChangedId = win.connect('size-changed', () => {
-            let actor = win.get_compositor_private();
-            this._add_border_pinned_actor(actor);
-
-        });
-
-        let unmanagedId = win.connect('unmanaging', () => {
-            this._unpin_window(actor);
-        });
-
-        let workspaceChangedId = win.connect('workspace-changed', () => {
-            this._add_border_pinned_actor(actor);
-        });
-
-        this._set_pinned_window_data(actor, 'positionChangedId', positionChangedId);
-        this._set_pinned_window_data(actor, 'sizeChangedId', sizeChangedId);
-        this._set_pinned_window_data(actor, 'unmanagedId', unmanagedId);
-        this._set_pinned_window_data(actor, 'workspaceChangedId', workspaceChangedId);
-    }
-
-    _remove_window_signals(actor) {
-        let win = actor.get_meta_window();
-
-        win.disconnect(this._get_pinned_window_data(actor, 'positionChangedId'));
-        win.disconnect(this._get_pinned_window_data(actor, 'sizeChangedId'));
-        win.disconnect(this._get_pinned_window_data(actor, 'unmanagedId'));
-        win.disconnect(this._get_pinned_window_data(actor, 'workspaceChangedId'));
-    }
-
     // Window Borders
 
     _add_border_pinned_actor(actor) {
@@ -217,12 +178,41 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
 
     _pin_window(actor) {
         this._add_border_pinned_actor(actor);
-        this._add_window_signals(actor);
+        let win = actor.get_meta_window();
+
+        let positionChangedId = win.connect('position-changed', () => {
+            let actor = win.get_compositor_private();
+            this._add_border_pinned_actor(actor);
+        });
+
+        let sizeChangedId = win.connect('size-changed', () => {
+            let actor = win.get_compositor_private();
+            this._add_border_pinned_actor(actor);
+
+        });
+
+        let unmanagedId = win.connect('unmanaging', () => {
+            this._unpin_window(actor);
+        });
+
+        let workspaceChangedId = win.connect('workspace-changed', () => {
+            this._add_border_pinned_actor(actor);
+        });
+
+        this._set_pinned_window_data(actor, 'positionChangedId', positionChangedId);
+        this._set_pinned_window_data(actor, 'sizeChangedId', sizeChangedId);
+        this._set_pinned_window_data(actor, 'unmanagedId', unmanagedId);
+        this._set_pinned_window_data(actor, 'workspaceChangedId', workspaceChangedId);
     }
 
     _unpin_window(actor) {
         this._remove_border_pinned_actor(actor);
-        this._remove_window_signals(actor);
+        let win = actor.get_meta_window();
+
+        win.disconnect(this._get_pinned_window_data(actor, 'positionChangedId'));
+        win.disconnect(this._get_pinned_window_data(actor, 'sizeChangedId'));
+        win.disconnect(this._get_pinned_window_data(actor, 'unmanagedId'));
+        win.disconnect(this._get_pinned_window_data(actor, 'workspaceChangedId'));
         pinnedWindowsData.delete(actor);
     }
 
