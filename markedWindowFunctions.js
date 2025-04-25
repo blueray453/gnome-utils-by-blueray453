@@ -284,13 +284,14 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         //     }
         // });
 
-
         markedWindowsData.forEach((data, actor) => {
             const win = actor.get_meta_window();          // human‑readable window
             const windowId = win.get_id();
 
+            ;
+            log(`Window ID: ${windowId}`);
+            // log(`Window ID: ${actor[BORDER_FOR_MARKED_WINDOW_ACTOR]}`);
             this._get_border_for_actor(actor);
-            log(`Window ID: ${windowId} → markedKey = ${markedValue}`);
         });
     }
 };
