@@ -43,16 +43,16 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
                 if (win.get_workspace() !== currentWorkspace) {
                     win.change_workspace(currentWorkspace);
                     win.get_workspace().activate_with_focus(win, 0);
-                    this._add_border(actor);
+                    this._add_border_pinned_actor(actor);
                 }
             });
         });
 
-        this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._remove_border(actor));
+        this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._remove_border_pinned_actor(actor));
 
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
             if (pinnedWindowsData.has(actor)) {
-                this._add_border(actor);
+                this._add_border_pinned_actor(actor);
             }
         });
 
@@ -119,12 +119,12 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
 
         let positionChangedId = win.connect('position-changed', () => {
             let actor = win.get_compositor_private();
-            this._add_border(actor);
+            this._add_border_pinned_actor(actor);
         });
 
         let sizeChangedId = win.connect('size-changed', () => {
             let actor = win.get_compositor_private();
-            this._add_border(actor);
+            this._add_border_pinned_actor(actor);
 
         });
 
@@ -133,7 +133,7 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
         });
 
         let workspaceChangedId = win.connect('workspace-changed', () => {
-            this._add_border(actor);
+            this._add_border_pinned_actor(actor);
         });
 
         this._set_pinned_window_data(actor, 'positionChangedId', positionChangedId);
@@ -153,7 +153,7 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
 
     // Window Borders
 
-    _add_border(actor) {
+    _add_border_pinned_actor(actor) {
         let actor_parent = actor.get_parent();
         let win = actor.get_meta_window();
         let rect = win.get_frame_rect();
@@ -175,7 +175,7 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
         border.set_size(rect.width, rect.height);
     }
 
-    _remove_border(actor) {
+    _remove_border_pinned_actor(actor) {
         if (this._get_border_for_pinned_actor(actor)) {
             let actor_parent = actor.get_parent();
 
@@ -200,23 +200,23 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
     The only one way to unpin a pinned window is _unpin_window
     */
 
-    /* Please note that _unpin_window and _remove_border is not same.
+    /* Please note that _unpin_window and _remove_border_pinned_actor is not same.
 
-    This is important because when minimizing window, we _remove_border
+    This is important because when minimizing window, we _remove_border_pinned_actor
     but we have to get the border back when we unminimize.
 
     This is also true for _update_borders. We have to add border to the window again.
 
-    This is also true for _add_border. We have to add border to the window again.
+    This is also true for _add_border_pinned_actor. We have to add border to the window again.
     */
 
     _pin_window(actor) {
-        this._add_border(actor);
+        this._add_border_pinned_actor(actor);
         this._add_window_signals(actor);
     }
 
     _unpin_window(actor) {
-        this._remove_border(actor);
+        this._remove_border_pinned_actor(actor);
         this._remove_window_signals(actor);
         pinnedWindowsData.delete(actor);
     }

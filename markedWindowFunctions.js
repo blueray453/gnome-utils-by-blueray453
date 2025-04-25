@@ -40,18 +40,18 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             markedWindowsData.forEach((_, actor) => {
                 let win = actor.get_meta_window();
                 if (win.get_workspace() !== currentWorkspace) {
-                    this._remove_border(actor);
+                    this._remove_border_marked_actor(actor);
                 } else {
-                    this._add_border(actor);
+                    this._add_border_marked_actor(actor);
                 }
             });
         });
 
-        this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._remove_border(actor));
+        this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._remove_border_marked_actor(actor));
 
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
             if (markedWindowsData.has(actor)) {
-                this._add_border(actor);
+                this._add_border_marked_actor(actor);
             }
         });
 
@@ -118,12 +118,12 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         let positionChangedId = win.connect('position-changed', () => {
             let actor = win.get_compositor_private();
-            this._add_border(actor);
+            this._add_border_marked_actor(actor);
         });
 
         let sizeChangedId = win.connect('size-changed', () => {
             let actor = win.get_compositor_private();
-            this._add_border(actor);
+            this._add_border_marked_actor(actor);
 
         });
 
@@ -132,7 +132,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         });
 
         let workspaceChangedId = win.connect('workspace-changed', () => {
-            this._add_border(actor);
+            this._add_border_marked_actor(actor);
         });
 
         this._set_marked_window_data(actor, 'positionChangedId', positionChangedId);
@@ -152,7 +152,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     // Window Borders
 
-    _add_border(actor) {
+    _add_border_marked_actor(actor) {
         let actor_parent = actor.get_parent();
         let win = actor.get_meta_window();
         let rect = win.get_frame_rect();
@@ -174,7 +174,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         border.set_size(rect.width, rect.height);
     }
 
-    _remove_border(actor) {
+    _remove_border_marked_actor(actor) {
         if (this._get_border_for_marked_actor(actor)) {
             let actor_parent = actor.get_parent();
 
@@ -199,23 +199,23 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     The only one way to unmark a marked window is _unmark_window
     */
 
-    /* Please note that _unmark_window and _remove_border is not same.
+    /* Please note that _unmark_window and _remove_border_marked_actor is not same.
 
-    This is important because when minimizing window, we _remove_border
+    This is important because when minimizing window, we _remove_border_marked_actor
     but we have to get the border back when we unminimize.
 
     This is also true for _update_borders. We have to add border to the window again.
 
-    This is also true for _add_border. We have to add border to the window again.
+    This is also true for _add_border_marked_actor. We have to add border to the window again.
     */
 
     _mark_window(actor) {
-        this._add_border(actor);
+        this._add_border_marked_actor(actor);
         this._add_window_signals(actor);
     }
 
     _unmark_window(actor) {
-        this._remove_border(actor);
+        this._remove_border_marked_actor(actor);
         this._remove_window_signals(actor);
         markedWindowsData.delete(actor);
     }
