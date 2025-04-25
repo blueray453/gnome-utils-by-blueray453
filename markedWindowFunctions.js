@@ -100,15 +100,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         return null;
     }
 
-    _remove_marked_window_data(actor, key) {
-        if (markedWindowsData.has(actor)) {
-            markedWindowsData.get(actor).delete(key);
-            if (markedWindowsData.get(actor).size === 0) {
-                markedWindowsData.delete(actor);
-            }
-        }
-    }
-
     _get_border_for_actor(actor){
         if (markedWindowsData.has(actor)) {
             const border_for_marked_window_actor = markedWindowsData.get(actor).get(BORDER_FOR_MARKED_WINDOW_ACTOR);
@@ -186,7 +177,13 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             let actor_parent = actor.get_parent();
 
             actor_parent.remove_child(this._get_border_for_actor(actor));
-            this._remove_marked_window_data(actor, BORDER_FOR_MARKED_WINDOW_ACTOR);
+
+            if (markedWindowsData.has(actor)) {
+                markedWindowsData.get(actor).delete(BORDER_FOR_MARKED_WINDOW_ACTOR);
+                if (markedWindowsData.get(actor).size === 0) {
+                    markedWindowsData.delete(actor);
+                }
+            }
         }
     }
 
