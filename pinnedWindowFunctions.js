@@ -21,6 +21,9 @@ const BORDER_FOR_PINNED_WINDOW_ACTOR = 'border_for_pinned_window_actor';
 var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsPinnedWindows">
+      <method name="ActivatePinnedWindows">
+        <arg type="s" direction="out" name="win" />
+      </method>
       <method name="GetPinnedWindows">
         <arg type="s" direction="out" name="win" />
       </method>
@@ -230,6 +233,16 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
         } else {
             this._mark_window(actor);
         }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsPinnedWindows org.gnome.Shell.Extensions.GnomeUtilsPinnedWindows.ActivatePinnedWindows
+
+    ActivatePinnedWindows() {
+        Array.from(pinnedWindowsData.keys()).map(actor => {
+            let win = actor.get_meta_window();
+            let win_workspace = win.get_workspace();
+            win_workspace.activate_with_focus(win, 0);
+        });
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsPinnedWindows org.gnome.Shell.Extensions.GnomeUtilsPinnedWindows.GetPinnedWindows
