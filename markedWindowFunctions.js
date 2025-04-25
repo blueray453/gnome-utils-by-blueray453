@@ -8,8 +8,10 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { WindowFunctions } = Me.imports.windowFunctions;
 
 let markedWindowsData = new Map();
+let pinnedWindowsData = new Map();
 
 const BORDER_FOR_MARKED_WINDOW_ACTOR = 'border_for_marked_window_actor';
+const BORDER_FOR_PINNED_WINDOW_ACTOR = 'border_for_pinned_window_actor';
 /*
     Every border has it's own
     new St.Bin({
@@ -21,6 +23,14 @@ const BORDER_FOR_MARKED_WINDOW_ACTOR = 'border_for_marked_window_actor';
 var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows">
+      <method name="ActivatePinnedWindows">
+        <arg type="s" direction="out" name="win" />
+      </method>
+      <method name="GetPinnedWindows">
+        <arg type="s" direction="out" name="win" />
+      </method>
+      <method name="TogglePinsFocusedWindow">
+      </method>
       <method name="CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass">
       </method>
       <method name="GetMarkedWindows">
@@ -45,17 +55,31 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
                     this._add_border_marked_actor(actor);
                 }
             });
+            pinnedWindowsData.forEach((_, actor) => {
+                let win = actor.get_meta_window();
+                if (win.get_workspace() !== currentWorkspace) {
+                    win.change_workspace(currentWorkspace);
+                    win.get_workspace().activate_with_focus(win, 0);
+                    this._add_border_pinned_actor(actor);
+                }
+            });
         });
 
         this._minimizeId = WindowManager.connect('minimize', (wm, actor) => {
             if (markedWindowsData.has(actor)) {
                 this._remove_border_marked_actor(actor);
             }
+            if (pinnedWindowsData.has(actor)) {
+                this._remove_border_pinned_actor(actor);
+            }
         });
 
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
             if (markedWindowsData.has(actor)) {
                 this._add_border_marked_actor(actor);
+            }
+            if (pinnedWindowsData.has(actor)) {
+                this._add_border_pinned_actor(actor);
             }
         });
 
@@ -66,7 +90,15 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
                     wg.set_child_above_sibling(this._get_border_for_marked_actor(actor), actor);
                 }
             });
-            this._get_border_for_marked_actor(actor);
+            // this._get_border_for_marked_actor(actor);
+
+            pinnedWindowsData.forEach((_, actor) => {
+                if (this._get_border_for_pinned_actor(actor)) {
+                    let wg = Meta.get_window_group_for_display(display);
+                    wg.set_child_above_sibling(this._get_border_for_pinned_actor(actor), actor);
+                }
+            });
+            // this._get_border_for_pinned_actor(actor);
         });
     }
 
@@ -99,9 +131,25 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         info[key] = value;
     }
 
+    _set_pinned_window_data(actor, key, value) {
+        if (!pinnedWindowsData.has(actor)) {
+            pinnedWindowsData.set(actor, {});
+        }
+        let info = pinnedWindowsData.get(actor);
+        info[key] = value;
+    }
+
     _get_marked_window_data(actor, key) {
         if (markedWindowsData.has(actor)) {
             const info = markedWindowsData.get(actor);
+            return info[key];
+        }
+        return null;
+    }
+
+    _get_pinned_window_data(actor, key) {
+        if (pinnedWindowsData.has(actor)) {
+            const info = pinnedWindowsData.get(actor);
             return info[key];
         }
         return null;
@@ -112,6 +160,15 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             const border_for_marked_window_actor = markedWindowsData.get(actor)[BORDER_FOR_MARKED_WINDOW_ACTOR];
             // log(`Actor's Border: ${border_for_marked_window_actor}`);
             return border_for_marked_window_actor;
+        }
+        return null;
+    }
+
+    _get_border_for_pinned_actor(actor) {
+        if (pinnedWindowsData.has(actor)) {
+            const border_for_pinned_window_actor = pinnedWindowsData.get(actor)[BORDER_FOR_PINNED_WINDOW_ACTOR];
+            log(`Actor's Border: ${border_for_pinned_window_actor}`);
+            return border_for_pinned_window_actor;
         }
         return null;
     }
@@ -140,6 +197,28 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         border.set_size(rect.width, rect.height);
     }
 
+    _add_border_pinned_actor(actor) {
+        let actor_parent = actor.get_parent();
+        let win = actor.get_meta_window();
+        let rect = win.get_frame_rect();
+
+        let border;
+
+        if (this._get_border_for_pinned_actor(actor)) {
+            border = this._get_border_for_pinned_actor(actor);
+        } else {
+            border = new St.Bin({
+                style_class: 'pinned-border'
+            });
+            this._set_pinned_window_data(actor, BORDER_FOR_PINNED_WINDOW_ACTOR, border);
+        }
+
+        actor_parent.add_child(border);
+
+        border.set_position(rect.x, rect.y);
+        border.set_size(rect.width, rect.height);
+    }
+
     _remove_border_marked_actor(actor) {
         if (this._get_border_for_marked_actor(actor)) {
             let actor_parent = actor.get_parent();
@@ -149,6 +228,19 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             if (markedWindowsData.has(actor)) {
                 let info = markedWindowsData.get(actor);
                 delete info[BORDER_FOR_MARKED_WINDOW_ACTOR];
+            }
+        }
+    }
+
+    _remove_border_pinned_actor(actor) {
+        if (this._get_border_for_pinned_actor(actor)) {
+            let actor_parent = actor.get_parent();
+
+            actor_parent.remove_child(this._get_border_for_pinned_actor(actor));
+
+            if (pinnedWindowsData.has(actor)) {
+                let info = pinnedWindowsData.get(actor);
+                delete info[BORDER_FOR_PINNED_WINDOW_ACTOR];
             }
         }
     }
@@ -204,6 +296,35 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._set_marked_window_data(actor, 'workspaceChangedId', workspaceChangedId);
     }
 
+    _pin_window(actor) {
+        this._add_border_pinned_actor(actor);
+        let win = actor.get_meta_window();
+
+        let positionChangedId = win.connect('position-changed', () => {
+            let actor = win.get_compositor_private();
+            this._add_border_pinned_actor(actor);
+        });
+
+        let sizeChangedId = win.connect('size-changed', () => {
+            let actor = win.get_compositor_private();
+            this._add_border_pinned_actor(actor);
+
+        });
+
+        let unmanagedId = win.connect('unmanaging', () => {
+            this._unpin_window(actor);
+        });
+
+        let workspaceChangedId = win.connect('workspace-changed', () => {
+            this._add_border_pinned_actor(actor);
+        });
+
+        this._set_pinned_window_data(actor, 'positionChangedId', positionChangedId);
+        this._set_pinned_window_data(actor, 'sizeChangedId', sizeChangedId);
+        this._set_pinned_window_data(actor, 'unmanagedId', unmanagedId);
+        this._set_pinned_window_data(actor, 'workspaceChangedId', workspaceChangedId);
+    }
+
     _unmark_window(actor) {
         this._remove_border_marked_actor(actor);
         let win = actor.get_meta_window();
@@ -216,9 +337,26 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         markedWindowsData.delete(actor);
     }
 
+    _unpin_window(actor) {
+        this._remove_border_pinned_actor(actor);
+        let win = actor.get_meta_window();
+
+        win.disconnect(this._get_pinned_window_data(actor, 'positionChangedId'));
+        win.disconnect(this._get_pinned_window_data(actor, 'sizeChangedId'));
+        win.disconnect(this._get_pinned_window_data(actor, 'unmanagedId'));
+        win.disconnect(this._get_pinned_window_data(actor, 'workspaceChangedId'));
+        pinnedWindowsData.delete(actor);
+    }
+
     _unmark_windows() {
         markedWindowsData.forEach((_, actor) => {
             this._unmark_window(actor);
+        });
+    }
+
+    _unpin_windows() {
+        pinnedWindowsData.forEach((_, actor) => {
+            this._unpin_window(actor);
         });
     }
 
@@ -230,6 +368,65 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
+    _toggle_pin(actor) {
+        if (pinnedWindowsData.has(actor)) {
+            this._unpin_window(actor);
+        } else {
+            this._pin_window(actor);
+        }
+    }
+
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.ActivatePinnedWindows
+
+    ActivatePinnedWindows() {
+        Array.from(pinnedWindowsData.keys()).map(actor => {
+            let win = actor.get_meta_window();
+            let win_workspace = win.get_workspace();
+            win_workspace.activate_with_focus(win, 0);
+        });
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.GetPinnedWindows
+
+    GetPinnedWindows() {
+        let pinnedWindows = Array.from(pinnedWindowsData.keys()).map(actor =>
+            actor.get_meta_window().get_id()
+        );
+
+        return JSON.stringify(pinnedWindows);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.TogglePinsFocusedWindow
+
+    TogglePinsFocusedWindow() {
+        let win = Display.get_focus_window();
+        let actor = win.get_compositor_private();
+        this._toggle_pin(actor);
+
+        // pinnedWindowsData.forEach((innerMap, actor) => {
+        //     const win = actor.get_meta_window();                // nicer key info
+        //     log(`Window ID: ${win.get_id()}`);
+
+        //     if (innerMap instanceof Map) {
+        //         innerMap.forEach((v, k) => {
+        //             log(`   ├─ ${k} → ${JSON.stringify(v)}`);
+        //         });
+        //     } else {
+        //         log(`   └─ ${JSON.stringify(innerMap, null, 2)}`);
+        //     }
+        // });
+
+        pinnedWindowsData.forEach((data, actor) => {
+            const win = actor.get_meta_window();          // human‑readable window
+            const windowId = win.get_id();
+
+            ;
+            log(`Pinned Window ID: ${windowId}`);
+            log(`Window Border (Pinned): ${this._get_border_for_pinned_actor(actor)}`);
+            // this._get_border_for_pinned_actor(actor);
+        });
+    }
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
 
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
