@@ -39,6 +39,7 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
                 let win = actor.get_meta_window();
                 if (win.get_workspace() !== currentWorkspace) {
                     win.change_workspace(currentWorkspace);
+                    win.get_workspace().activate_with_focus(win, 0);
                     this._add_border(actor);
                 }
             });
