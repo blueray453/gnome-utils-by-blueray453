@@ -88,21 +88,23 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _set_marked_window_data(actor, key, value) {
         if (!markedWindowsData.has(actor)) {
-            markedWindowsData.set(actor, new Map());
+            markedWindowsData.set(actor, {});
         }
-        markedWindowsData.get(actor).set(key, value);
+        let info = markedWindowsData.get(actor);
+        info[key] = value;
     }
 
     _get_marked_window_data(actor, key) {
         if (markedWindowsData.has(actor)) {
-            return markedWindowsData.get(actor).get(key);
+            const info = markedWindowsData.get(actor);
+            return info[key];
         }
         return null;
     }
 
     _get_border_for_actor(actor){
         if (markedWindowsData.has(actor)) {
-            const border_for_marked_window_actor = markedWindowsData.get(actor).get(BORDER_FOR_MARKED_WINDOW_ACTOR);
+            const border_for_marked_window_actor = markedWindowsData.get(actor)[BORDER_FOR_MARKED_WINDOW_ACTOR];
             log(`Actor's Border: ${border_for_marked_window_actor}`);
             return border_for_marked_window_actor;
         }
@@ -179,10 +181,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             actor_parent.remove_child(this._get_border_for_actor(actor));
 
             if (markedWindowsData.has(actor)) {
-                markedWindowsData.get(actor).delete(BORDER_FOR_MARKED_WINDOW_ACTOR);
-                if (markedWindowsData.get(actor).size === 0) {
-                    markedWindowsData.delete(actor);
-                }
+                let info = markedWindowsData.get(actor);
+                delete info[BORDER_FOR_MARKED_WINDOW_ACTOR];
             }
         }
     }
