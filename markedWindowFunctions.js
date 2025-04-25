@@ -47,7 +47,11 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             });
         });
 
-        this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._remove_border_marked_actor(actor));
+        this._minimizeId = WindowManager.connect('minimize', (wm, actor) => {
+            if (markedWindowsData.has(actor)) {
+                this._remove_border_marked_actor(actor);
+            }
+        });
 
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
             if (markedWindowsData.has(actor)) {
@@ -61,7 +65,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
                     let wg = Meta.get_window_group_for_display(display);
                     wg.set_child_above_sibling(this._get_border_for_marked_actor(actor), actor);
                 }
-            }); this._get_border_for_marked_actor(actor);
+            });
+            this._get_border_for_marked_actor(actor);
         });
     }
 

@@ -48,7 +48,11 @@ var PinnedWindowFunctions = class PinnedWindowFunctions {
             });
         });
 
-        this._minimizeId = WindowManager.connect('minimize', (wm, actor) => this._remove_border_pinned_actor(actor));
+        this._minimizeId = WindowManager.connect('minimize', (wm, actor) => {
+            if (pinnedWindowsData.has(actor)) {
+                this._remove_border_pinned_actor(actor);
+            }
+        });
 
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
             if (pinnedWindowsData.has(actor)) {
