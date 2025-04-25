@@ -57,11 +57,11 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         this._restackedId = Display.connect('restacked', (display) => {
             markedWindowsData.forEach((_, actor) => {
-                if (this._get_border_for_actor(actor)) {
+                if (this._get_border_for_marked_actor(actor)) {
                     let wg = Meta.get_window_group_for_display(display);
-                    wg.set_child_above_sibling(this._get_border_for_actor(actor), actor);
+                    wg.set_child_above_sibling(this._get_border_for_marked_actor(actor), actor);
                 }
-            }); this._get_border_for_actor(actor);
+            }); this._get_border_for_marked_actor(actor);
         });
     }
 
@@ -102,7 +102,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         return null;
     }
 
-    _get_border_for_actor(actor){
+    _get_border_for_marked_actor(actor){
         if (markedWindowsData.has(actor)) {
             const border_for_marked_window_actor = markedWindowsData.get(actor)[BORDER_FOR_MARKED_WINDOW_ACTOR];
             // log(`Actor's Border: ${border_for_marked_window_actor}`);
@@ -159,8 +159,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         let border;
 
-        if (this._get_border_for_actor(actor)) {
-            border = this._get_border_for_actor(actor);
+        if (this._get_border_for_marked_actor(actor)) {
+            border = this._get_border_for_marked_actor(actor);
         } else {
             border = new St.Bin({
                 style_class: 'marked-border'
@@ -175,10 +175,10 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _remove_border(actor) {
-        if (this._get_border_for_actor(actor)) {
+        if (this._get_border_for_marked_actor(actor)) {
             let actor_parent = actor.get_parent();
 
-            actor_parent.remove_child(this._get_border_for_actor(actor));
+            actor_parent.remove_child(this._get_border_for_marked_actor(actor));
 
             if (markedWindowsData.has(actor)) {
                 let info = markedWindowsData.get(actor);
@@ -290,7 +290,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
             ;
             log(`Marked Window ID: ${windowId}`);
-            log(`Window Border (Marked): ${this._get_border_for_actor(actor)}`);
+            log(`Window Border (Marked): ${this._get_border_for_marked_actor(actor)}`);
         });
     }
 };
