@@ -364,13 +364,27 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     _unmark_window(actor) {
         this._remove_border_marked_actor(actor);
         let win = actor.get_meta_window();
+        const info = windowData.get(actor);
 
         win.disconnect(this._get_marked_window_data(actor, 'positionChangedId'));
         win.disconnect(this._get_marked_window_data(actor, 'sizeChangedId'));
         win.disconnect(this._get_marked_window_data(actor, 'unmanagedId'));
         win.disconnect(this._get_marked_window_data(actor, 'workspaceChangedId'));
 
-        markedWindowsData.delete(actor);
+        if (info) {
+            // Remove the 'marked' property if it exists
+            if (info.marked) {
+                delete info.marked;
+            }
+
+            // If there is no 'marked' or 'pinned' property, remove the actor from windowData
+            if (!info.marked && !info.pinned) {
+                windowData.delete(actor);
+            } else {
+                // If either 'marked' or 'pinned' exists, update the actor's info in windowData
+                windowData.set(actor, info);
+            }
+        }
     }
 
     _unpin_window(actor) {
@@ -488,9 +502,13 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.GetMarkedWindows
 
     GetMarkedWindows() {
-        let markedWindows = Array.from(markedWindowsData.keys()).map(actor =>
-            actor.get_meta_window().get_id()
-        );
+        const markedWindows = [];
+
+        windowData.forEach((_, actor) => {
+            if (_is_marked(actor)) {
+                markedWindows.push(actor.get_meta_window().get_id());
+            }
+        });
 
         return JSON.stringify(markedWindows);
     }
