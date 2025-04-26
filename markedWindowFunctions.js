@@ -10,7 +10,6 @@ const { WindowFunctions } = Me.imports.windowFunctions;
 // Memory to store data
 const windowData = new Map();
 
-let markedWindowsData = new Map();
 let pinnedWindowsData = new Map();
 
 const BORDER_FOR_MARKED_WINDOW_ACTOR = 'border_for_marked_window_actor';
@@ -155,7 +154,10 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
 
         if (!this._is_marked(actor)) {
-            info.marked = { style_class: "marked-border" };
+            info.marked = {
+                border_instance: new St.Bin({
+                    style_class: 'marked-border'
+                }) };
         }
 
         info.marked[key] = value;
@@ -191,14 +193,20 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         return null;
     }
 
-    _get_border_for_marked_actor(actor){
-        if (this._is_marked(actor)) {
-            const border_for_marked_window_actor = markedWindowsData.get(actor)[BORDER_FOR_MARKED_WINDOW_ACTOR];
-            // log(`Actor's Border: ${border_for_marked_window_actor}`);
-            return border_for_marked_window_actor;
+    _get_border_for_marked_actor(actor) {
+        if (!_is_marked(actor)) {
+            return null;
         }
+
+        const info = windowData.get(actor);
+
+        if ("border_instance" in info.marked) {
+            return info.marked.border_instance;
+        }
+
         return null;
     }
+
 
     _get_border_for_pinned_actor(actor) {
         if (pinnedWindowsData.has(actor)) {
