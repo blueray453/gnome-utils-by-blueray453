@@ -12,15 +12,7 @@ const windowData = new Map();
 
 let pinnedWindowsData = new Map();
 
-const BORDER_FOR_MARKED_WINDOW_ACTOR = 'border_for_marked_window_actor';
 const BORDER_FOR_PINNED_WINDOW_ACTOR = 'border_for_pinned_window_actor';
-/*
-    Every border has it's own
-    new St.Bin({
-      style_class: 'marked-border'
-    });
-    This is why we are using BORDER_FOR_MARKED_WINDOW_ACTOR. This is the key in which we store the St.Bin Object for each actor.
-*/
 
 var MR_DBUS_IFACE = `
 <node>
@@ -160,6 +152,16 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
                 }) };
         }
 
+        /*
+        Every border has it's own
+
+        new St.Bin({
+        style_class: 'marked-border'
+        });
+
+        This is why we are using info.marked. border_instance is the key in which we store the St.Bin Object for each actor.
+        */
+
         info.marked[key] = value;
         windowData.set(actor, info);
     }
@@ -228,11 +230,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         if (this._get_border_for_marked_actor(actor)) {
             border = this._get_border_for_marked_actor(actor);
-        } else {
-            border = new St.Bin({
-                style_class: 'marked-border'
-            });
-            this._set_marked_window_data(actor, BORDER_FOR_MARKED_WINDOW_ACTOR, border);
         }
 
         actor_parent.add_child(border);
@@ -268,11 +265,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             let actor_parent = actor.get_parent();
 
             actor_parent.remove_child(this._get_border_for_marked_actor(actor));
-
-            if (this._is_marked(actor)) {
-                let info = markedWindowsData.get(actor);
-                delete info[BORDER_FOR_MARKED_WINDOW_ACTOR];
-            }
         }
     }
 
