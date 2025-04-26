@@ -43,7 +43,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             let currentWorkspace = WorkspaceManager.get_active_workspace();
 
             windowData.forEach((_, actor) => {
-                if (_is_marked(actor)) {
+                if (this._is_marked(actor)) {
                     let win = actor.get_meta_window();
                     if (win.get_workspace() !== currentWorkspace) {
                         this._remove_border_marked_actor(actor);
@@ -84,7 +84,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._restackedId = Display.connect('restacked', (display) => {
 
             windowData.forEach((_, actor) => {
-                if (_is_marked(actor)) {
+                if (this._is_marked(actor)) {
                     if (this._get_border_for_marked_actor(actor)) {
                         let wg = Meta.get_window_group_for_display(display);
                         wg.set_child_above_sibling(this._get_border_for_marked_actor(actor), actor);
@@ -138,6 +138,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _set_marked_window_data(actor, key, value) {
         let info;
+
+        log(`Inside _set_marked_window_data`);
 
         if (windowData.has(actor)) {
             info = windowData.get(actor);
@@ -196,11 +198,15 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _get_border_for_marked_actor(actor) {
-        if (!_is_marked(actor)) {
+        log(`Inside _get_border_for_marked_actor`);
+
+        if (!this._is_marked(actor)) {
             return null;
         }
 
         const info = windowData.get(actor);
+
+        log(`Inside _get_border_for_marked_actor INFO ${info}`);
 
         if ("border_instance" in info.marked) {
             return info.marked.border_instance;
@@ -227,11 +233,13 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let rect = win.get_frame_rect();
 
         let border;
-
+        // If not set then set first
         if (this._get_border_for_marked_actor(actor)) {
             border = this._get_border_for_marked_actor(actor);
         }
 
+        log(`Inside _add_border_marked_actor`);
+        log(`Inside _add_border_marked_actor Border: ${border}`);
         actor_parent.add_child(border);
 
         border.set_position(rect.x, rect.y);
@@ -400,7 +408,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _unmark_windows() {
         windowData.forEach((_, actor) => {
-            if (_is_marked(actor)) {
+            if (this._is_marked(actor)) {
                 this._unmark_window(actor);
             }
         });
@@ -505,7 +513,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         const markedWindows = [];
 
         windowData.forEach((_, actor) => {
-            if (_is_marked(actor)) {
+            if (this._is_marked(actor)) {
                 markedWindows.push(actor.get_meta_window().get_id());
             }
         });
@@ -534,7 +542,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         // });
 
         windowData.forEach((data, actor) => {
-            if (_is_marked(actor)) {
+            if (this._is_marked(actor)) {
                 const win = actor.get_meta_window();          // human‑readable window
                 const windowId = win.get_id();
 
