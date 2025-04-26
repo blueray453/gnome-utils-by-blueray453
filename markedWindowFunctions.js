@@ -146,11 +146,20 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     // markedWindowsData Utility Functions
 
     _set_marked_window_data(actor, key, value) {
-        if (!this._is_marked(actor)) {
-            markedWindowsData.set(actor, {});
+        let info;
+
+        if (windowData.has(actor)) {
+            info = windowData.get(actor);
+        } else {
+            info = {};
         }
-        let info = markedWindowsData.get(actor);
-        info[key] = value;
+
+        if (!this._is_marked(actor)) {
+            info.marked = { style_class: "marked-border" };
+        }
+
+        info.marked[key] = value;
+        windowData.set(actor, info);
     }
 
     _set_pinned_window_data(actor, key, value) {
@@ -162,9 +171,14 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _get_marked_window_data(actor, key) {
-        if (this._is_marked(actor)) {
-            const info = markedWindowsData.get(actor);
-            return info[key];
+        if (!this._is_marked(actor)) {
+            return null;
+        }
+
+        const info = windowData.get(actor);
+
+        if (info && key in info.marked) {
+            return info.marked[key];
         }
         return null;
     }
