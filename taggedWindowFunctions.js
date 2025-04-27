@@ -209,7 +209,7 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
         let border;
 
         if (this._has_window_data_marked(actor)) {
-            border = this._get_border_for_actor_pinned(actor);
+            border = this._get_border_for_actor_marked(actor);
         } else {
             this._set_window_data_marked(actor, "border_instance", new St.Bin({
                 style_class: 'marked-border'
