@@ -241,6 +241,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _add_border_actor_pinned(actor) {
+        log(`Inside _add_border_actor_pinned`);
         this._add_border_to_actor(actor, "pinned", 'pinned-border');
     }
 
