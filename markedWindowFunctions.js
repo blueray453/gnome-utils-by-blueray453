@@ -39,7 +39,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             let currentWorkspace = WorkspaceManager.get_active_workspace();
 
             windowData.forEach((_, actor) => {
-                if (this._is_marked(actor)) {
+                if (this._has_window_data_marked(actor)) {
                     let win = actor.get_meta_window();
                     if (win.get_workspace() !== currentWorkspace) {
                         this._remove_border_marked_actor(actor);
@@ -50,7 +50,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             });
 
             windowData.forEach((_, actor) => {
-                if (this._is_pinned(actor)) {
+                if (this._has_window_data_pinned(actor)) {
                     let win = actor.get_meta_window();
                     if (win.get_workspace() !== currentWorkspace) {
                         win.change_workspace(currentWorkspace);
@@ -62,19 +62,19 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         });
 
         this._minimizeId = WindowManager.connect('minimize', (wm, actor) => {
-            if (this._is_marked(actor)) {
+            if (this._has_window_data_marked(actor)) {
                 this._remove_border_marked_actor(actor);
             }
-            if (this._is_pinned(actor)) {
+            if (this._has_window_data_pinned(actor)) {
                 this._remove_border_pinned_actor(actor);
             }
         });
 
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
-            if (this._is_marked(actor)) {
+            if (this._has_window_data_marked(actor)) {
                 this._add_border_marked_actor(actor);
             }
-            if (this._is_pinned(actor)) {
+            if (this._has_window_data_pinned(actor)) {
                 this._add_border_pinned_actor(actor);
             }
         });
@@ -82,7 +82,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._restackedId = Display.connect('restacked', (display) => {
 
             windowData.forEach((_, actor) => {
-                if (this._is_marked(actor)) {
+                if (this._has_window_data_marked(actor)) {
                     if (this._get_border_for_marked_actor(actor)) {
                         let wg = Meta.get_window_group_for_display(display);
                         wg.set_child_above_sibling(this._get_border_for_marked_actor(actor), actor);
@@ -93,7 +93,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             // this._get_border_for_marked_actor(actor);
 
             windowData.forEach((_, actor) => {
-                if (this._is_pinned(actor)) {
+                if (this._has_window_data_pinned(actor)) {
                     if (this._get_border_for_pinned_actor(actor)) {
                         let wg = Meta.get_window_group_for_display(display);
                         wg.set_child_above_sibling(this._get_border_for_pinned_actor(actor), actor);
@@ -123,18 +123,25 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-    // Check if actor is marked
-    _is_marked(actor) {
+    _has_window_data(actor, type) {
         const info = windowData.get(actor);
 
-        if (info && info.marked) {
+        if (info && info[type]) {
             return true;
         } else {
             return false;
         }
     }
 
-    _is_pinned(actor) {
+    _has_window_data_marked(actor) {
+        return _has_window_data(actor, "marked");
+    }
+
+    _has_window_data_pinned(actor) {
+        return _has_window_data(actor, "pinned");
+    }
+
+    _has_window_data_pinned(actor) {
         const info = windowData.get(actor);
 
         if (info && info.pinned) {
@@ -155,7 +162,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             info = {};
         }
 
-        if (!this._is_marked(actor)) {
+        if (!this._has_window_data_marked(actor)) {
             info.marked = {}; // just create an empty marked section
         }
 
@@ -172,7 +179,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             info = {};
         }
 
-        if (!this._is_pinned(actor)) {
+        if (!this._has_window_data_pinned(actor)) {
             info.pinned = {}; // just create an empty pinned section
         }
 
@@ -181,7 +188,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _get_marked_window_data(actor, key) {
-        if (!this._is_marked(actor)) {
+        if (!this._has_window_data_marked(actor)) {
             return null;
         }
 
@@ -194,7 +201,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _get_pinned_window_data(actor, key) {
-        if (!this._is_pinned(actor)) {
+        if (!this._has_window_data_pinned(actor)) {
             return null;
         }
 
@@ -207,7 +214,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _get_border_for_marked_actor(actor) {
-        if (!this._is_marked(actor)) {
+        if (!this._has_window_data_marked(actor)) {
             return null;
         }
 
@@ -221,7 +228,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _get_border_for_pinned_actor(actor) {
-        if (!this._is_pinned(actor)) {
+        if (!this._has_window_data_pinned(actor)) {
             return null;
         }
 
@@ -243,7 +250,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         let border;
 
-        if (this._is_marked(actor)) {
+        if (this._has_window_data_marked(actor)) {
             border = this._get_border_for_pinned_actor(actor);
         } else {
             this._set_marked_window_data(actor, "border_instance", new St.Bin({
@@ -276,7 +283,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         let border;
 
-        if (this._is_pinned(actor)) {
+        if (this._has_window_data_pinned(actor)) {
             border = this._get_border_for_pinned_actor(actor);
         } else {
             this._set_pinned_window_data(actor, "border_instance", new St.Bin({
@@ -320,7 +327,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     // Windows Mark
 
     /*
-    By marking window, i mean this._is_marked(actor). it normally has signals attached to it.
+    By marking window, i mean this._has_window_data_marked(actor). it normally has signals attached to it.
     We generally only remove the signals when we unmark.
 
     However, Whether it has border or not is irrelevant.
@@ -451,7 +458,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _unmark_windows() {
         windowData.forEach((_, actor) => {
-            if (this._is_marked(actor)) {
+            if (this._has_window_data_marked(actor)) {
                 this._unmark_window(actor);
             }
         });
@@ -459,14 +466,14 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _unpin_windows() {
         windowData.forEach((_, actor) => {
-            if (this._is_pinned(actor)) {
+            if (this._has_window_data_pinned(actor)) {
                 this._unmark_window(actor);
             }
         });
     }
 
     _toggle_mark(actor) {
-        if (this._is_marked(actor)) {
+        if (this._has_window_data_marked(actor)) {
             this._unmark_window(actor);
         } else {
             this._mark_window(actor);
@@ -474,7 +481,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _toggle_pin(actor) {
-        if (this._is_pinned(actor)) {
+        if (this._has_window_data_pinned(actor)) {
             this._unpin_window(actor);
         } else {
             this._pin_window(actor);
@@ -486,7 +493,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     ActivatePinnedWindows() {
         windowData.forEach((_, actor) => {
-            if (this._is_pinned(actor)) {
+            if (this._has_window_data_pinned(actor)) {
                 let win = actor.get_meta_window();
                 let win_workspace = win.get_workspace();
                 win_workspace.activate_with_focus(win, 0);
@@ -500,7 +507,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         const pinnedWindows = [];
 
         windowData.forEach((_, actor) => {
-            if (this._is_pinned(actor)) {
+            if (this._has_window_data_pinned(actor)) {
                 pinnedWindows.push(actor.get_meta_window().get_id());
             }
         });
@@ -516,7 +523,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._toggle_pin(actor);
 
         windowData.forEach((data, actor) => {
-            if (this._is_pinned(actor)) {
+            if (this._has_window_data_pinned(actor)) {
                 const win = actor.get_meta_window();          // human‑readable window
                 const windowId = win.get_id();
 
@@ -537,7 +544,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             }
 
             let actor = w.get_compositor_private();
-            if (this._is_marked(actor)) {
+            if (this._has_window_data_marked(actor)) {
                 return; // Skip this window if it's marked
             }
             w.delete(0);
@@ -552,7 +559,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         const markedWindows = [];
 
         windowData.forEach((_, actor) => {
-            if (this._is_marked(actor)) {
+            if (this._has_window_data_marked(actor)) {
                 markedWindows.push(actor.get_meta_window().get_id());
             }
         });
@@ -568,7 +575,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._toggle_mark(actor);
 
         windowData.forEach((data, actor) => {
-            if (this._is_marked(actor)) {
+            if (this._has_window_data_marked(actor)) {
                 const win = actor.get_meta_window();          // human‑readable window
                 const windowId = win.get_id();
 
