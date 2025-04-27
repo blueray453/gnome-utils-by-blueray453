@@ -287,7 +287,7 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
     This is also true for _add_border_actor_marked. We have to add border to the window again.
     */
 
-    _mark_or_pin_window(actor, type) {
+    _tag_window(actor, type) {
         // Add the corresponding border
         if (type === "marked") {
             this._add_border_actor_marked(actor);
@@ -343,14 +343,14 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
     }
 
     _mark_window(actor) {
-        this._mark_or_pin_window(actor, "marked");
+        this._tag_window(actor, "marked");
     }
 
     _pin_window(actor) {
-        this._mark_or_pin_window(actor, "pinned");
+        this._tag_window(actor, "pinned");
     }
 
-    _unmark_or_unpin_window(actor, type) {
+    _untag_window(actor, type) {
         if (type === "marked") {
             this._remove_border_actor_marked(actor);
         } else if (type === "pinned") {
@@ -381,11 +381,11 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
     }
 
     _unmark_window(actor) {
-        this._unmark_or_unpin_window(actor, "marked");
+        this._untag_window(actor, "marked");
     }
 
     _unpin_window(actor) {
-        this._unmark_or_unpin_window(actor, "pinned");
+        this._untag_window(actor, "pinned");
     }
 
     _unmark_windows() {
