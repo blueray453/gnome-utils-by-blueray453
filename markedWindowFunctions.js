@@ -205,48 +205,69 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     // Window Borders
 
-    _add_border_to_actor(actor, type, style_class) {
+    _add_border_actor_marked(actor) {
         let actor_parent = actor.get_parent();
         let win = actor.get_meta_window();
         let rect = win.get_frame_rect();
 
         let border;
 
-        log(`Inside _add_border_to_actor 1`);
-
-        // Check if the actor has the specified type (marked or pinned) and create the border if not
-        if (this._has_window_data(actor, type)) {
-            border = this._get_border_for_actor_marked(actor);  // Use the correct getter for the type
+        if (this._has_window_data_marked(actor)) {
+            border = this._get_border_for_pinned_actor(actor);
         } else {
-            this._set_window_data(actor, type, "border_instance", new St.Bin({
-                style_class: style_class
+            this._set_window_data_marked(actor, "border_instance", new St.Bin({
+                style_class: 'marked-border'
             }));
         }
-
-        log(`Inside _add_border_to_actor 2`);
-
         /*
-        Every border has it's own new St.Bin();
+        Every border has it's own
 
-        This is why we are using border_instance key to store St.Bin Object for each actor.
+        new St.Bin({
+        style_class: 'marked-border'
+        });
+
+        This is why we are using info.marked. border_instance is the key in which we store the St.Bin Object for each actor.
         */
 
-        // Get the border for the type (after setting it if it was missing)
         border = this._get_border_for_actor_marked(actor);
 
-        // Add the border and set its position/size
         actor_parent.add_child(border);
+
         border.set_position(rect.x, rect.y);
         border.set_size(rect.width, rect.height);
     }
 
-    _add_border_actor_marked(actor) {
-        this._add_border_to_actor(actor, "marked", 'marked-border');
-    }
 
     _add_border_actor_pinned(actor) {
-        log(`Inside _add_border_actor_pinned`);
-        this._add_border_to_actor(actor, "pinned", 'pinned-border');
+        let actor_parent = actor.get_parent();
+        let win = actor.get_meta_window();
+        let rect = win.get_frame_rect();
+
+        let border;
+
+        if (this._has_window_data_pinned(actor)) {
+            border = this._get_border_for_pinned_actor(actor);
+        } else {
+            this._set_window_data_pinned(actor, "border_instance", new St.Bin({
+                style_class: 'pinned-border'
+            }));
+        }
+        /*
+        Every border has it's own
+
+        new St.Bin({
+        style_class: 'pinned-border'
+        });
+
+        This is why we are using info.pinned. border_instance is the key in which we store the St.Bin Object for each actor.
+        */
+
+        border = this._get_border_for_actor_pinned(actor);
+
+        actor_parent.add_child(border);
+
+        border.set_position(rect.x, rect.y);
+        border.set_size(rect.width, rect.height);
     }
 
     _remove_border_actor(actor, type) {
