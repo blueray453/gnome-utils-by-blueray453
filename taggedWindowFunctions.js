@@ -36,14 +36,14 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
     constructor() {
         this.windowFunctionsInstance = new WindowFunctions();
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => {
-            let currentWorkspace = WorkspaceManager.get_active_workspace();
+            let current_workspace = WorkspaceManager.get_active_workspace();
 
             windowData.forEach((_, actor) => {
                 let win = actor.get_meta_window();
-                let workspace = win.get_workspace();
+                let win_workspace = win.get_workspace();
 
                 if (this._has_window_data_marked(actor)) {
-                    if (workspace !== currentWorkspace) {
+                    if (win_workspace !== current_workspace) {
                         this._remove_border_actor_marked(actor);
                     } else {
                         this._add_border_actor_marked(actor);
@@ -51,8 +51,8 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
                 }
 
                 if (this._has_window_data_pinned(actor)) {
-                    if (workspace !== currentWorkspace) {
-                        win.change_workspace(currentWorkspace);
+                    if (win_workspace !== current_workspace) {
+                        win.change_workspace(current_workspace);
                         win.get_workspace().activate_with_focus(win, 0);
                     }
                     this._add_border_actor_pinned(actor);
