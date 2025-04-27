@@ -24,7 +24,7 @@ const Me = ExtensionUtils.getCurrentExtension();
 
 const appFunctions = Me.imports.appFunctions;
 const clipboardFunctions = Me.imports.clipboardFunctions;
-const markedWindowFunctions = Me.imports.markedWindowFunctions;
+const taggedWindowFunctions = Me.imports.taggedWindowFunctions;
 const windowFunctions = Me.imports.windowFunctions;
 const workspaceFunctions = Me.imports.workspaceFunctions;
 
@@ -50,7 +50,7 @@ class Extension {
 
         this._registerDbusInterface('_dbus_apps', appFunctions, 'AppFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsApps');
         this._registerDbusInterface('_dbus_windows', windowFunctions, 'WindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
-        this._registerDbusInterface('_dbus_marked_windows', markedWindowFunctions, 'MarkedWindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows');
+        this._registerDbusInterface('_dbus_marked_windows', taggedWindowFunctions, 'TaggedWindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows');
         this._registerDbusInterface('_dbus_workspaces', workspaceFunctions, 'WorkspaceFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces');
         this._registerDbusInterface('_dbus_clipboard', clipboardFunctions, 'clipboardFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsClipboard');
 

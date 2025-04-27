@@ -12,7 +12,7 @@ const windowData = new Map();
 
 var MR_DBUS_IFACE = `
 <node>
-   <interface name="org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows">
+   <interface name="org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows">
       <method name="ActivatePinnedWindows">
         <arg type="s" direction="out" name="win" />
       </method>
@@ -31,7 +31,7 @@ var MR_DBUS_IFACE = `
    </interface>
 </node>`;
 
-var MarkedWindowFunctions = class MarkedWindowFunctions {
+var TaggedWindowFunctions = class TaggedWindowFunctions {
 
     constructor() {
         this.windowFunctionsInstance = new WindowFunctions();
@@ -443,7 +443,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.ActivatePinnedWindows
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ActivatePinnedWindows
 
     ActivatePinnedWindows() {
         windowData.forEach((_, actor) => {
@@ -455,7 +455,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.GetPinnedWindows
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.GetPinnedWindows
 
     GetPinnedWindows() {
         const pinnedWindows = [];
@@ -469,7 +469,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         return JSON.stringify(pinnedWindows);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.TogglePinsFocusedWindow
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.TogglePinsFocusedWindow
 
     TogglePinsFocusedWindow() {
         let win = Display.get_focus_window();
@@ -487,7 +487,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             }
         });
     }
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
 
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
         let wins = this.windowFunctionsInstance._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
@@ -507,7 +507,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         this._unmark_windows();
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.GetMarkedWindows
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.GetMarkedWindows
 
     GetMarkedWindows() {
         const markedWindows = [];
@@ -521,7 +521,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         return JSON.stringify(markedWindows);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsMarkedWindows org.gnome.Shell.Extensions.GnomeUtilsMarkedWindows.ToggleMarksFocusedWindow
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ToggleMarksFocusedWindow
 
     ToggleMarksFocusedWindow() {
         let win = Display.get_focus_window();
