@@ -81,6 +81,8 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
 
         this._restackedId = Display.connect('restacked', (display) => {
             let wg = Meta.get_window_group_for_display(display);
+            // let wg = Meta.Compositor.get_window_group();
+            // let wg = Meta.Compositor.get_top_window_group();
 
             windowData.forEach((_, actor) => {
                 if (this._has_data_marked(actor)) {
