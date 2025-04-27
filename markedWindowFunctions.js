@@ -151,9 +151,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-    // markedWindowsData Utility Functions
-
-    _set_marked_window_data(actor, key, value) {
+    _set_window_data(actor, section, key, value) {
         let info;
 
         if (windowData.has(actor)) {
@@ -162,29 +160,20 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             info = {};
         }
 
-        if (!this._has_window_data_marked(actor)) {
-            info.marked = {}; // just create an empty marked section
+        if (!this._has_window_data(actor, section)) {
+            info[section] = {}; // just create an empty section like "marked" or "pinned"
         }
 
-        info.marked[key] = value;
+        info[section][key] = value;
         windowData.set(actor, info);
     }
 
-    _set_pinned_window_data(actor, key, value) {
-        let info;
+    _set_window_data_marked(actor, key, value) {
+        this._set_window_data(actor, "marked", key, value);
+    }
 
-        if (windowData.has(actor)) {
-            info = windowData.get(actor);
-        } else {
-            info = {};
-        }
-
-        if (!this._has_window_data_pinned(actor)) {
-            info.pinned = {}; // just create an empty pinned section
-        }
-
-        info.pinned[key] = value;
-        windowData.set(actor, info);
+    _set_window_data_pinned(actor, key, value) {
+        this._set_window_data(actor, "pinned", key, value);
     }
 
     _get_marked_window_data(actor, key) {
@@ -253,7 +242,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         if (this._has_window_data_marked(actor)) {
             border = this._get_border_for_pinned_actor(actor);
         } else {
-            this._set_marked_window_data(actor, "border_instance", new St.Bin({
+            this._set_window_data_marked(actor, "border_instance", new St.Bin({
                 style_class: 'marked-border'
             }));
         }
@@ -286,7 +275,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         if (this._has_window_data_pinned(actor)) {
             border = this._get_border_for_pinned_actor(actor);
         } else {
-            this._set_pinned_window_data(actor, "border_instance", new St.Bin({
+            this._set_window_data_pinned(actor, "border_instance", new St.Bin({
                 style_class: 'pinned-border'
             }));
         }
@@ -369,10 +358,10 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             this._add_border_marked_actor(actor);
         });
 
-        this._set_marked_window_data(actor, 'positionChangedId', positionChangedId);
-        this._set_marked_window_data(actor, 'sizeChangedId', sizeChangedId);
-        this._set_marked_window_data(actor, 'unmanagedId', unmanagedId);
-        this._set_marked_window_data(actor, 'workspaceChangedId', workspaceChangedId);
+        this._set_window_data_marked(actor, 'positionChangedId', positionChangedId);
+        this._set_window_data_marked(actor, 'sizeChangedId', sizeChangedId);
+        this._set_window_data_marked(actor, 'unmanagedId', unmanagedId);
+        this._set_window_data_marked(actor, 'workspaceChangedId', workspaceChangedId);
     }
 
     _pin_window(actor) {
@@ -398,10 +387,10 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             this._add_border_pinned_actor(actor);
         });
 
-        this._set_pinned_window_data(actor, 'positionChangedId', positionChangedId);
-        this._set_pinned_window_data(actor, 'sizeChangedId', sizeChangedId);
-        this._set_pinned_window_data(actor, 'unmanagedId', unmanagedId);
-        this._set_pinned_window_data(actor, 'workspaceChangedId', workspaceChangedId);
+        this._set_window_data_pinned(actor, 'positionChangedId', positionChangedId);
+        this._set_window_data_pinned(actor, 'sizeChangedId', sizeChangedId);
+        this._set_window_data_pinned(actor, 'unmanagedId', unmanagedId);
+        this._set_window_data_pinned(actor, 'workspaceChangedId', workspaceChangedId);
     }
 
     _unmark_window(actor) {
