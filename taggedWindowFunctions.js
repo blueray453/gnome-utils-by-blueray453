@@ -85,16 +85,12 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
             windowData.forEach((_, actor) => {
                 if (this._has_window_data_marked(actor)) {
                     let border = this._get_border_for_actor_marked(actor);
-                    if (border) {
-                        wg.set_child_above_sibling(border, actor);
-                    }
+                    wg.set_child_above_sibling(border, actor);
                 }
 
                 if (this._has_window_data_pinned(actor)) {
                     let border = this._get_border_for_actor_pinned(actor);
-                    if (border) {
-                        wg.set_child_above_sibling(border, actor);
-                    }
+                    wg.set_child_above_sibling(border, actor);
                 }
             });
         });
@@ -219,15 +215,6 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
                 style_class: 'marked-border'
             }));
         }
-        /*
-        Every border has it's own
-
-        new St.Bin({
-        style_class: 'marked-border'
-        });
-
-        This is why we are using info.marked. border_instance is the key in which we store the St.Bin Object for each actor.
-        */
 
         border = this._get_border_for_actor_marked(actor);
 
@@ -252,15 +239,6 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
                 style_class: 'pinned-border'
             }));
         }
-        /*
-        Every border has it's own
-
-        new St.Bin({
-        style_class: 'pinned-border'
-        });
-
-        This is why we are using info.pinned. border_instance is the key in which we store the St.Bin Object for each actor.
-        */
 
         border = this._get_border_for_actor_pinned(actor);
 
@@ -272,7 +250,7 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
 
 
     _remove_border_actor_marked(actor) {
-        if (this._get_border_for_actor_marked(actor)) {
+        if (this._has_window_data_marked(actor)) {
             let actor_parent = actor.get_parent();
 
             actor_parent.remove_child(this._get_border_for_actor_marked(actor));
@@ -280,7 +258,7 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
     }
 
     _remove_border_actor_pinned(actor) {
-        if (this._get_border_for_actor_pinned(actor)) {
+        if (this._has_window_data_pinned(actor)) {
             let actor_parent = actor.get_parent();
 
             actor_parent.remove_child(this._get_border_for_actor_pinned(actor));
