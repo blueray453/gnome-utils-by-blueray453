@@ -212,6 +212,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         let border;
 
+        log(`Inside _add_border_to_actor 1`);
+
         // Check if the actor has the specified type (marked or pinned) and create the border if not
         if (this._has_window_data(actor, type)) {
             border = this._get_border_for_actor_marked(actor);  // Use the correct getter for the type
@@ -220,6 +222,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
                 style_class: style_class
             }));
         }
+
+        log(`Inside _add_border_to_actor 2`);
 
         /*
         Every border has it's own new St.Bin();
