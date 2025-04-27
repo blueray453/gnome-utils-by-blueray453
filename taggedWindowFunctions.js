@@ -135,7 +135,7 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
         return this._has_data(actor, "pinned");
     }
 
-    _set_data(actor, type, key, value) {
+    _set_data(actor, key, value, type) {
         let info;
 
         if (windowData.has(actor)) {
@@ -153,11 +153,11 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
     }
 
     _set_data_marked(actor, key, value) {
-        this._set_data(actor, "marked", key, value);
+        this._set_data(actor, key, value, "marked");
     }
 
     _set_data_pinned(actor, key, value) {
-        this._set_data(actor, "pinned", key, value);
+        this._set_data(actor, key, value, "pinned");
     }
 
     _get_data_marked(actor, key) {
