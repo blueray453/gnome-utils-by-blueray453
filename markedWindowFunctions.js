@@ -213,7 +213,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let border;
 
         if (this._has_window_data_marked(actor)) {
-            border = this._get_border_for_pinned_actor(actor);
+            border = this._get_border_for_actor_pinned(actor);
         } else {
             this._set_window_data_marked(actor, "border_instance", new St.Bin({
                 style_class: 'marked-border'
@@ -246,7 +246,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let border;
 
         if (this._has_window_data_pinned(actor)) {
-            border = this._get_border_for_pinned_actor(actor);
+            border = this._get_border_for_actor_pinned(actor);
         } else {
             this._set_window_data_pinned(actor, "border_instance", new St.Bin({
                 style_class: 'pinned-border'
@@ -270,22 +270,22 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         border.set_size(rect.width, rect.height);
     }
 
-    _remove_border_actor(actor, type) {
-        const border = this._get_border_for_actor_marked(actor);
-        if (border) {
+
+    _remove_border_actor_marked(actor) {
+        if (this._get_border_for_actor_marked(actor)) {
             let actor_parent = actor.get_parent();
-            actor_parent.remove_child(border);
+
+            actor_parent.remove_child(this._get_border_for_actor_marked(actor));
         }
     }
 
-    _remove_border_actor_marked(actor) {
-        this._remove_border_actor(actor, "marked");
-    }
-
     _remove_border_actor_pinned(actor) {
-        this._remove_border_actor(actor, "pinned");
-    }
+        if (this._get_border_for_actor_pinned(actor)) {
+            let actor_parent = actor.get_parent();
 
+            actor_parent.remove_child(this._get_border_for_actor_pinned(actor));
+        }
+    }
 
     // Windows Mark
 
