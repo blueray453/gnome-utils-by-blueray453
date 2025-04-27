@@ -287,19 +287,33 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     This is also true for _add_border_actor_marked. We have to add border to the window again.
     */
 
-    _mark_window(actor) {
-        this._add_border_actor_marked(actor);
+    _mark_or_pin_window(actor, type) {
+        // Add the corresponding border
+        if (type === "marked") {
+            this._add_border_actor_marked(actor);
+        } else if (type === "pinned") {
+            this._add_border_actor_pinned(actor);
+        }
+
         let win = actor.get_meta_window();
 
+        // Connect to the window events and update borders accordingly
         let positionChangedId = win.connect('position-changed', () => {
             let actor = win.get_compositor_private();
-            this._add_border_actor_marked(actor);
+            if (type === "marked") {
+                this._add_border_actor_marked(actor);
+            } else if (type === "pinned") {
+                this._add_border_actor_pinned(actor);
+            }
         });
 
         let sizeChangedId = win.connect('size-changed', () => {
             let actor = win.get_compositor_private();
-            this._add_border_actor_marked(actor);
-
+            if (type === "marked") {
+                this._add_border_actor_marked(actor);
+            } else if (type === "pinned") {
+                this._add_border_actor_pinned(actor);
+            }
         });
 
         let unmanagedId = win.connect('unmanaging', () => {
@@ -307,94 +321,71 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         });
 
         let workspaceChangedId = win.connect('workspace-changed', () => {
-            this._add_border_actor_marked(actor);
+            if (type === "marked") {
+                this._add_border_actor_marked(actor);
+            } else if (type === "pinned") {
+                this._add_border_actor_pinned(actor);
+            }
         });
 
-        this._set_window_data_marked(actor, 'positionChangedId', positionChangedId);
-        this._set_window_data_marked(actor, 'sizeChangedId', sizeChangedId);
-        this._set_window_data_marked(actor, 'unmanagedId', unmanagedId);
-        this._set_window_data_marked(actor, 'workspaceChangedId', workspaceChangedId);
+        // Store the event IDs in window data
+        if (type === "marked") {
+            this._set_window_data_marked(actor, 'positionChangedId', positionChangedId);
+            this._set_window_data_marked(actor, 'sizeChangedId', sizeChangedId);
+            this._set_window_data_marked(actor, 'unmanagedId', unmanagedId);
+            this._set_window_data_marked(actor, 'workspaceChangedId', workspaceChangedId);
+        } else if (type === "pinned") {
+            this._set_window_data_pinned(actor, 'positionChangedId', positionChangedId);
+            this._set_window_data_pinned(actor, 'sizeChangedId', sizeChangedId);
+            this._set_window_data_pinned(actor, 'unmanagedId', unmanagedId);
+            this._set_window_data_pinned(actor, 'workspaceChangedId', workspaceChangedId);
+        }
+    }
+
+    _mark_window(actor) {
+        this._mark_or_pin_window(actor, "marked");
     }
 
     _pin_window(actor) {
-        this._add_border_actor_pinned(actor);
-        let win = actor.get_meta_window();
-
-        let positionChangedId = win.connect('position-changed', () => {
-            let actor = win.get_compositor_private();
-            this._add_border_actor_pinned(actor);
-        });
-
-        let sizeChangedId = win.connect('size-changed', () => {
-            let actor = win.get_compositor_private();
-            this._add_border_actor_pinned(actor);
-
-        });
-
-        let unmanagedId = win.connect('unmanaging', () => {
-            this._unmark_window(actor);
-        });
-
-        let workspaceChangedId = win.connect('workspace-changed', () => {
-            this._add_border_actor_pinned(actor);
-        });
-
-        this._set_window_data_pinned(actor, 'positionChangedId', positionChangedId);
-        this._set_window_data_pinned(actor, 'sizeChangedId', sizeChangedId);
-        this._set_window_data_pinned(actor, 'unmanagedId', unmanagedId);
-        this._set_window_data_pinned(actor, 'workspaceChangedId', workspaceChangedId);
+        this._mark_or_pin_window(actor, "pinned");
     }
 
-    _unmark_window(actor) {
-        this._remove_border_actor_marked(actor);
+    _unmark_or_unpin_window(actor, type) {
+        if (type === "marked") {
+            this._remove_border_actor_marked(actor);
+        } else if (type === "pinned") {
+            this._remove_border_actor_pinned(actor);
+        }
+
         let win = actor.get_meta_window();
         const info = windowData.get(actor);
 
-        win.disconnect(this._get_window_data_marked(actor, 'positionChangedId'));
-        win.disconnect(this._get_window_data_marked(actor, 'sizeChangedId'));
-        win.disconnect(this._get_window_data_marked(actor, 'unmanagedId'));
-        win.disconnect(this._get_window_data_marked(actor, 'workspaceChangedId'));
+        const getWindowData = type === "marked" ? this._get_window_data_marked.bind(this) : this._get_window_data_pinned.bind(this);
+
+        win.disconnect(getWindowData(actor, 'positionChangedId'));
+        win.disconnect(getWindowData(actor, 'sizeChangedId'));
+        win.disconnect(getWindowData(actor, 'unmanagedId'));
+        win.disconnect(getWindowData(actor, 'workspaceChangedId'));
 
         if (info) {
-            // Remove the 'marked' property if it exists
-            if (info.marked) {
-                delete info.marked;
+            if (info[type]) {
+                delete info[type];
             }
 
-            // If there is no 'marked' or 'pinned' property, remove the actor from windowData
             if (!info.marked && !info.pinned) {
                 windowData.delete(actor);
             } else {
-                // If either 'marked' or 'pinned' exists, update the actor's info in windowData
                 windowData.set(actor, info);
             }
         }
     }
 
+    _unmark_window(actor) {
+        this._unmark_or_unpin_window(actor, "marked");
+    }
+
     _unpin_window(actor) {
-        this._remove_border_actor_pinned(actor);
-        let win = actor.get_meta_window();
-        const info = windowData.get(actor);
-
-        win.disconnect(this._get_window_data_pinned(actor, 'positionChangedId'));
-        win.disconnect(this._get_window_data_pinned(actor, 'sizeChangedId'));
-        win.disconnect(this._get_window_data_pinned(actor, 'unmanagedId'));
-        win.disconnect(this._get_window_data_pinned(actor, 'workspaceChangedId'));
-
-        if (info) {
-            // Remove the 'pinned' property if it exists
-            if (info.pinned) {
-                delete info.pinned;
-            }
-
-            // If there is no 'pinned' or 'pinned' property, remove the actor from windowData
-            if (!info.pinned && !info.pinned) {
-                windowData.delete(actor);
-            } else {
-                // If either 'pinned' or 'pinned' exists, update the actor's info in windowData
-                windowData.set(actor, info);
-            }
-        }
+        this._unmark_or_unpin_window(actor, "pinned");
     }
 
     _unmark_windows() {
