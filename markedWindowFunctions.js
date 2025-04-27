@@ -39,26 +39,26 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             let currentWorkspace = WorkspaceManager.get_active_workspace();
 
             windowData.forEach((_, actor) => {
+                let win = actor.get_meta_window();
+                let workspace = win.get_workspace();
+
                 if (this._has_window_data_marked(actor)) {
-                    let win = actor.get_meta_window();
-                    if (win.get_workspace() !== currentWorkspace) {
+                    if (workspace !== currentWorkspace) {
                         this._remove_border_actor_marked(actor);
                     } else {
                         this._add_border_actor_marked(actor);
                     }
                 }
-            });
 
-            windowData.forEach((_, actor) => {
                 if (this._has_window_data_pinned(actor)) {
-                    let win = actor.get_meta_window();
-                    if (win.get_workspace() !== currentWorkspace) {
+                    if (workspace !== currentWorkspace) {
                         win.change_workspace(currentWorkspace);
                         win.get_workspace().activate_with_focus(win, 0);
-                        this._add_border_actor_pinned(actor);
                     }
+                    this._add_border_actor_pinned(actor);
                 }
             });
+
         });
 
         this._minimizeId = WindowManager.connect('minimize', (wm, actor) => {
@@ -80,27 +80,23 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         });
 
         this._restackedId = Display.connect('restacked', (display) => {
+            let wg = Meta.get_window_group_for_display(display);
 
             windowData.forEach((_, actor) => {
                 if (this._has_window_data_marked(actor)) {
-                    if (this._get_border_for_actor_marked(actor)) {
-                        let wg = Meta.get_window_group_for_display(display);
-                        wg.set_child_above_sibling(this._get_border_for_actor_marked(actor), actor);
+                    let border = this._get_border_for_actor_marked(actor);
+                    if (border) {
+                        wg.set_child_above_sibling(border, actor);
                     }
                 }
-            });
 
-            // this._get_border_for_actor_marked(actor);
-
-            windowData.forEach((_, actor) => {
                 if (this._has_window_data_pinned(actor)) {
-                    if (this._get_border_for_actor_pinned(actor)) {
-                        let wg = Meta.get_window_group_for_display(display);
-                        wg.set_child_above_sibling(this._get_border_for_actor_pinned(actor), actor);
+                    let border = this._get_border_for_actor_pinned(actor);
+                    if (border) {
+                        wg.set_child_above_sibling(border, actor);
                     }
                 }
             });
-            // this._get_border_for_actor_pinned(actor);
         });
     }
 
@@ -134,11 +130,11 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _has_window_data_marked(actor) {
-        return _has_window_data(actor, "marked");
+        return this._has_window_data(actor, "marked");
     }
 
     _has_window_data_pinned(actor) {
-        return _has_window_data(actor, "pinned");
+        return this._has_window_data(actor, "pinned");
     }
 
     _set_window_data(actor, type, key, value) {
