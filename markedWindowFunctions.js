@@ -125,7 +125,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     // Check if actor is marked
     _is_marked(actor) {
-        log(`Inside _is_marked`);
         const info = windowData.get(actor);
 
         if (info && info.marked) {
@@ -140,8 +139,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     _set_marked_window_data(actor, key, value) {
         let info;
 
-        log(`Inside _set_marked_window_data`);
-
         if (windowData.has(actor)) {
             info = windowData.get(actor);
         } else {
@@ -151,12 +148,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         if (!this._is_marked(actor)) {
             info.marked = {}; // just create an empty marked section
         }
-        log(`Inside _set_marked_window_data info.marked ${info.marked}`);
 
         info.marked[key] = value;
-
-        log(`Inside _set_marked_window_data info.marked[key] ${info.marked[key]}`);
-
         windowData.set(actor, info);
     }
 
@@ -190,15 +183,11 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _get_border_for_marked_actor(actor) {
-        log(`Inside _get_border_for_marked_actor`);
-
         if (!this._is_marked(actor)) {
             return null;
         }
 
         const info = windowData.get(actor);
-
-        log(`Inside _get_border_for_marked_actor INFO ${info}`);
 
         if ("border_instance" in info.marked) {
             return info.marked.border_instance;
@@ -243,11 +232,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         This is why we are using info.marked. border_instance is the key in which we store the St.Bin Object for each actor.
         */
 
-        log(`Border is not there, creating border`);
-
         border = this._get_border_for_marked_actor(actor);
 
-        log(`Inside _add_border_marked_actor Border: ${border}`);
         actor_parent.add_child(border);
 
         border.set_position(rect.x, rect.y);
