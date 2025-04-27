@@ -1,6 +1,6 @@
 .marked-border {
     border-style: solid;
-    border-color: #cb4b16; /* Solarized Dark's orange */
+    border-color: #859900; /* Solarized Dark's orange */
     border-radius: 5px;
     box-shadow: inset 0 0 0 1px rgba(200, 200, 200, 0);
     border-width: 5px;
@@ -9,6 +9,14 @@
 .pinned-border {
     border-style: solid;
     border-color: #268bd2; /* Solarized blue */
+    border-radius: 5px;
+    box-shadow: inset 0 0 0 1px rgba(200, 200, 200, 0);
+    border-width: 5px;
+}
+
+.both-marked-pinned-border {
+    border-style: solid;
+    border-color: #d33682; /* Solarized blue */
     border-radius: 5px;
     box-shadow: inset 0 0 0 1px rgba(200, 200, 200, 0);
     border-width: 5px;
