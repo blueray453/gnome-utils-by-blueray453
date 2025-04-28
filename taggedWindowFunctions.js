@@ -46,7 +46,7 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
                     if (win_workspace !== current_workspace) {
                         this._remove_border_marked(actor);
                     } else {
-                        this._add_border_marked(actor);
+                        this._set_border_marked(actor);
                     }
                 }
 
@@ -55,7 +55,7 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
                         win.change_workspace(current_workspace);
                         win.get_workspace().activate_with_focus(win, 0);
                     }
-                    this._add_border_pinned(actor);
+                    this._set_border_pinned(actor);
                 }
             });
 
@@ -72,10 +72,10 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
 
         this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
             if (this._has_data_marked(actor)) {
-                this._add_border_marked(actor);
+                this._set_border_marked(actor);
             }
             if (this._has_data_pinned(actor)) {
-                this._add_border_pinned(actor);
+                this._set_border_pinned(actor);
             }
         });
 
@@ -116,6 +116,8 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
             this._restackedId = null;
         }
     }
+
+    // Window Data
 
     _has_data(actor, type) {
         const info = windowData.get(actor);
@@ -180,30 +182,9 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
         return null;
     }
 
-    _get_border_marked(actor) {
-        const info = windowData.get(actor);
-
-        if (info && info.marked && "border_instance" in info.marked) {
-            return info.marked.border_instance;
-        }
-
-        return null;
-    }
-
-    _get_border_pinned(actor) {
-        const info = windowData.get(actor);
-
-        if (info && info.pinned && "border_instance" in info.pinned) {
-            return info.pinned.border_instance;
-        }
-
-        return null;
-    }
-
-
     // Window Borders
 
-    _add_border_marked(actor) {
+    _set_border_marked(actor) {
         let actor_parent = actor.get_parent();
         let win = actor.get_meta_window();
         let rect = win.get_frame_rect();
@@ -227,7 +208,7 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
     }
 
 
-    _add_border_pinned(actor) {
+    _set_border_pinned(actor) {
         let actor_parent = actor.get_parent();
         let win = actor.get_meta_window();
         let rect = win.get_frame_rect();
@@ -250,6 +231,25 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
         border.set_size(rect.width, rect.height);
     }
 
+    _get_border_marked(actor) {
+        const info = windowData.get(actor);
+
+        if (info && info.marked && "border_instance" in info.marked) {
+            return info.marked.border_instance;
+        }
+
+        return null;
+    }
+
+    _get_border_pinned(actor) {
+        const info = windowData.get(actor);
+
+        if (info && info.pinned && "border_instance" in info.pinned) {
+            return info.pinned.border_instance;
+        }
+
+        return null;
+    }
 
     _remove_border_marked(actor) {
         if (this._has_data_marked(actor)) {
@@ -286,15 +286,15 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
 
     This is also true for _update_borders. We have to add border to the window again.
 
-    This is also true for _add_border_marked. We have to add border to the window again.
+    This is also true for _set_border_marked. We have to add border to the window again.
     */
 
     _tag_window(actor, type) {
         // Add the corresponding border
         if (type === "marked") {
-            this._add_border_marked(actor);
+            this._set_border_marked(actor);
         } else if (type === "pinned") {
-            this._add_border_pinned(actor);
+            this._set_border_pinned(actor);
         }
 
         let win = actor.get_meta_window();
@@ -303,18 +303,18 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
         let positionChangedId = win.connect('position-changed', () => {
             let actor = win.get_compositor_private();
             if (type === "marked") {
-                this._add_border_marked(actor);
+                this._set_border_marked(actor);
             } else if (type === "pinned") {
-                this._add_border_pinned(actor);
+                this._set_border_pinned(actor);
             }
         });
 
         let sizeChangedId = win.connect('size-changed', () => {
             let actor = win.get_compositor_private();
             if (type === "marked") {
-                this._add_border_marked(actor);
+                this._set_border_marked(actor);
             } else if (type === "pinned") {
-                this._add_border_pinned(actor);
+                this._set_border_pinned(actor);
             }
         });
 
@@ -324,9 +324,9 @@ var TaggedWindowFunctions = class TaggedWindowFunctions {
 
         let workspaceChangedId = win.connect('workspace-changed', () => {
             if (type === "marked") {
-                this._add_border_marked(actor);
+                this._set_border_marked(actor);
             } else if (type === "pinned") {
-                this._add_border_pinned(actor);
+                this._set_border_pinned(actor);
             }
         });
 
