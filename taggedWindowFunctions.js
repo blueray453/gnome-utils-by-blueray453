@@ -175,9 +175,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             actor_parent.remove_child(borderMarkedPinned);
         }
 
-        let border;
-
-        border = this._get_border(actor);
+        let border = this._get_border(actor);
         if (!border) return;
 
         // Add the new border
