@@ -109,7 +109,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-    // Utility functions
+    // ========= Utility functions ================ //
     _set_data(actor, key, value) {
         let info = windowData.get(actor) || {};
         info[key] = value;
@@ -137,7 +137,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         return !this._is_marked(actor) && !this._is_pinned(actor);
     }
 
-    // Window Borders
+    // ========= Border functions ================ //
     // Get the correct border instance
     _get_border(actor) {
         const marked = this._is_marked(actor);
@@ -153,8 +153,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             return null;
         }
     }
-
-    // =======================================================
 
     _add_border(actor) {
         let actor_parent = actor.get_parent();
@@ -193,7 +191,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
-    // =======================================================
+    // ========= Mark/Pin functions ================ //
 
     _initialize_actor(actor) {
         let win = actor.get_meta_window();
@@ -233,54 +231,57 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }));
     }
 
-    _pin_window(actor) {
+    _tag_window(actor, stateType, value) {
         if (!windowData.has(actor)) {
             this._initialize_actor(actor);
         }
-        this._set_data(actor, "isPinned", true);
-        log(`Pinning window - State: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
+        this._set_data(actor, stateType, value);
         this._add_border(actor);
+    }
+
+    // Refactored versions using the helper function
+    _pin_window(actor) {
+        this._tag_window(actor, "isPinned", true);
+        // log(`Pinning window - State: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
         // log("_pin_window Actor:", JSON.stringify(windowData.get(actor), null, 2));
     }
 
     _mark_window(actor) {
-        if (!windowData.has(actor)) {
-            this._initialize_actor(actor);
-        }
-        this._set_data(actor, "isMarked", true);
-        log(`Marking window - State: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
-        this._add_border(actor);
+        this._tag_window(actor, "isMarked", true);
+        // log(`Marking window - State: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
         // log("_mark_window Actor:", JSON.stringify(windowData.get(actor), null, 2));
     }
 
-    _unpin_window(actor) {
+    _untag_window(actor, tagType) {
         this._remove_border(actor);
-        this._set_data(actor, "isPinned", false);
-        let win = actor.get_meta_window();
-        // only disconnect if both unmarked and unpinned
-        if (this._is_neither_marked_pinned(actor)){
-            win.disconnect(this._get_data(actor, 'positionChangedId'));
-            win.disconnect(this._get_data(actor, 'sizeChangedId'));
-            win.disconnect(this._get_data(actor, 'unmanagedId'));
-            win.disconnect(this._get_data(actor, 'workspaceChangedId'));
+        this._set_data(actor, tagType, false);
+
+        if (this._is_neither_marked_pinned(actor)) {
+            const win = actor.get_meta_window();
+            const connectionIds = [
+                'positionChangedId',
+                'sizeChangedId',
+                'unmanagedId',
+                'workspaceChangedId'
+            ];
+
+            // Disconnect all stored signal handlers
+            connectionIds.forEach(id => {
+                const handlerId = this._get_data(actor, id);
+                if (handlerId) win.disconnect(handlerId);
+            });
+
             windowData.delete(actor);
         }
+    }
+
+    _unpin_window(actor) {
+        this._untag_window(actor, "isPinned");
         // log("_unpin_window Actor:", JSON.stringify(windowData.get(actor), null, 2));
     }
 
     _unmark_window(actor) {
-        // this._set_data(actor, "isMarked", false);
-        this._remove_border(actor);
-        this._set_data(actor, "isMarked", false);
-        let win = actor.get_meta_window();
-        // only disconnect if both unmarked and unpinned
-        if (this._is_neither_marked_pinned(actor)) {
-            win.disconnect(this._get_data(actor, 'positionChangedId'));
-            win.disconnect(this._get_data(actor, 'sizeChangedId'));
-            win.disconnect(this._get_data(actor, 'unmanagedId'));
-            win.disconnect(this._get_data(actor, 'workspaceChangedId'));
-            windowData.delete(actor);
-        }
+        this._untag_window(actor, "isMarked");
         // log("_unmark_window Actor:", JSON.stringify(windowData.get(actor), null, 2));
     }
 
@@ -311,7 +312,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
         this._add_border(actor);
 
-        log(`Toggled pin - New state: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
+        // log(`Toggled pin - New state: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
     }
 
     _toggle_mark(actor) {
@@ -330,7 +331,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
         this._add_border(actor);
 
-        log(`Toggled mark - New state: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
+        // log(`Toggled mark - New state: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ActivatePinnedWindows
@@ -362,14 +363,14 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let actor = win.get_compositor_private();
         this._toggle_pin(actor);
 
-        windowData.forEach((data, actor) => {
-            const win = actor.get_meta_window();          // human‑readable window
-            const windowId = win.get_id();
+        // windowData.forEach((data, actor) => {
+        //     const win = actor.get_meta_window();          // human‑readable window
+        //     const windowId = win.get_id();
 
-            log(`Pinned Window ID: ${windowId}`);
-            log(`Window Border (Pinned): ${this._get_border(actor)}`);
-            // this._get_border(actor);
-        });
+        //     log(`Pinned Window ID: ${windowId}`);
+        //     log(`Window Border (Pinned): ${this._get_border(actor)}`);
+        //     // this._get_border(actor);
+        // });
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
@@ -411,12 +412,12 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let actor = win.get_compositor_private();
         this._toggle_mark(actor);
 
-        windowData.forEach((data, actor) => {
-            const win = actor.get_meta_window();          // human‑readable window
-            const windowId = win.get_id();
+        // windowData.forEach((data, actor) => {
+        //     const win = actor.get_meta_window();          // human‑readable window
+        //     const windowId = win.get_id();
 
-            log(`Marked Window ID: ${windowId}`);
-            log(`Window Is Marked: ${this._get_data(actor, "isMarked") }`);
-        });
+        //     log(`Marked Window ID: ${windowId}`);
+        //     log(`Window Is Marked: ${this._get_data(actor, "isMarked") }`);
+        // });
     }
 };
