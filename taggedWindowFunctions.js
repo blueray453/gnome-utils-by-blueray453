@@ -287,6 +287,17 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
+    _unmark_windows() {
+        windowData.forEach((_, actor) => {
+            if (this._is_marked(actor)) {
+                this._unmark_window(actor);
+            }
+            if (this._is_pinned(actor)) {
+                this._add_border(actor);
+            }
+        });
+    }
+
     // Extracted common cleanup code
     _cleanup_window_data(actor) {
         const win = actor.get_meta_window();
@@ -305,19 +316,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         this._remove_border(actor);
         windowData.delete(actor);
-    }
-
-
-
-    _unmark_windows() {
-        windowData.forEach((_, actor) => {
-            if (this._is_marked(actor)) {
-                this._unmark_window(actor);
-            }
-            if (this._is_pinned(actor)) {
-                this._add_border(actor);
-            }
-        });
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ActivatePinnedWindows
