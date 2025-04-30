@@ -302,6 +302,22 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         });
     }
 
+    // _toggle_mark(actor) {
+    //     if (this._has_data_marked(actor)) {
+    //         this._unmark_window(actor);
+    //     } else {
+    //         this._mark_window(actor);
+    //     }
+    // }
+
+    // _toggle_pin(actor) {
+    //     if (this._has_data_pinned(actor)) {
+    //         this._unpin_window(actor);
+    //     } else {
+    //         this._pin_window(actor);
+    //     }
+    // }
+
     _toggle_pin(actor) {
         const currentlyPinned = this._is_pinned(actor);
 
