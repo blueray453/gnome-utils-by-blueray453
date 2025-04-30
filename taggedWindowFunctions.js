@@ -160,14 +160,19 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let rect = win.get_frame_rect();
 
         // Remove any existing borders first
-        if (this._get_data(actor, "border_marked")?.get_parent() === actor_parent) {
-            actor_parent.remove_child(this._get_data(actor, "border_marked"));
+        const borderMarked = this._get_data(actor, "border_marked");
+        if (borderMarked && borderMarked.get_parent() === actor_parent) {
+            actor_parent.remove_child(borderMarked);
         }
-        if (this._get_data(actor, "border_pinned")?.get_parent() === actor_parent) {
-            actor_parent.remove_child(this._get_data(actor, "border_pinned"));
+
+        const borderPinned = this._get_data(actor, "border_pinned");
+        if (borderPinned && borderPinned.get_parent() === actor_parent) {
+            actor_parent.remove_child(borderPinned);
         }
-        if (this._get_data(actor, "border_marked_pinned")?.get_parent() === actor_parent) {
-            actor_parent.remove_child(this._get_data(actor, "border_marked_pinned"));
+
+        const borderMarkedPinned = this._get_data(actor, "border_marked_pinned");
+        if (borderMarkedPinned && borderMarkedPinned.get_parent() === actor_parent) {
+            actor_parent.remove_child(borderMarkedPinned);
         }
 
         let border;
