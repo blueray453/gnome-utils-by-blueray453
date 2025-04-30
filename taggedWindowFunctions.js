@@ -237,59 +237,77 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }));
     }
 
-    _tag_window(actor, stateType, value) {
+    _toggle_pin(actor) {
+        if (this._is_pinned(actor)) {
+            this._unpin_window(actor);
+        } else {
+            this._pin_window(actor);
+        }
+    }
+
+    _pin_window(actor) {
         if (!windowData.has(actor)) {
             this._initialize_actor(actor);
         }
-        this._set_data(actor, stateType, value);
+        this._set_data(actor, "isPinned", true);
         this._add_border(actor);
     }
 
-    // Refactored versions using the helper function
-    _pin_window(actor) {
-        this._tag_window(actor, "isPinned", true);
-        // log(`Pinning window - State: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
-        // log("_pin_window Actor:", JSON.stringify(windowData.get(actor), null, 2));
-    }
-
-    _mark_window(actor) {
-        this._tag_window(actor, "isMarked", true);
-        // log(`Marking window - State: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
-        // log("_mark_window Actor:", JSON.stringify(windowData.get(actor), null, 2));
-    }
-
-    _untag_window(actor, tagType) {
-        this._remove_border(actor);
-        this._set_data(actor, tagType, false);
+    _unpin_window(actor) {
+        this._set_data(actor, "isPinned", false);
+        this._add_border(actor); // This will show the appropriate border based on current state
 
         if (this._is_neither_marked_pinned(actor)) {
-            const win = actor.get_meta_window();
-            const connectionIds = [
-                'positionChangedId',
-                'sizeChangedId',
-                'unmanagedId',
-                'workspaceChangedId'
-            ];
-
-            // Disconnect all stored signal handlers
-            connectionIds.forEach(id => {
-                const handlerId = this._get_data(actor, id);
-                if (handlerId) win.disconnect(handlerId);
-            });
-
-            windowData.delete(actor);
+            this._cleanup_window_data(actor);
         }
     }
 
-    _unpin_window(actor) {
-        this._untag_window(actor, "isPinned");
-        // log("_unpin_window Actor:", JSON.stringify(windowData.get(actor), null, 2));
+    _toggle_mark(actor) {
+        if (this._is_marked(actor)) {
+            this._unmark_window(actor);
+        } else {
+            this._mark_window(actor);
+        }
+    }
+
+    _mark_window(actor) {
+        if (!windowData.has(actor)) {
+            this._initialize_actor(actor);
+        }
+        this._set_data(actor, "isMarked", true);
+        this._add_border(actor);
     }
 
     _unmark_window(actor) {
-        this._untag_window(actor, "isMarked");
-        // log("_unmark_window Actor:", JSON.stringify(windowData.get(actor), null, 2));
+        this._set_data(actor, "isMarked", false);
+        this._add_border(actor); // This will show the appropriate border based on current state
+
+        if (this._is_neither_marked_pinned(actor)) {
+            this._cleanup_window_data(actor);
+        }
     }
+
+    // Extracted common cleanup code
+    _cleanup_window_data(actor) {
+        const win = actor.get_meta_window();
+        const connectionIds = [
+            'positionChangedId',
+            'sizeChangedId',
+            'unmanagedId',
+            'workspaceChangedId'
+        ];
+
+        // Disconnect all stored signal handlers
+        connectionIds.forEach(id => {
+            const handlerId = this._get_data(actor, id);
+            if (handlerId) win.disconnect(handlerId);
+        });
+
+        this._remove_border(actor);
+        windowData.delete(actor);
+    }
+
+
 
     _unmark_windows() {
         windowData.forEach((_, actor) => {
@@ -300,60 +318,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
                 this._add_border(actor);
             }
         });
-    }
-
-    // _toggle_mark(actor) {
-    //     if (this._has_data_marked(actor)) {
-    //         this._unmark_window(actor);
-    //     } else {
-    //         this._mark_window(actor);
-    //     }
-    // }
-
-    // _toggle_pin(actor) {
-    //     if (this._has_data_pinned(actor)) {
-    //         this._unpin_window(actor);
-    //     } else {
-    //         this._pin_window(actor);
-    //     }
-    // }
-
-    _toggle_pin(actor) {
-        const currentlyPinned = this._is_pinned(actor);
-
-        if (!windowData.has(actor)) {
-            this._initialize_actor(actor);
-        }
-
-        // Toggle pin state
-        this._set_data(actor, "isPinned", !currentlyPinned);
-
-        // Always maintain the border for current state
-        if (currentlyPinned) {
-            this._remove_border(actor);
-        }
-        this._add_border(actor);
-
-        // log(`Toggled pin - New state: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
-    }
-
-    _toggle_mark(actor) {
-        const currentlyMarked = this._is_marked(actor);
-
-        if (!windowData.has(actor)) {
-            this._initialize_actor(actor);
-        }
-
-        // Toggle mark state
-        this._set_data(actor, "isMarked", !currentlyMarked);
-
-        // Always maintain the border for current state
-        if (currentlyMarked) {
-            this._remove_border(actor);
-        }
-        this._add_border(actor);
-
-        // log(`Toggled mark - New state: marked=${this._is_marked(actor)}, pinned=${this._is_pinned(actor)}`);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ActivatePinnedWindows
