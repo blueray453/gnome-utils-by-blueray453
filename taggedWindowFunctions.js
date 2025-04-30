@@ -190,9 +190,12 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     _remove_border(actor) {
+        if (!actor) return;
+        const currentBorder = this._get_border(actor);
+        if (!currentBorder) return;
         let actor_parent = actor.get_parent();
-        if (this._get_border(actor)){
-            actor_parent.remove_child(this._get_border(actor));
+        if (currentBorder) {
+            actor_parent.remove_child(currentBorder);
         }
     }
 
