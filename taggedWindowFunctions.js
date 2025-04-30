@@ -110,6 +110,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     // ========= Utility functions ================ //
+
     _set_data(actor, key, value) {
         let info = windowData.get(actor) || {};
         info[key] = value;
@@ -138,6 +139,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     }
 
     // ========= Border functions ================ //
+
     // Get the correct border instance
     _get_border(actor) {
         const marked = this._is_marked(actor);
@@ -271,7 +273,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _unpin_window(actor) {
         this._set_data(actor, "isPinned", false);
-        this._add_border(actor); // This will show the appropriate border based on current state
+        this._add_border(actor);
 
         if (this._is_neither_marked_pinned(actor)) {
             this._cleanup_window_data(actor);
@@ -280,7 +282,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     _unmark_window(actor) {
         this._set_data(actor, "isMarked", false);
-        this._add_border(actor); // This will show the appropriate border based on current state
+        this._add_border(actor);
 
         if (this._is_neither_marked_pinned(actor)) {
             this._cleanup_window_data(actor);
@@ -346,15 +348,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let win = Display.get_focus_window();
         let actor = win.get_compositor_private();
         this._toggle_pin(actor);
-
-        // windowData.forEach((data, actor) => {
-        //     const win = actor.get_meta_window();          // human‑readable window
-        //     const windowId = win.get_id();
-
-        //     log(`Pinned Window ID: ${windowId}`);
-        //     log(`Window Border (Pinned): ${this._get_border(actor)}`);
-        //     // this._get_border(actor);
-        // });
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
@@ -395,13 +388,5 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         let win = Display.get_focus_window();
         let actor = win.get_compositor_private();
         this._toggle_mark(actor);
-
-        // windowData.forEach((data, actor) => {
-        //     const win = actor.get_meta_window();          // human‑readable window
-        //     const windowId = win.get_id();
-
-        //     log(`Marked Window ID: ${windowId}`);
-        //     log(`Window Is Marked: ${this._get_data(actor, "isMarked") }`);
-        // });
     }
 };
