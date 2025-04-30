@@ -245,11 +245,27 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         }
     }
 
+    _toggle_mark(actor) {
+        if (this._is_marked(actor)) {
+            this._unmark_window(actor);
+        } else {
+            this._mark_window(actor);
+        }
+    }
+
     _pin_window(actor) {
         if (!windowData.has(actor)) {
             this._initialize_actor(actor);
         }
         this._set_data(actor, "isPinned", true);
+        this._add_border(actor);
+    }
+
+    _mark_window(actor) {
+        if (!windowData.has(actor)) {
+            this._initialize_actor(actor);
+        }
+        this._set_data(actor, "isMarked", true);
         this._add_border(actor);
     }
 
@@ -260,22 +276,6 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         if (this._is_neither_marked_pinned(actor)) {
             this._cleanup_window_data(actor);
         }
-    }
-
-    _toggle_mark(actor) {
-        if (this._is_marked(actor)) {
-            this._unmark_window(actor);
-        } else {
-            this._mark_window(actor);
-        }
-    }
-
-    _mark_window(actor) {
-        if (!windowData.has(actor)) {
-            this._initialize_actor(actor);
-        }
-        this._set_data(actor, "isMarked", true);
-        this._add_border(actor);
     }
 
     _unmark_window(actor) {
