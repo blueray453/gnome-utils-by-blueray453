@@ -284,15 +284,14 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         // log("_unmark_window Actor:", JSON.stringify(windowData.get(actor), null, 2));
     }
 
-    _unpin_windows() {
-        windowData.forEach((_, actor) => {
-            this._unpin_window(actor);
-        });
-    }
-
     _unmark_windows() {
         windowData.forEach((_, actor) => {
-            this._unmark_window(actor);
+            if (this._is_marked(actor)) {
+                this._unmark_window(actor);
+            }
+            if (this._is_pinned(actor)) {
+                this._add_border(actor);
+            }
         });
     }
 
@@ -384,9 +383,11 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
             }
 
             let actor = w.get_compositor_private();
-            if (windowData.has(actor)) {
+
+            if (this._is_marked(actor) || this._is_pinned(actor)) {
                 return; // Skip this window if it's marked
             }
+
             w.delete(0);
         });
 
