@@ -50,7 +50,7 @@ class Extension {
 
         this._registerDbusInterface('_dbus_apps', appFunctions, 'AppFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsApps');
         this._registerDbusInterface('_dbus_windows', windowFunctions, 'WindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
-        this._registerDbusInterface('_dbus_marked_windows', taggedWindowFunctions, 'TaggedWindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows');
+        this._registerDbusInterface('_dbus_marked_windows', taggedWindowFunctions, 'MarkedWindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows');
         this._registerDbusInterface('_dbus_workspaces', workspaceFunctions, 'WorkspaceFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces');
         this._registerDbusInterface('_dbus_clipboard', clipboardFunctions, 'clipboardFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsClipboard');
 
