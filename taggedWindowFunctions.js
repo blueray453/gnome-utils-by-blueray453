@@ -345,7 +345,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.TogglePinsFocusedWindow
 
     TogglePinsFocusedWindow() {
-        let win = Display.get_focus_window();
+        let win = this.windowFunctionsInstance._get_normal_focused_window();
         let actor = win.get_compositor_private();
         this._toggle_pin(actor);
     }
@@ -385,7 +385,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ToggleMarksFocusedWindow
 
     ToggleMarksFocusedWindow() {
-        let win = Display.get_focus_window();
+        let win = this.windowFunctionsInstance._get_normal_focused_window();
         let actor = win.get_compositor_private();
         this._toggle_mark(actor);
     }

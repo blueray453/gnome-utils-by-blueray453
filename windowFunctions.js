@@ -169,11 +169,11 @@ var WindowFunctions = class WindowFunctions {
 
     _get_normal_focused_window = function () {
         // More direct method if available in your GNOME version
-        const focusWindow = Display.get_focus_window();
+        const win = Display.get_focus_window();
 
         // Optional: Verify it's a normal window
-        if (focusWindow && focusWindow.get_window_type() === Meta.WindowType.NORMAL) {
-            return focusWindow;
+        if (win && win.get_window_type() === Meta.WindowType.NORMAL) {
+            return win;
         }
         return null;
     };
@@ -202,7 +202,7 @@ var WindowFunctions = class WindowFunctions {
     }
 
     _get_normal_windows_current_workspace_of_focused_window_wm_class = function () {
-        let win = Display.get_focus_window();
+        let win = this._get_normal_focused_window();
         let win_wm_class = win.get_wm_class();
 
         return this._get_normal_windows_current_workspace_given_wm_class(win_wm_class);
@@ -227,12 +227,12 @@ var WindowFunctions = class WindowFunctions {
     }
 
     _get_other_normal_windows_current_workspace_current_monitor_of_focused_window_wm_class = function () {
-        let win = Display.get_focus_window();
+        let win = this._get_normal_focused_window();
         return this._get_normal_windows_current_workspace_current_monitor_given_wm_class(win.get_wm_class()).filter(w => win != w);
 
     }
     _get_other_normal_windows_current_workspace_of_focused_window_wm_class = function () {
-        let win = Display.get_focus_window();
+        let win = this._get_normal_focused_window();
         return this._get_normal_windows_current_workspace_given_wm_class(win.get_wm_class()).filter(w => win != w);
     }
 
@@ -541,7 +541,7 @@ var WindowFunctions = class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowFocused | jq -r '.[].id'
 
     GetWindowFocused() {
-        let win = Display.get_focus_window();
+        let win = this._get_normal_focused_window();
         let winPropertiesArr = this._get_properties_brief_given_meta_window(win);
 
         return JSON.stringify(winPropertiesArr);
