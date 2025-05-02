@@ -169,13 +169,8 @@ var WindowFunctions = class WindowFunctions {
 
     _get_normal_focused_window = function () {
         // More direct method if available in your GNOME version
-        const win = Display.get_focus_window();
-
-        // Optional: Verify it's a normal window
-        if (win && win.get_window_type() === Meta.WindowType.NORMAL) {
-            return win;
-        }
-        return null;
+        return Display.get_tab_list(Meta.TabList.NORMAL, null)
+            .find(win => win.has_focus()) || null;
     };
 
     _get_normal_windows_current_workspace = function () {

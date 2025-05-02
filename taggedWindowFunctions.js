@@ -386,6 +386,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     ToggleMarksFocusedWindow() {
         let win = this.windowFunctionsInstance._get_normal_focused_window();
+        // log(`Win ID: ${win.get_id()}`);
         let actor = win.get_compositor_private();
         this._toggle_mark(actor);
     }
