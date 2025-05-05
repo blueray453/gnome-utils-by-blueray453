@@ -217,6 +217,8 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
         let unmanagedId = win.connect('unmanaging', () => {
             // this._remove_border(actor);
+            let actor = win.get_compositor_private();
+
             if (this._is_pinned(actor)) {
                 this._unpin_window(actor);
             }
@@ -227,6 +229,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         });
 
         let workspaceChangedId = win.connect('workspace-changed', () => {
+            let actor = win.get_compositor_private();
             this._add_border(actor);
         });
 
