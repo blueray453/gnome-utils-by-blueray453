@@ -216,7 +216,14 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
         });
 
         let unmanagedId = win.connect('unmanaging', () => {
-            this._unmark_window(actor);
+            // this._remove_border(actor);
+            if (this._is_pinned(actor)) {
+                this._unpin_window(actor);
+            }
+
+            if (this._is_marked(actor)) {
+                this._unmark_window(actor);
+            }
         });
 
         let workspaceChangedId = win.connect('workspace-changed', () => {
@@ -386,7 +393,7 @@ var MarkedWindowFunctions = class MarkedWindowFunctions {
 
     ToggleMarksFocusedWindow() {
         let win = this.windowFunctionsInstance._get_normal_focused_window();
-        // log(`Win ID: ${win.get_id()}`);
+        log(`Win ID: ${win.get_id()}`);
         let actor = win.get_compositor_private();
         this._toggle_mark(actor);
     }
