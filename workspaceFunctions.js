@@ -4,8 +4,7 @@ const { Gio, GLib, Shell, Meta } = imports.gi;
 
 const WorkspaceManager = global.get_workspace_manager();
 
-let currentWorkspace = 0;
-let lastWorkspace = -1;
+let lastWorkspace = 1;
 
 var MR_DBUS_IFACE = `
 <node>
@@ -40,7 +39,6 @@ var WorkspaceFunctions = class WorkspaceFunctions {
     constructor() {
         this._workspaceChangedId = WorkspaceManager.connect('workspace-switched', (display, prev, current, direction) => {
             lastWorkspace = prev;
-            currentWorkspace = current;
         });
     }
 
