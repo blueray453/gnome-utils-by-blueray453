@@ -39,7 +39,7 @@ var WorkspaceFunctions = class WorkspaceFunctions {
 
     constructor() {
         this._workspaceChangedId = WorkspaceManager.connect('workspace-switched', (display, prev, current, direction) => {
-            lastWorkspace = currentWorkspace;
+            lastWorkspace = prev;
             currentWorkspace = current;
         });
     }
