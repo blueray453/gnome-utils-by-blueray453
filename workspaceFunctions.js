@@ -4,6 +4,9 @@ const { Gio, GLib, Shell, Meta } = imports.gi;
 
 const WorkspaceManager = global.get_workspace_manager();
 
+let currentWorkspace = 0;
+let lastWorkspace = -1;
+
 var MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWorkspaces">
@@ -27,10 +30,26 @@ var MR_DBUS_IFACE = `
          <arg type="u" direction="in" name="winid" />
          <arg type="i" direction="in" name="workspace_num" />
       </method>
+      <method name="ToggleWorkspaces">
+      </method>
    </interface>
 </node>`;
 
 var WorkspaceFunctions = class WorkspaceFunctions {
+
+    constructor() {
+        this._workspaceChangedId = WorkspaceManager.connect('workspace-switched', (display, prev, current, direction) => {
+            lastWorkspace = currentWorkspace;
+            currentWorkspace = current;
+        });
+    }
+
+    destroy() {
+        if (this._workspaceChangedId) {
+            WorkspaceManager.disconnect(this._workspaceChangedId);
+            this._workspaceChangedId = null;
+        }
+    }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetCurrentWorkspace
 
@@ -140,5 +159,11 @@ var WorkspaceFunctions = class WorkspaceFunctions {
         } else {
             throw new Error('Not found');
         }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.ToggleWorkspaces
+
+    ToggleWorkspaces() {
+        WorkspaceManager.get_workspace_by_index(lastWorkspace).activate(global.get_current_time());
     }
 }
