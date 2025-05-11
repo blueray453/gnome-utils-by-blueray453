@@ -378,7 +378,6 @@ var WindowFunctions = class WindowFunctions {
     ActivateWindowsGivenWMClass(wm_class) {
         let wins = this._get_normal_windows_given_wm_class(wm_class);
 
-
         wins.forEach(win => {
             let win_workspace = win.get_workspace();
             // Here global.get_current_time() instead of 0 will also work
