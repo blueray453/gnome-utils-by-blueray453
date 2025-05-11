@@ -129,6 +129,7 @@ var WindowFunctions = class WindowFunctions {
         return {
             id: win.get_id(),
             title: win.get_title(),
+            pid: win.get_pid(),
             wm_class: win.get_wm_class(),
             wm_class_instance: win.get_wm_class_instance(),
             workspace_id: workspace_id,
