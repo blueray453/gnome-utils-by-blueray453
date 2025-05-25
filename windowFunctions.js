@@ -94,6 +94,10 @@ var MR_DBUS_IFACE = `
       <method name="MoveWindowToCurrentWorkspace">
          <arg type="u" direction="in" name="win_id" />
       </method>
+      <method name="MoveWindowToGivenWorkspace">
+         <arg type="u" direction="in" name="win_id" />
+         <arg type="i" direction="in" name="workspace_id" />
+      </method>
       <method name="Raise">
          <arg type="u" direction="in" name="win_id" />
       </method>
@@ -646,6 +650,17 @@ var WindowFunctions = class WindowFunctions {
 
     MoveWindowsToCurrentWorkspaceGivenWMClass(wm_class) {
         this._move_all_app_windows_to_current_workspace(wm_class);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToGivenWorkspace uint32:44129093 int32:0
+
+    MoveWindowToGivenWorkspace(win_id, workspaceNum) {
+        let win = this._get_normal_window_given_window_id(win_id);
+
+        if (win !== null) {
+            win.change_workspace_by_index(workspaceNum, false);
+            // current_workspace.activate_with_focus(win, 0);
+        }
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
