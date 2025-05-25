@@ -94,6 +94,10 @@ var MR_DBUS_IFACE = `
       <method name="MoveWindowToCurrentWorkspace">
          <arg type="u" direction="in" name="win_id" />
       </method>
+      <method name="MoveWindowsToGivenWorkspaceGivenWMClass">
+      <arg type="s" direction="in" name="wm_class" />
+         <arg type="i" direction="in" name="workspace_num" />
+      </method>
       <method name="MoveWindowToGivenWorkspace">
          <arg type="u" direction="in" name="win_id" />
          <arg type="i" direction="in" name="workspace_num" />
@@ -287,22 +291,18 @@ var WindowFunctions = class WindowFunctions {
     }
 
     _move_all_app_windows_to_current_workspace = function (wm_class) {
-        let current_workspace = WorkspaceManager.get_active_workspace();
+        let current_workspace_index = WorkspaceManager.get_active_workspace().index();
 
+        this._move_all_app_windows_to_given_workspace(wm_class, current_workspace_index);
+    }
+
+    _move_all_app_windows_to_given_workspace = function (wm_class, workspace_num) {
         let windows_array = this._get_normal_windows_given_wm_class(wm_class);
-
-        let isAllInCurrentWorkspace = windows_array.every(function (win) {
-            return win.get_workspace().index() === current_workspace.index();
+        windows_array.forEach(win => {
+            if (win.get_workspace().index() != workspace_num) {
+                win.change_workspace_by_index(workspace_num, false);
+            }
         });
-
-        if (!isAllInCurrentWorkspace) {
-            windows_array.forEach(win => {
-                if (win.get_workspace().index() != current_workspace.index()) {
-                    win.change_workspace(current_workspace);
-                    // current_workspace.activate_with_focus(win, 0);
-                }
-            });
-        }
     }
 
     _get_app_given_meta_window = function (win) {
@@ -651,6 +651,15 @@ var WindowFunctions = class WindowFunctions {
     MoveWindowsToCurrentWorkspaceGivenWMClass(wm_class) {
         this._move_all_app_windows_to_current_workspace(wm_class);
     }
+
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToGivenWorkspaceGivenWMClass string:"firefox" int32:0
+
+    // "Alacritty" "firefox" "Fsearch" "Nemo"
+
+    MoveWindowsToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
+        this._move_all_app_windows_to_given_workspace(wm_class, workspace_num);
+    }
+
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToGivenWorkspace uint32:44129093 int32:0
 
