@@ -96,7 +96,7 @@ var MR_DBUS_IFACE = `
       </method>
       <method name="MoveWindowToGivenWorkspace">
          <arg type="u" direction="in" name="win_id" />
-         <arg type="i" direction="in" name="workspace_id" />
+         <arg type="i" direction="in" name="workspace_num" />
       </method>
       <method name="Raise">
          <arg type="u" direction="in" name="win_id" />
