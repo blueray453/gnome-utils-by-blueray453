@@ -40,12 +40,12 @@ export class AppFunctions {
 
         // get_display_name is a function of AppInfo which is DesktopAppInfo inherited
 
-        // log("Details app windows : " + shell_apps.get_windows());
+        // console.log("Details app windows : " + shell_apps.get_windows());
 
         let windows_array = [];
 
         shell_apps.get_windows().forEach(function (w) {
-            // log("window id : " + w.get_id());
+            // console.log("window id : " + w.get_id());
             windows_array.push(w.get_id());
         })
 
@@ -117,11 +117,11 @@ export class AppFunctions {
                 icon_val = a.get_icon().to_string();
             }
             // var windows = a.get_windows();
-            // log("windows : " + windows);
+            // console.log("windows : " + windows);
 
             // if (windows){
             //     windows.forEach(function (w) {
-            //         log("window id : " + w.get_id());
+            //         console.log("window id : " + w.get_id());
             //     });
             // }
             appsJsonArr.push({

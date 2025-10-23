@@ -30,14 +30,14 @@ export class clipboardFunctions {
 
 
 
-      //   log(`Selection: ${selection}`);
+      //   console.log(`Selection: ${selection}`);
 
         try {
            St.Clipboard.get_default().set_text(St.ClipboardType.PRIMARY, input);
            St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, input);
         }
         catch (error) {
-            log(`Clipboard: ${error}`);
+            console.log(`Clipboard: ${error}`);
         }
 
         // try {
@@ -46,7 +46,7 @@ export class clipboardFunctions {
         //     clipboard.set_text(St.ClipboardType.PRIMARY, selection);
         // }
         // catch (error) {
-        //     log(`Error GetSelection: ${error}`);
+        //     console.log(`Error GetSelection: ${error}`);
         // }
         // return selection;
     }
@@ -55,13 +55,13 @@ export class clipboardFunctions {
 
    GetClipboard() {
       St.Clipboard.get_default().get_text(St.ClipboardType.CLIPBOARD, (_, text) => {
-         log(`Inside GetClipboard`);
+         console.log(`Inside GetClipboard`);
          if (text) {
             text = text.trim();
-            log(`Inside Text`);
+            console.log(`Inside Text`);
             return text;
          } else {
-            log(`No Text`);
+            console.log(`No Text`);
             return "";
          }
       });

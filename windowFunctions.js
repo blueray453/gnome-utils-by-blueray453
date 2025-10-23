@@ -256,7 +256,7 @@ export class WindowFunctions {
 
         let state = global_object.value;
 
-        // log(`state : ${state}`);
+        // console.log(`state : ${state}`);
 
         if (state >= number_of_states) {
             state = 0;
@@ -280,7 +280,7 @@ export class WindowFunctions {
         }
 
         // minimize all the windows
-        // windows_array.forEach(win => win?.minimize() || log(`Win Not Found`));
+        // windows_array.forEach(win => win?.minimize() || console.log(`Win Not Found`));
 
         for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
             let win = windows_array[i];
@@ -327,13 +327,13 @@ export class WindowFunctions {
     }
 
     _log_object_details = function (string, obj) {
-        log(`${string}`);
-        log(`=====`);
-        log(`Type: ${typeof obj}`);
-        log(`Constructor name: ${obj.constructor.name}`);
+        console.log(`${string}`);
+        console.log(`=====`);
+        console.log(`Type: ${typeof obj}`);
+        console.log(`Constructor name: ${obj.constructor.name}`);
         let proto = Object.getPrototypeOf(obj);
         while (proto) {
-            log(`Prototype: ${proto.constructor.name}`);
+            console.log(`Prototype: ${proto.constructor.name}`);
             proto = Object.getPrototypeOf(proto);
         }
     }

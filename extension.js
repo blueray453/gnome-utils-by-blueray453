@@ -54,7 +54,7 @@ export default class GnomeUtils extends Extension {
 
     enable() {
 
-        // log(`enabling ${Me.metadata.name}`);
+        // console.log(`enabling ${Me.metadata.name}`);
 
         this._registerDbusInterface('_dbus_apps', appFunctions, 'AppFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsApps');
         this._registerDbusInterface('_dbus_windows', windowFunctions, 'WindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
@@ -67,7 +67,7 @@ export default class GnomeUtils extends Extension {
     }
 
     disable() {
-        // log(`disabling ${Me.metadata.name}`);
+        // console.log(`disabling ${Me.metadata.name}`);
 
         this._unregisterDbusInterface('_dbus_apps');
         this._unregisterDbusInterface('_dbus_windows');
@@ -89,6 +89,6 @@ export default class GnomeUtils extends Extension {
 }
 
 // function init(meta) {
-//     log(`initializing ${meta.metadata.name}`);
+//     console.log(`initializing ${meta.metadata.name}`);
 //     return new Extension();
 // }
