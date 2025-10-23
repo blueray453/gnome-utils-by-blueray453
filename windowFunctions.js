@@ -306,7 +306,6 @@ export class WindowFunctions {
     }
 
     _get_app_given_meta_window = function (win) {
-        // let tracker = global.get_window_tracker().get_default();
         let tracker = Shell.WindowTracker.get_default();
         let app = tracker.get_window_app(win);
         return app;
@@ -378,7 +377,7 @@ export class WindowFunctions {
             win_workspace.activate_with_focus(win, 0);
         }
     }
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ActivateWindowsGivenWMClass string:"firefox"
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ActivateWindowsGivenWMClass string:"firefox-esr"
 
     ActivateWindowsGivenWMClass(wm_class) {
         let wins = this._get_normal_windows_given_wm_class(wm_class);
@@ -393,7 +392,7 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNemoWindows | jq .
 
     AlignNemoWindows() {
-        let windows_array = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
+        let windows_array = this._get_normal_windows_current_workspace_given_wm_class("nemo");
         let windows_per_container = 2;
 
         this._align_windows(windows_array, windows_per_container, align_windows_state_nemo);
@@ -422,7 +421,7 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseDuplicateNemoWindows
 
     CloseDuplicateNemoWindows() {
-        let wins = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
+        let wins = this._get_normal_windows_current_workspace_given_wm_class("nemo");
         let seen = {};
         wins.forEach(win => {
             let key = win.get_title();
@@ -546,7 +545,7 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsGivenWMClass string:"firefox" | jq -r '.[].id'
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsGivenWMClass string:"firefox-esr" | jq -r '.[].id'
 
     GetWindowsGivenWMClass(wm_class) {
         let wins = this._get_normal_windows_given_wm_class(wm_class);
@@ -565,8 +564,8 @@ export class WindowFunctions {
         const classOrder = {
             "Fsearch": 1,
             "VSCodium": 2,
-            "firefox": 3,
-            "Nemo": 4,
+            "firefox-esr": 3,
+            "nemo": 4,
             "Alacritty": 5
         };
 
@@ -644,17 +643,17 @@ export class WindowFunctions {
         }
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToCurrentWorkspaceGivenWMClass string:"firefox"
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToCurrentWorkspaceGivenWMClass string:"firefox-esr"
 
-    // "Alacritty" "firefox" "Fsearch" "Nemo"
+    // "Alacritty" "firefox-esr" "Fsearch" "nemo"
 
     MoveWindowsToCurrentWorkspaceGivenWMClass(wm_class) {
         this._move_all_app_windows_to_current_workspace(wm_class);
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToGivenWorkspaceGivenWMClass string:"firefox" int32:0
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToGivenWorkspaceGivenWMClass string:"firefox-esr" int32:0
 
-    // "Alacritty" "firefox" "Fsearch" "Nemo"
+    // "Alacritty" "firefox-esr" "Fsearch" "nemo"
 
     MoveWindowsToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
         this._move_all_app_windows_to_given_workspace(wm_class, workspace_num);
