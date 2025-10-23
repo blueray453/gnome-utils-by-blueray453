@@ -554,7 +554,7 @@ export class WindowFunctions {
         let wins = this._get_normal_windows();
 
         const classOrder = {
-            "Fsearch": 1,
+            "io.github.cboxdoerfer.FSearch": 1,
             "VSCodium": 2,
             "firefox-esr": 3,
             "nemo": 4,
@@ -637,7 +637,7 @@ export class WindowFunctions {
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToCurrentWorkspaceGivenWMClass string:"firefox-esr"
 
-    // "Alacritty" "firefox-esr" "Fsearch" "nemo"
+    // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "nemo"
 
     MoveWindowsToCurrentWorkspaceGivenWMClass(wm_class) {
         this._move_all_app_windows_to_current_workspace(wm_class);
@@ -645,7 +645,7 @@ export class WindowFunctions {
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToGivenWorkspaceGivenWMClass string:"firefox-esr" int32:0
 
-    // "Alacritty" "firefox-esr" "Fsearch" "nemo"
+    // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "nemo"
 
     MoveWindowsToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
         this._move_all_app_windows_to_given_workspace(wm_class, workspace_num);
