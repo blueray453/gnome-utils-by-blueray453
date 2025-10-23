@@ -3,10 +3,8 @@
   "name": "Gnome Utils by blueray453",
   "description": "Adds dbus calls for scripting purposes",
   "shell-version": [
-    "40",
-    "41",
-    "42",
-    "43"
+    "48",
+    "49"
   ],
   "url": "https://github.com/blueray453/gnome-utils-by-blueray453"
 }

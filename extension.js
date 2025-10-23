@@ -17,16 +17,23 @@
  */
 
 /* exported init */
-const { Gio } = imports.gi;
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
+import Gio from 'gi://Gio';
 
-const appFunctions = Me.imports.appFunctions;
-const clipboardFunctions = Me.imports.clipboardFunctions;
-const taggedWindowFunctions = Me.imports.taggedWindowFunctions;
-const windowFunctions = Me.imports.windowFunctions;
-const workspaceFunctions = Me.imports.workspaceFunctions;
+// const ExtensionUtils = imports.misc.extensionUtils;
+// const Me = ExtensionUtils.getCurrentExtension();
+
+import * as appFunctions from './appFunctions.js';
+import * as clipboardFunctions from './clipboardFunctions.js';
+import * as taggedWindowFunctions from './taggedWindowFunctions.js';
+import * as windowFunctions from './windowFunctions.js';
+import * as workspaceFunctions from './workspaceFunctions.js';
+
+// const appFunctions = Me.imports.appFunctions;
+// const clipboardFunctions = Me.imports.clipboardFunctions;
+// const taggedWindowFunctions = Me.imports.taggedWindowFunctions;
+// const windowFunctions = Me.imports.windowFunctions;
+// const workspaceFunctions = Me.imports.workspaceFunctions;
 
 class Extension {
 

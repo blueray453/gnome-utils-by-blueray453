@@ -1,4 +1,7 @@
-const { Gio, GLib, Shell, Meta } = imports.gi;
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import Meta from 'gi://Meta';
+import Shell from 'gi://Shell';
 
 // I think Gio, GLib, Shell are unused
 

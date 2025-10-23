@@ -1,4 +1,5 @@
-const { Meta, St } = imports.gi;
+import Meta from 'gi://Gio';
+import St from 'gi://St';
 
 const Display = global.get_display();
 

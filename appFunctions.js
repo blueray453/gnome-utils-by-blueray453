@@ -1,4 +1,6 @@
-const { Gio, GLib, Shell } = imports.gi;
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import Shell from 'gi://Shell';
 
 var MR_DBUS_IFACE = `
 <node>
