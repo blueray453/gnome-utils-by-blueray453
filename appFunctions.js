@@ -1,5 +1,4 @@
 import Gio from 'gi://Gio';
-import Shell from 'gi://Shell';
 
 export const MR_DBUS_IFACE = `
 <node>
@@ -35,7 +34,7 @@ export class AppFunctions {
 
     GetAppDetails(app_id) {
         let desktop_apps = Gio.DesktopAppInfo.new(app_id);
-        let shell_apps = Shell.AppSystem.get_default().lookup_app(app_id);
+        let shell_apps = global.get_app_system().lookup_app(app_id);
 
         // get_display_name is a function of AppInfo which is DesktopAppInfo inherited
 
@@ -75,7 +74,7 @@ export class AppFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppFromPID uint32:3931313482
 
     GetAppFromPID(pid) {
-        let tracker = Shell.WindowTracker.get_default();
+        let tracker = global.get_window_tracker();
         let app = tracker.get_app_from_pid(pid);
         return app.get_id();
     }
@@ -87,7 +86,7 @@ export class AppFunctions {
         // let wmclass = w.meta_window.get_wm_class();
         // return Gio.AppInfo.get_all().find(a => a.get_startup_wm_class() == wmclass).get_id();
 
-        let tracker = Shell.WindowTracker.get_default();
+        let tracker = global.get_window_tracker();
         let app = tracker.get_window_app(win.meta_window);
         return app.get_id();
     }
@@ -98,9 +97,9 @@ export class AppFunctions {
 
         let w = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
         //   let wmclass = win.meta_window.get_wm_class();
-        //   let app_id = Shell.AppSystem.get_default().lookup_startup_wmclass(wmclass).get_id();
-        //   return Shell.AppSystem.get_default().lookup_app(app_id).get_icon().to_string();
-        let tracker = Shell.WindowTracker.get_default();
+        //   let app_id = global.get_app_system().lookup_startup_wmclass(wmclass).get_id();
+        //   return global.get_app_system().lookup_app(app_id).get_icon().to_string();
+        let tracker = global.get_window_tracker();
         let app = tracker.get_window_app(w.meta_window);
         return app.get_id();
     }
@@ -108,7 +107,7 @@ export class AppFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetRunningApps | jq .
 
     GetRunningApps() {
-        let apps = Shell.AppSystem.get_default().get_running();
+        let apps = global.get_app_system().get_running();
 
         var appsJsonArr = [];
         apps.forEach(function (a) {
