@@ -1,12 +1,12 @@
 import Meta from 'gi://Meta';
 import St from 'gi://St';
+import * as windowFunctions from './windowFunctions.js';
 
 const Display = global.get_display();
 const WorkspaceManager = global.workspace_manager;
 const WindowManager = global.window_manager;
 
-const Me = imports.misc.extensionUtils.getCurrentExtension();
-const { WindowFunctions } = Me.imports.windowFunctions;
+
 
 let windowData = new Map();
 
@@ -33,7 +33,6 @@ export const MR_DBUS_IFACE = `
 export class MarkedWindowFunctions {
 
     constructor() {
-        this.windowFunctionsInstance = new WindowFunctions();
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => {
 
             windowData.forEach((_, actor) => {
@@ -356,7 +355,7 @@ export class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.TogglePinsFocusedWindow
 
     TogglePinsFocusedWindow() {
-        let win = this.windowFunctionsInstance._get_normal_focused_window();
+        let win = windowFunctions._get_normal_focused_window();
         let actor = win.get_compositor_private();
         this._toggle_pin(actor);
     }
@@ -364,7 +363,7 @@ export class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
 
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-        let wins = this.windowFunctionsInstance._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
+        let wins = windowFunctions._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
 
         wins.forEach((w) => {
             if (w.get_wm_class_instance() === 'file_progress') {
@@ -396,7 +395,7 @@ export class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ToggleMarksFocusedWindow
 
     ToggleMarksFocusedWindow() {
-        let win = this.windowFunctionsInstance._get_normal_focused_window();
+        let win = windowFunctions._get_normal_focused_window();
         log(`Win ID: ${win.get_id()}`);
         let actor = win.get_compositor_private();
         this._toggle_mark(actor);
