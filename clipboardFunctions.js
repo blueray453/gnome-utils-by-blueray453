@@ -1,7 +1,6 @@
-import Meta from 'gi://Gio';
 import St from 'gi://St';
 
-const Display = global.get_display();
+// const Display = global.get_display();
 
 export const MR_DBUS_IFACE = `
 <node>

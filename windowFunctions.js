@@ -1,9 +1,6 @@
-import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
-
-// I think Gio, Shell are unused
 
 const Display = global.get_display();
 

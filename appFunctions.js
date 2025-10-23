@@ -1,5 +1,4 @@
 import Gio from 'gi://Gio';
-import GLib from 'gi://GLib';
 import Shell from 'gi://Shell';
 
 export const MR_DBUS_IFACE = `
