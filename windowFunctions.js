@@ -377,6 +377,7 @@ export class WindowFunctions {
             win_workspace.activate_with_focus(win, 0);
         }
     }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ActivateWindowsGivenWMClass string:"firefox-esr"
 
     ActivateWindowsGivenWMClass(wm_class) {
@@ -458,6 +459,8 @@ export class WindowFunctions {
         })
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.FullScreen uint32:44129093
+
     FullScreen(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
 
@@ -498,17 +501,6 @@ export class WindowFunctions {
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
-
-        // try {
-        //     let wins = this._get_normal_windows_current_workspace();
-
-        //     // Map each window to its properties
-        //     let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
-
-        //     return JSON.stringify(winPropertiesArr);
-        // } catch (error) {
-        //     return JSON.stringify({ error: error });
-        // }
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceCurrentMonitor | jq .
@@ -659,7 +651,6 @@ export class WindowFunctions {
         this._move_all_app_windows_to_given_workspace(wm_class, workspace_num);
     }
 
-
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToGivenWorkspace uint32:44129093 int32:0
 
     MoveWindowToGivenWorkspace(win_id, workspaceNum) {
@@ -714,6 +705,7 @@ export class WindowFunctions {
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Resize uint32:44129093 int32:800 int32:600
+
     Unmaximize(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
 
@@ -726,6 +718,7 @@ export class WindowFunctions {
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Unminimize uint32:44129093
+
     Unminimize(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
         if (win !== null) {
@@ -734,6 +727,8 @@ export class WindowFunctions {
             }
         }
     }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.UnMinimizeOtherWindowsOfFocusedWindowWMClass
 
     UnMinimizeOtherWindowsOfFocusedWindowWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
