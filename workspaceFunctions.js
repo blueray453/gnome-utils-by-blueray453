@@ -137,6 +137,7 @@ export class WorkspaceFunctions {
 
     MoveFocusedWindowToGivenWorkspace(workspaceNum) {
         let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+
         if (win) {
             // change_workspace(workspace)
             win.change_workspace_by_index(workspaceNum, false);

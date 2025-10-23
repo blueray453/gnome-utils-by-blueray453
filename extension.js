@@ -25,13 +25,11 @@ import Gio from 'gi://Gio';
 // const Me = ExtensionUtils.getCurrentExtension();
 
 import * as appFunctions from './appFunctions.js';
-import * as clipboardFunctions from './clipboardFunctions.js';
 import * as taggedWindowFunctions from './taggedWindowFunctions.js';
 import * as windowFunctions from './windowFunctions.js';
 import * as workspaceFunctions from './workspaceFunctions.js';
 
 // const appFunctions = Me.imports.appFunctions;
-// const clipboardFunctions = Me.imports.clipboardFunctions;
 // const taggedWindowFunctions = Me.imports.taggedWindowFunctions;
 // const windowFunctions = Me.imports.windowFunctions;
 // const workspaceFunctions = Me.imports.workspaceFunctions;
@@ -60,7 +58,6 @@ export default class GnomeUtils extends Extension {
         this._registerDbusInterface('_dbus_windows', windowFunctions, 'WindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
         this._registerDbusInterface('_dbus_marked_windows', taggedWindowFunctions, 'MarkedWindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows');
         this._registerDbusInterface('_dbus_workspaces', workspaceFunctions, 'WorkspaceFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces');
-        this._registerDbusInterface('_dbus_clipboard', clipboardFunctions, 'clipboardFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsClipboard');
 
         // Register keybindings
         // this._keyBinding = global.display.connect('key-press-event', this._onKeyPress.bind(this));
@@ -73,7 +70,6 @@ export default class GnomeUtils extends Extension {
         this._unregisterDbusInterface('_dbus_windows');
         this._unregisterDbusInterface('_dbus_marked_windows');
         this._unregisterDbusInterface('_dbus_workspaces');
-        this._unregisterDbusInterface('_dbus_clipboard');
 
         // Disconnect the keybinding
         // global.display.disconnect(this._keyBinding);

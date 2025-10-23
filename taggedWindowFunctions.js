@@ -6,8 +6,6 @@ const Display = global.get_display();
 const WorkspaceManager = global.workspace_manager;
 const WindowManager = global.window_manager;
 
-
-
 let windowData = new Map();
 
 export const MR_DBUS_IFACE = `
