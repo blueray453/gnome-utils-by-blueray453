@@ -6,20 +6,12 @@ Is the code, there is dbus call examples as comment.
 
 https://gjs.guide/extensions/upgrading/gnome-shell-44.html
 
-https://gjs.guide/extensions/upgrading/gnome-shell-47.html
+https://gjs.guide/extensions/upgrading/gnome-shell-45.html
 
 https://gjs.guide/extensions/upgrading/gnome-shell-46.html
 
-when porting to 48, Please check https://gjs.guide/extensions/upgrading/gnome-shell-48.html
+https://gjs.guide/extensions/upgrading/gnome-shell-47.html
 
-when porting to 45, Please check:
-
-https://gjs.guide/extensions/upgrading/gnome-shell-45.html
-
-https://blogs.gnome.org/shell-dev/2023/09/02/extensions-in-gnome-45/
-
-https://www.youtube.com/playlist?list=PLr3kuDAFECjZhW-p56BoVB7SubdUHBVQT
-
-https://www.youtube.com/watch?v=OBnMl8Jk_Rg
+https://gjs.guide/extensions/upgrading/gnome-shell-48.html
 
 I Identified breaking change in 45 and 48
