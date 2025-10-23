@@ -88,6 +88,8 @@ export class MarkedWindowFunctions {
             });
             this._get_border(actor);
         });
+
+        this.windowFunctions = new windowFunctions.WindowFunctions();
     }
 
     destroy() {
@@ -355,7 +357,7 @@ export class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.TogglePinsFocusedWindow
 
     TogglePinsFocusedWindow() {
-        let win = windowFunctions._get_normal_focused_window();
+        let win = this.windowFunctions._get_normal_focused_window();
         let actor = win.get_compositor_private();
         this._toggle_pin(actor);
     }
@@ -363,7 +365,7 @@ export class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
 
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-        let wins = windowFunctions._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
+        let wins = this.windowFunctions._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
 
         wins.forEach((w) => {
             if (w.get_wm_class_instance() === 'file_progress') {
@@ -395,7 +397,7 @@ export class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ToggleMarksFocusedWindow
 
     ToggleMarksFocusedWindow() {
-        let win = windowFunctions._get_normal_focused_window();
+        let win = this.windowFunctions._get_normal_focused_window();
         log(`Win ID: ${win.get_id()}`);
         let actor = win.get_compositor_private();
         this._toggle_mark(actor);
