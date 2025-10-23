@@ -18,6 +18,7 @@
 
 /* exported init */
 
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import Gio from 'gi://Gio';
 
 // const ExtensionUtils = imports.misc.extensionUtils;
@@ -35,7 +36,7 @@ import * as workspaceFunctions from './workspaceFunctions.js';
 // const windowFunctions = Me.imports.windowFunctions;
 // const workspaceFunctions = Me.imports.workspaceFunctions;
 
-class Extension {
+export default class GnomeUtils extends Extension {
 
     _registerDbusInterface(instanceName, module, className, path) {
         this[instanceName] = Gio.DBusExportedObject.wrapJSObject(
@@ -46,14 +47,14 @@ class Extension {
     }
 
     _unregisterDbusInterface(instanceName) {
-        this[instanceName].flush();
-        this[instanceName].unexport();
+        this[instanceName]?.flush();
+        this[instanceName]?.unexport();
         delete this[instanceName];
     }
 
     enable() {
 
-        log(`enabling ${Me.metadata.name}`);
+        // log(`enabling ${Me.metadata.name}`);
 
         this._registerDbusInterface('_dbus_apps', appFunctions, 'AppFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsApps');
         this._registerDbusInterface('_dbus_windows', windowFunctions, 'WindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
@@ -66,7 +67,7 @@ class Extension {
     }
 
     disable() {
-        log(`disabling ${Me.metadata.name}`);
+        // log(`disabling ${Me.metadata.name}`);
 
         this._unregisterDbusInterface('_dbus_apps');
         this._unregisterDbusInterface('_dbus_windows');
@@ -87,7 +88,7 @@ class Extension {
     // }
 }
 
-function init(meta) {
-    log(`initializing ${meta.metadata.name}`);
-    return new Extension();
-}
+// function init(meta) {
+//     log(`initializing ${meta.metadata.name}`);
+//     return new Extension();
+// }
