@@ -80,7 +80,10 @@ export class MarkedWindowFunctions {
         this._restackedId = Display.connect('restacked', (display) => {
             windowData.forEach((_, actor) => {
                 if (this._get_border(actor)) {
-                    let wg = Meta.get_window_group_for_display(display);
+                    // https://gjs.guide/extensions/upgrading/gnome-shell-48.html#meta
+                    // let wg = Meta.get_window_group_for_display(display);
+                    // let wg = Meta.Compositor.get_window_group();
+                    let wg = global.get_window_group();
                     wg.set_child_above_sibling(this._get_border(actor) , actor);
                 }
             });
