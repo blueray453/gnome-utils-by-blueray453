@@ -18,7 +18,7 @@ let align_windows_state_all_windows = { value: 0 };
 
 // those functions which have output will output as json error
 
-var MR_DBUS_IFACE = `
+export const MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWindows">
       <method name="Activate">
@@ -124,7 +124,7 @@ var MR_DBUS_IFACE = `
    </interface>
 </node>`;
 
-var WindowFunctions = class WindowFunctions {
+export class WindowFunctions {
 
     /* Get Properties */
 

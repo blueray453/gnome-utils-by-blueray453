@@ -9,7 +9,7 @@ const WorkspaceManager = global.get_workspace_manager();
 
 let lastWorkspace = 1;
 
-var MR_DBUS_IFACE = `
+export const MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWorkspaces">
       <method name="GetCurrentWorkspace">
@@ -37,7 +37,7 @@ var MR_DBUS_IFACE = `
    </interface>
 </node>`;
 
-var WorkspaceFunctions = class WorkspaceFunctions {
+export class WorkspaceFunctions {
 
     constructor() {
         this._workspaceChangedId = WorkspaceManager.connect('workspace-switched', (display, prev, current, direction) => {

@@ -3,7 +3,7 @@ import St from 'gi://St';
 
 const Display = global.get_display();
 
-var MR_DBUS_IFACE = `
+export const MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsClipboard">
       <method name="SetClipboard">
@@ -15,7 +15,7 @@ var MR_DBUS_IFACE = `
    </interface>
 </node>`;
 
-var clipboardFunctions = class clipboardFunctions {
+export class clipboardFunctions {
 
    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsClipboard org.gnome.Shell.Extensions.GnomeUtilsClipboard.SetClipboard string:"firefox"
 

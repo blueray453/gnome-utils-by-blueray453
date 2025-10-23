@@ -2,7 +2,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Shell from 'gi://Shell';
 
-var MR_DBUS_IFACE = `
+export const MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsApps">
       <method name="GetAppDetails">
@@ -26,7 +26,7 @@ var MR_DBUS_IFACE = `
    </interface>
 </node>`;
 
-var AppFunctions = class AppFunctions {
+export class AppFunctions {
     _get_app_by_appid = function (appid) {
         let app = Gio.AppInfo.get_all().find(a => a.get_id() == appid);
         return app;

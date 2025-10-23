@@ -10,7 +10,7 @@ const { WindowFunctions } = Me.imports.windowFunctions;
 
 let windowData = new Map();
 
-var MR_DBUS_IFACE = `
+export const MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows">
       <method name="ActivatePinnedWindows">
@@ -30,7 +30,7 @@ var MR_DBUS_IFACE = `
    </interface>
 </node>`;
 
-var MarkedWindowFunctions = class MarkedWindowFunctions {
+export class MarkedWindowFunctions {
 
     constructor() {
         this.windowFunctionsInstance = new WindowFunctions();
