@@ -11,7 +11,7 @@ export const MR_DBUS_IFACE = `
          <arg type="u" direction="in" name="pid" />
          <arg type="s" direction="out" name="app" />
       </method>
-      <method name="GetAppDetailsGivenFocusedWindow">
+      <method name="GetAppDetailsFocusedWindow">
          <arg type="s" direction="out" name="app" />
       </method>
       <method name="GetAppGivenWindowID">
@@ -25,10 +25,10 @@ export const MR_DBUS_IFACE = `
 </node>`;
 
 export class AppFunctions {
-    _get_app_by_appid = function (appid) {
-        let app = Gio.AppInfo.get_all().find(a => a.get_id() == appid);
-        return app;
-    }
+    // _get_app_by_appid = function (appid) {
+    //     let app = Gio.AppInfo.get_all().find(a => a.get_id() == appid);
+    //     return app;
+    // }
 
     _get_properties_brief_given_app_id = function (app_id) {
         let shell_apps = global.get_app_system().lookup_app(app_id);
@@ -80,9 +80,9 @@ export class AppFunctions {
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppDetailsGivenFocusedWindow | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppDetailsFocusedWindow | jq .
 
-    GetAppDetailsGivenFocusedWindow() {
+    GetAppDetailsFocusedWindow() {
         let tracker = global.get_window_tracker();
         let app = tracker.get_focus_app();
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
@@ -98,7 +98,6 @@ export class AppFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppGivenWindowID uint32:44129093  | jq .
 
     GetAppGivenWindowID(winid) {
-
         let w = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
         //   let wmclass = win.meta_window.get_wm_class();
         //   let app_id = global.get_app_system().lookup_startup_wmclass(wmclass).get_id();
