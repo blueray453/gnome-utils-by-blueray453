@@ -1,6 +1,6 @@
-import Meta from 'gi://Meta';
 import St from 'gi://St';
 import * as windowFunctions from './windowFunctions.js';
+import * as appFunctions from './appFunctions.js';
 
 const Display = global.get_display();
 const WorkspaceManager = global.workspace_manager;
@@ -13,6 +13,9 @@ export const MR_DBUS_IFACE = `
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows">
       <method name="ActivatePinnedWindows">
       </method>
+      <method name="GetAppDetailsMarkedWindows">
+        <arg type="s" direction="out" name="app" />
+       </method>
       <method name="GetPinnedWindows">
         <arg type="s" direction="out" name="win" />
       </method>
@@ -91,6 +94,7 @@ export class MarkedWindowFunctions {
         });
 
         this.windowFunctions = new windowFunctions.WindowFunctions();
+        this.appFunctions = new appFunctions.AppFunctions();
     }
 
     destroy() {
@@ -276,6 +280,24 @@ export class MarkedWindowFunctions {
         this._add_border(actor);
     }
 
+    _get_pinned_windows = function () {
+        let pinnedWindows = Array.from(windowData.keys()).map(actor =>
+            actor.get_meta_window()
+        );
+
+        return pinnedWindows;
+
+    }
+
+    _get_marked_windows = function () {
+        let markedWindows = Array.from(windowData.keys()).map(actor =>
+            actor.get_meta_window()
+        );
+
+        return markedWindows;
+
+    }
+
     _mark_window(actor) {
         if (!windowData.has(actor)) {
             this._initialize_actor(actor);
@@ -345,14 +367,44 @@ export class MarkedWindowFunctions {
         });
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.GetAppDetailsMarkedWindows
+
+    GetAppDetailsMarkedWindows() {
+        let tracker = global.get_window_tracker();
+        let results = [];
+
+        windowData.forEach((_, actor) => {
+            if (this._is_marked(actor)) {
+                let win = actor.get_meta_window();
+                let app = tracker.get_window_app(win);
+                let result = this.appFunctions._get_properties_brief_given_app_id(app.get_id());
+                results.push(result);
+                this._unmark_window(actor);
+            }
+        });
+
+        // let marked_windows = this._get_marked_windows();
+        // for (let win of marked_windows) {
+        //     let app = tracker.get_window_app(win);
+        //     let result = this.appFunctions._get_properties_brief_given_app_id(app.get_id());
+        //     results.push(result);
+        //     this._unmark_window(win.get_compositor_private());
+        // }
+        return JSON.stringify(results);
+    }
+
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.GetPinnedWindows
 
     GetPinnedWindows() {
-        let pinnedWindows = Array.from(windowData.keys()).map(actor =>
-            actor.get_meta_window().get_id()
-        );
+        // Use _get_pinned_windows() to get Meta.Window objects
+        let pinnedWindows = this._get_pinned_windows();
 
-        return JSON.stringify(pinnedWindows);
+        // Extract window IDs from each Meta.Window
+        let windowIds = pinnedWindows.map(win => win.get_id());
+
+        // Return as JSON string
+        return JSON.stringify(windowIds);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.TogglePinsFocusedWindow
@@ -388,11 +440,14 @@ export class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.GetMarkedWindows
 
     GetMarkedWindows() {
-        let markedWindows = Array.from(windowData.keys()).map(actor =>
-            actor.get_meta_window().get_id()
-        );
+        // Use _get_marked_windows() to get Meta.Window objects
+        let markedWindows = this._get_marked_windows();
 
-        return JSON.stringify(markedWindows);
+        // Extract window IDs from each Meta.Window
+        let windowIds = markedWindows.map(win => win.get_id());
+
+        // Return as JSON string
+        return JSON.stringify(windowIds);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ToggleMarksFocusedWindow
