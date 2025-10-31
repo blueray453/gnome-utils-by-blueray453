@@ -14,7 +14,7 @@ export const MR_DBUS_IFACE = `
       <method name="GetAppDetailsFocusedWindow">
          <arg type="s" direction="out" name="app" />
       </method>
-      <method name="GetAppGivenWindowID">
+      <method name="GetAppDetailsGivenWindowID">
          <arg type="u" direction="in" name="winid" />
          <arg type="s" direction="out" name="icon" />
       </method>
@@ -95,9 +95,9 @@ export class AppFunctions {
         // return app.get_id();
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppGivenWindowID uint32:44129093  | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppDetailsGivenWindowID uint32:44129093  | jq .
 
-    GetAppGivenWindowID(winid) {
+    GetAppDetailsGivenWindowID(winid) {
         let w = global.get_window_actors().find(w => w.meta_window.get_id() == winid);
         //   let wmclass = win.meta_window.get_wm_class();
         //   let app_id = global.get_app_system().lookup_startup_wmclass(wmclass).get_id();
