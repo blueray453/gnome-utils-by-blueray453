@@ -123,8 +123,6 @@ export class AppFunctions {
             }
         });
 
-
-
         return JSON.stringify(results);
     }
 }
