@@ -248,17 +248,11 @@ export class WindowFunctions {
     }
 
     _get_normal_windows_current_workspace_current_monitor = function () {
-        // Get the active workspace
-        let current_workspace = WorkspaceManager.get_active_workspace();
-
         // Get the current monitor (in focus)
         let current_monitor = Display.get_current_monitor();
 
         // Filter windows based on both workspace and monitor
-        let wins = this._get_normal_windows().filter(w =>
-            w.get_workspace() === current_workspace &&
-            w.get_monitor() === current_monitor
-        );
+        let wins = this._get_normal_windows_current_workspace().filter(w => w.get_monitor() === current_monitor);
 
         return wins;
     }
@@ -268,10 +262,6 @@ export class WindowFunctions {
         let win_wm_class = win.get_wm_class();
 
         return this._get_normal_windows_current_workspace_given_wm_class(win_wm_class);
-    }
-
-    _get_normal_windows_current_workspace_current_monitor_given_wm_class = function (wm_class) {
-        return this._get_normal_windows_current_workspace_current_monitor().filter(w => w.get_wm_class() == wm_class);
     }
 
     _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
@@ -288,11 +278,6 @@ export class WindowFunctions {
         return this._get_normal_windows().filter(w => w.get_wm_class() == wm_class);
     }
 
-    _get_other_normal_windows_current_workspace_current_monitor_of_focused_window_wm_class = function () {
-        let win = Display.get_focus_window();
-        return this._get_normal_windows_current_workspace_current_monitor_given_wm_class(win.get_wm_class()).filter(w => win != w);
-
-    }
     _get_other_normal_windows_current_workspace_of_focused_window_wm_class = function () {
         let win = Display.get_focus_window();
         return this._get_normal_windows_current_workspace_given_wm_class(win.get_wm_class()).filter(w => win != w);
@@ -371,17 +356,17 @@ export class WindowFunctions {
         }
     }
 
-    _log_object_details = function (string, obj) {
-        console.log(`${string}`);
-        console.log(`=====`);
-        console.log(`Type: ${typeof obj}`);
-        console.log(`Constructor name: ${obj.constructor.name}`);
-        let proto = Object.getPrototypeOf(obj);
-        while (proto) {
-            console.log(`Prototype: ${proto.constructor.name}`);
-            proto = Object.getPrototypeOf(proto);
-        }
-    }
+    // _log_object_details = function (string, obj) {
+    //     console.log(`${string}`);
+    //     console.log(`=====`);
+    //     console.log(`Type: ${typeof obj}`);
+    //     console.log(`Constructor name: ${obj.constructor.name}`);
+    //     let proto = Object.getPrototypeOf(obj);
+    //     while (proto) {
+    //         console.log(`Prototype: ${proto.constructor.name}`);
+    //         proto = Object.getPrototypeOf(proto);
+    //     }
+    // }
 
     _move_resize_window = function (win, x_coordinate, y_coordinate, width, height) {
 
