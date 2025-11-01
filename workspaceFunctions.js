@@ -1,5 +1,6 @@
 import Meta from 'gi://Meta';
 
+const Display = global.get_display();
 const WorkspaceManager = global.get_workspace_manager();
 
 let lastWorkspace = 1;
@@ -59,7 +60,7 @@ export class WorkspaceFunctions {
     GetWorkspaceIndexByName(workspaceName) {
 
         // Get the total number of workspaces
-        let number_of_workspaces = global.workspace_manager.n_workspaces;
+        let number_of_workspaces = WorkspaceManager.get_n_workspaces();
 
         // Iterate through each workspace
         for (let i = 0; i < number_of_workspaces; i++) {
@@ -80,7 +81,7 @@ export class WorkspaceFunctions {
 
         let workspaces = []
         // let current_workspace = Meta.prefs_get_workspace_name(WorkspaceManager.get_active_workspace().index());
-        let number_of_workspaces = global.workspace_manager.n_workspaces;
+        let number_of_workspaces = WorkspaceManager.get_n_workspaces();
         let all_windows_of_workspaces = {};
         let all_normal_windows_of_workspaces = {};
         let sticky_windows = [];
@@ -94,7 +95,7 @@ export class WorkspaceFunctions {
             // let workspace_name = wks+'_'+Meta.prefs_get_workspace_name(wks);
             let workspace_name = Meta.prefs_get_workspace_name(wks);
 
-            let metaWorkspace = global.workspace_manager.get_workspace_by_index(wks);
+            let metaWorkspace = WorkspaceManager.get_workspace_by_index(wks);
             let all_windows = [];
 
             metaWorkspace.list_windows().map(w => all_windows.push(w.get_id()));
@@ -136,7 +137,7 @@ export class WorkspaceFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveFocusedWindowToGivenWorkspace int32:4
 
     MoveFocusedWindowToGivenWorkspace(workspaceNum) {
-        let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true).meta_window;
+        let win = Display.get_focus_window();
 
         if (win) {
             // change_workspace(workspace)

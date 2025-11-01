@@ -233,12 +233,6 @@ export class WindowFunctions {
         return wins;
     }
 
-    _get_normal_focused_window = function () {
-        // More direct method if available in your GNOME version
-        return Display.get_tab_list(Meta.TabList.NORMAL, null)
-            .find(win => win.has_focus()) || null;
-    };
-
     _get_normal_windows_current_workspace = function () {
         let current_workspace = WorkspaceManager.get_active_workspace();
         // let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace);
@@ -263,7 +257,7 @@ export class WindowFunctions {
     }
 
     _get_normal_windows_current_workspace_of_focused_window_wm_class = function () {
-        let win = this._get_normal_focused_window();
+        let win = Display.get_focus_window();
         let win_wm_class = win.get_wm_class();
 
         return this._get_normal_windows_current_workspace_given_wm_class(win_wm_class);
@@ -288,12 +282,12 @@ export class WindowFunctions {
     }
 
     _get_other_normal_windows_current_workspace_current_monitor_of_focused_window_wm_class = function () {
-        let win = this._get_normal_focused_window();
+        let win = Display.get_focus_window();
         return this._get_normal_windows_current_workspace_current_monitor_given_wm_class(win.get_wm_class()).filter(w => win != w);
 
     }
     _get_other_normal_windows_current_workspace_of_focused_window_wm_class = function () {
-        let win = this._get_normal_focused_window();
+        let win = Display.get_focus_window();
         return this._get_normal_windows_current_workspace_given_wm_class(win.get_wm_class()).filter(w => win != w);
     }
 
@@ -547,7 +541,7 @@ export class WindowFunctions {
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppGivenWindowID uint32:44129093  | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppGivenWindowID uint32:44129093 | jq .
 
     GetAppGivenWindowID(winid) {
         let win = this._get_normal_window_given_window_id(winid);
@@ -641,7 +635,7 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowFocused | jq -r '.[].id'
 
     GetWindowFocused() {
-        let win = this._get_normal_focused_window();
+        let win = Display.get_focus_window();
         let winPropertiesArr = this._get_properties_brief_given_meta_window(win);
 
         return JSON.stringify(winPropertiesArr);
