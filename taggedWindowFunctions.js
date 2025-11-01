@@ -1,10 +1,10 @@
 import St from 'gi://St';
 import * as windowFunctions from './windowFunctions.js';
-import * as appFunctions from './appFunctions.js';
 
 const Display = global.get_display();
-const WorkspaceManager = global.workspace_manager;
-const WindowManager = global.window_manager;
+const WindowManager = global.get_window_manager();
+const WindowTracker = global.get_window_tracker();
+const WorkspaceManager = global.get_workspace_manager();
 
 let windowData = new Map();
 
@@ -94,7 +94,6 @@ export class MarkedWindowFunctions {
         });
 
         this.windowFunctions = new windowFunctions.WindowFunctions();
-        this.appFunctions = new appFunctions.AppFunctions();
     }
 
     destroy() {
@@ -370,26 +369,18 @@ export class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.GetAppDetailsMarkedWindows
 
     GetAppDetailsMarkedWindows() {
-        let tracker = global.get_window_tracker();
         let results = [];
 
         windowData.forEach((_, actor) => {
             if (this._is_marked(actor)) {
                 let win = actor.get_meta_window();
-                let app = tracker.get_window_app(win);
-                let result = this.appFunctions._get_properties_brief_given_app_id(app.get_id());
+                let app = WindowTracker.get_window_app(win);
+                let result = this.windowFunctions._get_properties_brief_given_app_id(app.get_id());
                 results.push(result);
                 this._unmark_window(actor);
             }
         });
 
-        // let marked_windows = this._get_marked_windows();
-        // for (let win of marked_windows) {
-        //     let app = tracker.get_window_app(win);
-        //     let result = this.appFunctions._get_properties_brief_given_app_id(app.get_id());
-        //     results.push(result);
-        //     this._unmark_window(win.get_compositor_private());
-        // }
         return JSON.stringify(results);
     }
 
