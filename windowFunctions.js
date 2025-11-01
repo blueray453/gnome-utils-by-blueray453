@@ -1,6 +1,5 @@
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
-import Shell from 'gi://Shell';
 
 const Display = global.get_display();
 
@@ -306,7 +305,7 @@ export class WindowFunctions {
     }
 
     _get_app_given_meta_window = function (win) {
-        let tracker = Shell.WindowTracker.get_default();
+        let tracker = global.get_window_tracker();
         let app = tracker.get_window_app(win);
         return app;
     }

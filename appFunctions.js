@@ -1,5 +1,3 @@
-import Gio from 'gi://Gio';
-
 export const MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsApps">
