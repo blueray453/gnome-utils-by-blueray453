@@ -2,6 +2,7 @@ import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 
 const Display = global.get_display();
+const WindowTracker = global.get_window_tracker();
 
 // const WorkspaceManager = global.get_workspace_manager();
 const WorkspaceManager = Display.get_workspace_manager();
@@ -124,12 +125,48 @@ export class WindowFunctions {
 
     /* Get Properties */
 
+    _get_properties_brief_given_app_id = function (app_id) {
+        let shell_apps = global.get_app_system().lookup_app(app_id);
+        let desktop_apps = shell_apps.get_app_info();
+
+        // get_display_name is a function of AppInfo which is DesktopAppInfo inherited
+
+        // console.log("Details app windows : " + shell_apps.get_windows());
+
+        let windows_array = [];
+
+        shell_apps.get_windows().forEach(function (w) {
+            // console.log("window id : " + w.get_id());
+            windows_array.push(w.get_id());
+        })
+
+        if (app_id) {
+            return {
+                app_name: desktop_apps.get_name(),
+                app_file_name: desktop_apps.get_filename(),
+                app_display_name: desktop_apps.get_display_name(),
+                app_id: desktop_apps.get_id(),
+                wm_class: desktop_apps.get_startup_wm_class(),
+                app_pids: shell_apps.get_pids(),
+                app_icon: shell_apps.get_icon()?.to_string(),
+                app_windows_number: shell_apps.get_n_windows(),
+                app_windows: windows_array,
+                state: shell_apps.get_state(),
+                description: shell_apps.get_description(),
+                commandline: desktop_apps.get_commandline(),
+                executable: desktop_apps.get_executable(),
+            };
+        } else {
+            throw new Error('Not found');
+        }
+    }
+
     _get_properties_brief_given_meta_window = function (win) {
         // let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
         // let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
 
-        let app = this._get_app_given_meta_window(win);
-        let icon = app.get_icon().to_string();
+        // let app = this._get_app_given_meta_window(win);
+        // let icon = app.get_icon().to_string();
 
         let workspace_id = win.get_workspace().index();
 
@@ -141,8 +178,7 @@ export class WindowFunctions {
             wm_class_instance: win.get_wm_class_instance(),
             workspace_id: workspace_id,
             workspace_name: Meta.prefs_get_workspace_name(workspace_id),
-            monitor: win.get_monitor(),
-            icon: icon
+            monitor: win.get_monitor()
         };
     }
 
@@ -305,8 +341,7 @@ export class WindowFunctions {
     }
 
     _get_app_given_meta_window = function (win) {
-        let tracker = global.get_window_tracker();
-        let app = tracker.get_window_app(win);
+        let app = WindowTracker.get_window_app(win);
         return app;
     }
 

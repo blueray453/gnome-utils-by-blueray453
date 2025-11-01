@@ -16,6 +16,10 @@ export const MR_DBUS_IFACE = `
          <arg type="u" direction="in" name="winid" />
          <arg type="s" direction="out" name="icon" />
       </method>
+      <method name="GetAppDetailsGivenWMClass">
+        <arg type="s" direction="in" name="wm_class" />
+        <arg type="s" direction="out" name="windows" />
+      </method>
       <method name="GetRunningApps">
          <arg type="s" direction="out" name="app" />
       </method>
@@ -28,41 +32,7 @@ export class AppFunctions {
     //     return app;
     // }
 
-    _get_properties_brief_given_app_id = function (app_id) {
-        let shell_apps = global.get_app_system().lookup_app(app_id);
-        let desktop_apps = shell_apps.get_app_info();
 
-        // get_display_name is a function of AppInfo which is DesktopAppInfo inherited
-
-        // console.log("Details app windows : " + shell_apps.get_windows());
-
-        let windows_array = [];
-
-        shell_apps.get_windows().forEach(function (w) {
-            // console.log("window id : " + w.get_id());
-            windows_array.push(w.get_id());
-        })
-
-        if (app_id) {
-            return {
-                app_name: desktop_apps.get_name(),
-                app_file_name: desktop_apps.get_filename(),
-                app_display_name: desktop_apps.get_display_name(),
-                app_id: desktop_apps.get_id(),
-                wm_class: desktop_apps.get_startup_wm_class(),
-                app_pids: shell_apps.get_pids(),
-                app_icon: shell_apps.get_icon()?.to_string(),
-                app_windows_number: shell_apps.get_n_windows(),
-                app_windows: windows_array,
-                state: shell_apps.get_state(),
-                description: shell_apps.get_description(),
-                commandline: desktop_apps.get_commandline(),
-                executable: desktop_apps.get_executable(),
-            };
-        } else {
-            throw new Error('Not found');
-        }
-    }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppDetailsGivenAppID string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
 
@@ -102,6 +72,14 @@ export class AppFunctions {
         //   return global.get_app_system().lookup_app(app_id).get_icon().to_string();
         let tracker = global.get_window_tracker();
         let app = tracker.get_window_app(w.meta_window);
+        return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsApps org.gnome.Shell.Extensions.GnomeUtilsApps.GetAppDetailsGivenWMClass string:"firefox-esr" | jq
+
+    GetAppDetailsGivenWMClass(wmclass) {
+        let appsystem = global.get_app_system();
+        let app = appsystem.lookup_desktop_wmclass(wmclass);;
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }
 
