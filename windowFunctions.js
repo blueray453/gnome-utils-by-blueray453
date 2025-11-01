@@ -3,7 +3,6 @@ import Meta from 'gi://Meta';
 
 const AppSystem = global.get_app_system();
 const Display = global.get_display();
-const WindowActors = global.get_window_actors();
 const WindowTracker = global.get_window_tracker();
 const WorkspaceManager = global.get_workspace_manager();
 
@@ -230,7 +229,8 @@ export class WindowFunctions {
 
     _get_normal_windows() {
         // let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).sort((a, b) => a.get_id() - b.get_id());
-        let wins = WindowActors.map(actor => actor.meta_window).filter(win => win.get_window_type() === Meta.WindowType.NORMAL).sort((a, b) => a.get_id() - b.get_id()); // ascending order
+
+        let wins = global.get_window_actors().map(actor => actor.meta_window).filter(win => win.get_window_type() === Meta.WindowType.NORMAL).sort((a, b) => a.get_id() - b.get_id()); // ascending order
 
         return wins;
     }
