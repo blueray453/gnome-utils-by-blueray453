@@ -40,7 +40,7 @@ export const MR_DBUS_IFACE = `
       <method name="GetWindows">
          <arg type="s" direction="out" name="win" />
       </method>
-      <method name="GetWindowDetailsGivenWindowID">
+      <method name="GetWindowGivenWindowID">
          <arg type="u" direction="in" name="win_id" />
          <arg type="s" direction="out" name="win" />
       </method>
@@ -117,22 +117,22 @@ export const MR_DBUS_IFACE = `
       </method>
       <method name="UnMinimizeOtherWindowsOfFocusedWindowWMClass">
       </method>
-      <method name="GetAppDetailsGivenAppID">
+      <method name="GetAppGivenAppID">
          <arg type="s" direction="in" name="appid" />
          <arg type="s" direction="out" name="app" />
       </method>
-      <method name="GetAppDetailsGivenPID">
+      <method name="GetAppGivenPID">
          <arg type="u" direction="in" name="pid" />
          <arg type="s" direction="out" name="app" />
       </method>
-      <method name="GetAppDetailsFocusedWindow">
+      <method name="GetAppFocusedWindow">
          <arg type="s" direction="out" name="app" />
       </method>
-      <method name="GetAppDetailsGivenWindowID">
+      <method name="GetAppGivenWindowID">
          <arg type="u" direction="in" name="winid" />
          <arg type="s" direction="out" name="icon" />
       </method>
-      <method name="GetAppDetailsGivenWMClass">
+      <method name="GetAppGivenWMClass">
         <arg type="s" direction="in" name="wm_class" />
         <arg type="s" direction="out" name="windows" />
       </method>
@@ -159,9 +159,10 @@ export class WindowFunctions {
         let shell_apps = AppSystem.lookup_app(app_id);
         let desktop_apps = shell_apps.get_app_info();
 
+        // NOTE: GioUnix.DesktopAppInfo inherited Gio.AppInfo
         // get_display_name is a function of AppInfo which is DesktopAppInfo inherited
 
-        // console.log("Details app windows : " + shell_apps.get_windows());
+        // console.log(" app windows : " + shell_apps.get_windows());
 
         let windows_array = [];
 
@@ -535,9 +536,9 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowDetailsGivenWindowID uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowGivenWindowID uint32:44129093
 
-    GetWindowDetailsGivenWindowID(win_id) {
+    GetWindowGivenWindowID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
 
         return JSON.stringify(this._get_properties_brief_given_meta_window(win));
@@ -803,48 +804,38 @@ export class WindowFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppDetailsGivenAppID string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppGivenAppID string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
 
-    GetAppDetailsGivenAppID(app_id) {
+    GetAppGivenAppID(app_id) {
         return JSON.stringify(this._get_properties_brief_given_app_id(app_id));
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppDetailsGivenPID uint32:3931313482 | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppGivenPID uint32:3931313482 | jq .
 
-    GetAppDetailsGivenPID(pid) {
+    GetAppGivenPID(pid) {
         let app = WindowTracker.get_app_from_pid(pid);
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppDetailsFocusedWindow | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppFocusedWindow | jq .
 
-    GetAppDetailsFocusedWindow() {
+    GetAppFocusedWindow() {
         let app = WindowTracker.get_focus_app();
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
-        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true);
-        // // let wmclass = w.meta_window.get_wm_class();
-        // // return Gio.AppInfo.get_all().find(a => a.get_startup_wm_class() == wmclass).get_id();
-
-        // let tracker = global.get_window_tracker();
-        // let app = tracker.get_window_app(win.meta_window);
-        // return app.get_id();
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppDetailsGivenWindowID uint32:44129093  | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppGivenWindowID uint32:44129093  | jq .
 
-    GetAppDetailsGivenWindowID(winid) {
+    GetAppGivenWindowID(winid) {
         let win = this._get_normal_window_given_window_id(winid);
-        //   let wmclass = win.meta_window.get_wm_class();
-        //   let app_id = global.get_app_system().lookup_startup_wmclass(wmclass).get_id();
-        //   return global.get_app_system().lookup_app(app_id).get_icon().to_string();
         let app = WindowTracker.get_window_app(win.meta_window);
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppDetailsGivenWMClass string:"firefox-esr" | jq
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppGivenWMClass string:"firefox-esr" | jq
 
-    GetAppDetailsGivenWMClass(wmclass) {
-        let app = AppSystem.lookup_desktop_wmclass(wmclass);;
+    GetAppGivenWMClass(wmclass) {
+        let app = AppSystem.lookup_desktop_wmclass(wmclass);
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }
 
