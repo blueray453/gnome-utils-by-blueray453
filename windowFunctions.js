@@ -41,7 +41,7 @@ export const MR_DBUS_IFACE = `
          <arg type="s" direction="out" name="app" />
       </method>
       <method name="GetAppGivenAppID">
-         <arg type="s" direction="in" name="appid" />
+         <arg type="s" direction="in" name="app_id" />
          <arg type="s" direction="out" name="app" />
       </method>
       <method name="GetAppGivenPID">
@@ -49,7 +49,7 @@ export const MR_DBUS_IFACE = `
          <arg type="s" direction="out" name="app" />
       </method>
       <method name="GetAppGivenWindowID">
-         <arg type="u" direction="in" name="winid" />
+         <arg type="u" direction="in" name="win_id" />
          <arg type="s" direction="out" name="icon" />
       </method>
       <method name="GetAppGivenWMClass">
@@ -83,7 +83,7 @@ export const MR_DBUS_IFACE = `
       </method>
       <method name="GetWindowsGivenWMClass">
         <arg type="s" direction="in" name="wm_class" />
-        <arg type="s" direction="out" name="windows" />
+        <arg type="s" direction="out" name="wins" />
       </method>
       <method name="Maximize">
          <arg type="u" direction="in" name="win_id" />
@@ -447,7 +447,7 @@ export class WindowFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNemoWindows | jq .
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNemoWindows
 
     AlignNemoWindows() {
         let windows_array = this._get_normal_windows_current_workspace_given_wm_class("nemo");
@@ -550,8 +550,8 @@ export class WindowFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppGivenWindowID uint32:44129093 | jq .
 
-    GetAppGivenWindowID(winid) {
-        let win = this._get_normal_window_given_window_id(winid);
+    GetAppGivenWindowID(win_id) {
+        let win = this._get_normal_window_given_window_id(win_id);
         let app = WindowTracker.get_window_app(win.meta_window);
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }

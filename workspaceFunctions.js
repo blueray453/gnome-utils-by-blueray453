@@ -9,7 +9,7 @@ export const MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWorkspaces">
       <method name="GetCurrentWorkspace">
-         <arg type="s" direction="out" name="workspaces" />
+         <arg type="s" direction="out" name="workspace" />
       </method>
       <method name="GetWorkspaceIndexByName">
          <arg type="s" direction="in" name="workspace_name" />
@@ -25,7 +25,7 @@ export const MR_DBUS_IFACE = `
          <arg type="i" direction="in" name="workspace_num" />
       </method>
       <method name="MoveWindowToWorkspace">
-         <arg type="u" direction="in" name="winid" />
+         <arg type="u" direction="in" name="win_id" />
          <arg type="i" direction="in" name="workspace_num" />
       </method>
       <method name="ToggleWorkspaces">
@@ -149,8 +149,8 @@ export class WorkspaceFunctions {
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveWindowToWorkspace uint32:44129093 int32:0
 
-    MoveWindowToWorkspace(winid, workspaceNum) {
-        let win = global.get_window_actors().find(w => w.meta_window.get_id() == winid).meta_window;
+    MoveWindowToWorkspace(win_id, workspaceNum) {
+        let win = global.get_window_actors().find(w => w.meta_window.get_id() == win_id).meta_window;
         if (win) {
             // change_workspace(workspace)
             win.change_workspace_by_index(workspaceNum, false);

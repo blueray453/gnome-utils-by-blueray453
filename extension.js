@@ -24,12 +24,10 @@ import Gio from 'gi://Gio';
 // const ExtensionUtils = imports.misc.extensionUtils;
 // const Me = ExtensionUtils.getCurrentExtension();
 
-import * as appFunctions from './appFunctions.js';
 import * as taggedWindowFunctions from './taggedWindowFunctions.js';
 import * as windowFunctions from './windowFunctions.js';
 import * as workspaceFunctions from './workspaceFunctions.js';
 
-// const appFunctions = Me.imports.appFunctions;
 // const taggedWindowFunctions = Me.imports.taggedWindowFunctions;
 // const windowFunctions = Me.imports.windowFunctions;
 // const workspaceFunctions = Me.imports.workspaceFunctions;
@@ -53,8 +51,6 @@ export default class GnomeUtils extends Extension {
     enable() {
 
         // console.log(`enabling ${Me.metadata.name}`);
-
-        this._registerDbusInterface('_dbus_apps', appFunctions, 'AppFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsApps');
         this._registerDbusInterface('_dbus_windows', windowFunctions, 'WindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
         this._registerDbusInterface('_dbus_marked_windows', taggedWindowFunctions, 'MarkedWindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows');
         this._registerDbusInterface('_dbus_workspaces', workspaceFunctions, 'WorkspaceFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces');
@@ -66,7 +62,6 @@ export default class GnomeUtils extends Extension {
     disable() {
         // console.log(`disabling ${Me.metadata.name}`);
 
-        this._unregisterDbusInterface('_dbus_apps');
         this._unregisterDbusInterface('_dbus_windows');
         this._unregisterDbusInterface('_dbus_marked_windows');
         this._unregisterDbusInterface('_dbus_workspaces');
