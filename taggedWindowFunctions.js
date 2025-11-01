@@ -89,7 +89,7 @@ export class MarkedWindowFunctions {
                     // let wg = Meta.get_window_group_for_display(display);
                     // let wg = Meta.Compositor.get_window_group();
                     let wg = global.get_window_group();
-                    wg.set_child_above_sibling(this._get_border(actor) , actor);
+                    wg.set_child_above_sibling(this._get_border(actor), actor);
                 }
             });
             this._get_border(actor);
@@ -181,8 +181,7 @@ export class MarkedWindowFunctions {
         let border = this._get_border(actor);
         if (border) {
             let actor_parent = actor.get_parent();
-            let currentBorder = this._get_border(actor);
-            actor_parent.remove_child(currentBorder);
+            actor_parent.remove_child(border);
         }
     }
 
@@ -236,20 +235,18 @@ export class MarkedWindowFunctions {
         }));
     }
 
-    _toggle_pin(actor) {
-        if (this._is_pinned(actor)) {
-            this._unpin_window(actor);
-        } else {
-            this._pin_window(actor);
-        }
-    }
+    _unpin_window(actor) {
+        if (!this._is_pinned(actor)) return;
 
-    _toggle_mark(actor) {
-        if (this._is_marked(actor)) {
-            this._unmark_window(actor);
-        } else {
-            this._mark_window(actor);
+        this._remove_border(actor);  // remove old
+
+        this._set_data(actor, "isPinned", false);
+
+        if (this._is_neither_marked_pinned(actor)) {
+            windowData.delete(actor);
         }
+
+        this._add_border(actor);
     }
 
     _pin_window(actor) {
@@ -259,6 +256,55 @@ export class MarkedWindowFunctions {
         this._remove_border(actor);  // remove old
         this._set_data(actor, "isPinned", true);
         this._add_border(actor);
+    }
+
+    _toggle_pin(actor) {
+        if (this._is_pinned(actor)) {
+            this._unpin_window(actor);
+        } else {
+            this._pin_window(actor);
+        }
+    }
+
+    _unmark_windows() {
+        windowData.forEach((_, actor) => {
+            if (this._is_marked(actor)) {
+                this._unmark_window(actor);
+            }
+            if (this._is_pinned(actor)) {
+                this._add_border(actor);
+            }
+        });
+    }
+
+    _unmark_window(actor) {
+        if (!this._is_marked(actor)) return;
+
+        this._remove_border(actor);  // remove old
+        this._set_data(actor, "isMarked", false);
+
+        if (this._is_neither_marked_pinned(actor)) {
+            windowData.delete(actor);
+        }
+
+        this._add_border(actor);
+    }
+
+    _mark_window(actor) {
+        if (!windowData.has(actor)) {
+            this._initialize_actor(actor);
+        }
+        this._remove_border(actor);  // remove old
+        this._set_data(actor, "isMarked", true);
+        this._add_border(actor);
+    }
+
+    _toggle_mark(actor) {
+        if (this._is_marked(actor)) {
+            this._unmark_window(actor);
+        } else {
+            this._mark_window(actor);
+        }
     }
 
     _get_pinned_windows = function () {
@@ -277,53 +323,6 @@ export class MarkedWindowFunctions {
 
         return markedWindows;
 
-    }
-
-    _mark_window(actor) {
-        if (!windowData.has(actor)) {
-            this._initialize_actor(actor);
-        }
-        this._remove_border(actor);  // remove old
-        this._set_data(actor, "isMarked", true);
-        this._add_border(actor);
-    }
-
-    _unpin_window(actor) {
-        if (!this._is_pinned(actor)) return;
-
-        this._remove_border(actor);  // remove old
-
-        this._set_data(actor, "isPinned", false);
-
-        if (this._is_neither_marked_pinned(actor)) {
-            windowData.delete(actor);
-        }
-
-        this._add_border(actor);
-    }
-
-    _unmark_window(actor) {
-        if (!this._is_marked(actor)) return;
-
-        this._remove_border(actor);  // remove old
-        this._set_data(actor, "isMarked", false);
-
-        if (this._is_neither_marked_pinned(actor)) {
-            windowData.delete(actor);
-        }
-
-        this._add_border(actor);
-    }
-
-    _unmark_windows() {
-        windowData.forEach((_, actor) => {
-            if (this._is_marked(actor)) {
-                this._unmark_window(actor);
-            }
-            if (this._is_pinned(actor)) {
-                this._add_border(actor);
-            }
-        });
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ActivatePinnedWindows
