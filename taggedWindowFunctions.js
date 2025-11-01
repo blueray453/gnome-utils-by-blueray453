@@ -167,11 +167,11 @@ export class MarkedWindowFunctions {
     _add_border(actor) {
         let actor_parent = actor.get_parent();
         let border = this._get_border(actor);
-        let win = actor.get_meta_window();
-        let rect = win.get_frame_rect();
 
         if (border) {
             actor_parent.add_child(border);
+            let win = actor.get_meta_window();
+            let rect = win.get_frame_rect();
             border.set_position(rect.x, rect.y);
             border.set_size(rect.width, rect.height);
         }
