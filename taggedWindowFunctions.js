@@ -166,43 +166,22 @@ export class MarkedWindowFunctions {
 
     _add_border(actor) {
         let actor_parent = actor.get_parent();
+        let border = this._get_border(actor);
         let win = actor.get_meta_window();
         let rect = win.get_frame_rect();
 
-        // Remove any existing borders first
-        const borderMarked = this._get_data(actor, "border_marked");
-        if (borderMarked && borderMarked.get_parent() === actor_parent) {
-            actor_parent.remove_child(borderMarked);
-        }
-
-        const borderPinned = this._get_data(actor, "border_pinned");
-        if (borderPinned && borderPinned.get_parent() === actor_parent) {
-            actor_parent.remove_child(borderPinned);
-        }
-
-        const borderMarkedPinned = this._get_data(actor, "border_marked_pinned");
-        if (borderMarkedPinned && borderMarkedPinned.get_parent() === actor_parent) {
-            actor_parent.remove_child(borderMarkedPinned);
-        }
-
-        let border = this._get_border(actor);
-        if (!border) return;
-
-        // Add the new border
-        if (border.get_parent() !== actor_parent) {
+        if (border) {
             actor_parent.add_child(border);
+            border.set_position(rect.x, rect.y);
+            border.set_size(rect.width, rect.height);
         }
-
-        border.set_position(rect.x, rect.y);
-        border.set_size(rect.width, rect.height);
     }
 
     _remove_border(actor) {
-        if (!actor) return;
-        const currentBorder = this._get_border(actor);
-        if (!currentBorder) return;
-        let actor_parent = actor.get_parent();
-        if (currentBorder) {
+        let border = this._get_border(actor);
+        if (border) {
+            let actor_parent = actor.get_parent();
+            let currentBorder = this._get_border(actor);
             actor_parent.remove_child(currentBorder);
         }
     }
@@ -277,6 +256,7 @@ export class MarkedWindowFunctions {
         if (!windowData.has(actor)) {
             this._initialize_actor(actor);
         }
+        this._remove_border(actor);  // remove old
         this._set_data(actor, "isPinned", true);
         this._add_border(actor);
     }
@@ -303,26 +283,36 @@ export class MarkedWindowFunctions {
         if (!windowData.has(actor)) {
             this._initialize_actor(actor);
         }
+        this._remove_border(actor);  // remove old
         this._set_data(actor, "isMarked", true);
         this._add_border(actor);
     }
 
     _unpin_window(actor) {
+        if (!this._is_pinned(actor)) return;
+
+        this._remove_border(actor);  // remove old
+
         this._set_data(actor, "isPinned", false);
-        this._add_border(actor);
 
         if (this._is_neither_marked_pinned(actor)) {
-            this._cleanup_window_data(actor);
+            windowData.delete(actor);
         }
+
+        this._add_border(actor);
     }
 
     _unmark_window(actor) {
+        if (!this._is_marked(actor)) return;
+
+        this._remove_border(actor);  // remove old
         this._set_data(actor, "isMarked", false);
-        this._add_border(actor);
 
         if (this._is_neither_marked_pinned(actor)) {
-            this._cleanup_window_data(actor);
+            windowData.delete(actor);
         }
+
+        this._add_border(actor);
     }
 
     _unmark_windows() {
@@ -334,26 +324,6 @@ export class MarkedWindowFunctions {
                 this._add_border(actor);
             }
         });
-    }
-
-    // Extracted common cleanup code
-    _cleanup_window_data(actor) {
-        const win = actor.get_meta_window();
-        const connectionIds = [
-            'positionChangedId',
-            'sizeChangedId',
-            'unmanagedId',
-            'workspaceChangedId'
-        ];
-
-        // Disconnect all stored signal handlers
-        connectionIds.forEach(id => {
-            const handlerId = this._get_data(actor, id);
-            if (handlerId) win.disconnect(handlerId);
-        });
-
-        this._remove_border(actor);
-        windowData.delete(actor);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ActivatePinnedWindows
