@@ -1,4 +1,6 @@
 import St from 'gi://St';
+import Meta from 'gi://Meta';
+
 import * as windowFunctions from './windowFunctions.js';
 
 const Display = global.get_display();
@@ -404,9 +406,12 @@ export class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.TogglePinsFocusedWindow
 
     TogglePinsFocusedWindow() {
-        let win = this.windowFunctions._get_normal_focused_window();
-        let actor = win.get_compositor_private();
-        this._toggle_pin(actor);
+        let win = Display.get_focus_window();
+
+        if (win.get_window_type() === Meta.WindowType.NORMAL) {
+            let actor = win.get_compositor_private();
+            this._toggle_pin(actor);
+        }
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
@@ -451,9 +456,11 @@ export class MarkedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows.ToggleMarksFocusedWindow
 
     ToggleMarksFocusedWindow() {
-        let win = this.windowFunctions._get_normal_focused_window();
-        console.log(`Win ID: ${win.get_id()}`);
-        let actor = win.get_compositor_private();
-        this._toggle_mark(actor);
+        let win = Display.get_focus_window();
+
+        if (win.get_window_type() === Meta.WindowType.NORMAL) {
+            let actor = win.get_compositor_private();
+            this._toggle_mark(actor);
+        }
     }
 };
