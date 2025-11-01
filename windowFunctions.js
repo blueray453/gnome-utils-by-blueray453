@@ -1,11 +1,10 @@
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 
+const AppSystem = global.get_app_system();
 const Display = global.get_display();
 const WindowTracker = global.get_window_tracker();
-
-// const WorkspaceManager = global.get_workspace_manager();
-const WorkspaceManager = Display.get_workspace_manager();
+const WorkspaceManager = global.get_workspace_manager();
 
 // privamive global variables can not be passed by reference that is why using objects. Array also work.
 let align_windows_state_nemo = { value: 0 };
@@ -118,6 +117,37 @@ export const MR_DBUS_IFACE = `
       </method>
       <method name="UnMinimizeOtherWindowsOfFocusedWindowWMClass">
       </method>
+      <method name="GetAppDetailsGivenAppID">
+         <arg type="s" direction="in" name="appid" />
+         <arg type="s" direction="out" name="app" />
+      </method>
+      <method name="GetAppDetailsGivenPID">
+         <arg type="u" direction="in" name="pid" />
+         <arg type="s" direction="out" name="app" />
+      </method>
+      <method name="GetAppDetailsFocusedWindow">
+         <arg type="s" direction="out" name="app" />
+      </method>
+      <method name="GetAppDetailsGivenWindowID">
+         <arg type="u" direction="in" name="winid" />
+         <arg type="s" direction="out" name="icon" />
+      </method>
+      <method name="GetAppDetailsGivenWMClass">
+        <arg type="s" direction="in" name="wm_class" />
+        <arg type="s" direction="out" name="windows" />
+      </method>
+      <method name="GetRunningApps">
+         <arg type="s" direction="out" name="app" />
+      </method>
+
+
+
+
+
+
+
+
+
    </interface>
 </node>`;
 
@@ -126,7 +156,7 @@ export class WindowFunctions {
     /* Get Properties */
 
     _get_properties_brief_given_app_id = function (app_id) {
-        let shell_apps = global.get_app_system().lookup_app(app_id);
+        let shell_apps = AppSystem.lookup_app(app_id);
         let desktop_apps = shell_apps.get_app_info();
 
         // get_display_name is a function of AppInfo which is DesktopAppInfo inherited
@@ -771,5 +801,69 @@ export class WindowFunctions {
             w.unminimize();
             w.raise();
         });
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppDetailsGivenAppID string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
+
+    GetAppDetailsGivenAppID(app_id) {
+        return JSON.stringify(this._get_properties_brief_given_app_id(app_id));
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppDetailsGivenPID uint32:3931313482 | jq .
+
+    GetAppDetailsGivenPID(pid) {
+        let app = WindowTracker.get_app_from_pid(pid);
+        return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppDetailsFocusedWindow | jq .
+
+    GetAppDetailsFocusedWindow() {
+        let app = WindowTracker.get_focus_app();
+        return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
+        // let win = global.get_window_actors().find(w => w.meta_window.has_focus() == true);
+        // // let wmclass = w.meta_window.get_wm_class();
+        // // return Gio.AppInfo.get_all().find(a => a.get_startup_wm_class() == wmclass).get_id();
+
+        // let tracker = global.get_window_tracker();
+        // let app = tracker.get_window_app(win.meta_window);
+        // return app.get_id();
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppDetailsGivenWindowID uint32:44129093  | jq .
+
+    GetAppDetailsGivenWindowID(winid) {
+        let win = this._get_normal_window_given_window_id(winid);
+        //   let wmclass = win.meta_window.get_wm_class();
+        //   let app_id = global.get_app_system().lookup_startup_wmclass(wmclass).get_id();
+        //   return global.get_app_system().lookup_app(app_id).get_icon().to_string();
+        let app = WindowTracker.get_window_app(win.meta_window);
+        return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppDetailsGivenWMClass string:"firefox-esr" | jq
+
+    GetAppDetailsGivenWMClass(wmclass) {
+        let app = AppSystem.lookup_desktop_wmclass(wmclass);;
+        return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetRunningApps | jq .
+
+    GetRunningApps() {
+        let apps = AppSystem.get_running();
+        let results = [];
+
+        apps.forEach(app => {
+            let app_id = app.get_id();
+            try {
+                let info = this._get_properties_brief_given_app_id(app_id);
+                results.push(info);
+            } catch (err) {
+                results.push({ app_id, error: err.message });
+            }
+        });
+
+        return JSON.stringify(results);
     }
 }
