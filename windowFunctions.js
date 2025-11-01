@@ -3,6 +3,7 @@ import Meta from 'gi://Meta';
 
 const AppSystem = global.get_app_system();
 const Display = global.get_display();
+const WindowActors = global.get_window_actors();
 const WindowTracker = global.get_window_tracker();
 const WorkspaceManager = global.get_workspace_manager();
 
@@ -227,16 +228,22 @@ export class WindowFunctions {
     // get_work_area_for_monitor(which_monitor)
     // get_work_area_current_monitor()
 
-    _get_normal_windows = function () {
-        // can also sort by get_user_time()
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).sort((a, b) => a.get_id() - b.get_id());
+    _get_normal_windows() {
+        // let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).sort((a, b) => a.get_id() - b.get_id());
+        let wins = WindowActors.map(actor => actor.meta_window).filter(win => win.get_window_type() === Meta.WindowType.NORMAL).sort((a, b) => a.get_id() - b.get_id()); // ascending order
+
         return wins;
     }
 
     _get_normal_windows_current_workspace = function () {
         let current_workspace = WorkspaceManager.get_active_workspace();
-        // let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace);
-        let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).sort((a, b) => a.get_id() - b.get_id());
+
+        // let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).sort((a, b) => a.get_id() - b.get_id());
+
+        let wins = this._get_normal_windows().filter(win =>
+            win.is_on_all_workspaces() || win.get_workspace() === current_workspace
+            );
+
         return wins;
     }
 
