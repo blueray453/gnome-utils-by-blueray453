@@ -17,22 +17,22 @@ let align_windows_state_all_windows = { value: 0 };
 export const MR_DBUS_IFACE = `
 <node>
    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWindows">
-      <method name="ActivateWindowGivenWinID">
+      <method name="WindowActivateGivenWinID">
          <arg type="u" direction="in" name="win_id" />
       </method>
-      <method name="ActivateWindowsGivenWMClass">
+      <method name="WindowsActivateGivenWMClass">
         <arg type="s" direction="in" name="wm_class" />
       </method>
       <method name="AlignWindowsOfFocusedWindowWMClass">
       </method>
-      <method name="Close">
+      <method name="WindowCloseGivenWinID">
          <arg type="u" direction="in" name="win_id" />
       </method>
-      <method name="CloseDuplicateNemoWindows">
+      <method name="WindowsCloseDuplicateNemo">
       </method>
       <method name="CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass">
       </method>
-      <method name="FullScreen">
+      <method name="WindowFullScreenGivenWinID">
          <arg type="u" direction="in" name="win_id" />
       </method>
       <method name="GetAppFocusedWindow">
@@ -83,15 +83,15 @@ export const MR_DBUS_IFACE = `
         <arg type="s" direction="in" name="wm_class" />
         <arg type="s" direction="out" name="wins" />
       </method>
-      <method name="Maximize">
+      <method name="WindowMaximizeGivenWinID">
          <arg type="u" direction="in" name="win_id" />
       </method>
-      <method name="Minimize">
+      <method name="WindowMinimizeGivenWinID">
          <arg type="u" direction="in" name="win_id" />
       </method>
       <method name="MinimizeOtherWindowsOfFocusedWindowWMClass">
       </method>
-      <method name="Move">
+      <method name="WindowMoveGivenWinID">
          <arg type="u" direction="in" name="win_id" />
          <arg type="i" direction="in" name="x" />
          <arg type="i" direction="in" name="y" />
@@ -100,39 +100,37 @@ export const MR_DBUS_IFACE = `
       <arg type="s" direction="in" name="wm_class" />
          <arg type="i" direction="in" name="workspace_num" />
       </method>
-      <method name="MoveResize">
+      <method name="WindowMoveResizeGivenWinID">
          <arg type="u" direction="in" name="win_id" />
          <arg type="i" direction="in" name="x" />
          <arg type="i" direction="in" name="y" />
          <arg type="i" direction="in" name="width" />
          <arg type="i" direction="in" name="height" />
       </method>
-      <method name="MoveWindowsSideBySide">
+      <method name="WindowsMoveSideBySide">
          <arg type="u" direction="in" name="win_id_1" />
          <arg type="u" direction="in" name="win_id_2" />
       </method>
-      <method name="MoveWindowToCurrentWorkspace">
+      <method name="WindowMoveToCurrentWorkspace">
          <arg type="u" direction="in" name="win_id" />
       </method>
-      <method name="MoveWindowToGivenWorkspace">
+      <method name="WindowMoveToGivenWorkspace">
          <arg type="u" direction="in" name="win_id" />
          <arg type="i" direction="in" name="workspace_num" />
       </method>
-      <method name="Raise">
+      <method name="WindowRaiseGivenWinID">
          <arg type="u" direction="in" name="win_id" />
       </method>
-      <method name="Resize">
+      <method name="WindowResizeGivenWinID">
          <arg type="u" direction="in" name="win_id" />
          <arg type="i" direction="in" name="width" />
          <arg type="i" direction="in" name="height" />
       </method>
-      <method name="Unmaximize">
+      <method name="WindowUnmaximizeGivenWinID">
          <arg type="u" direction="in" name="win_id" />
       </method>
-      <method name="Unminimize">
+      <method name="WindowUnminimizeGivenWinID">
          <arg type="u" direction="in" name="win_id" />
-      </method>
-      <method name="UnMinimizeOtherWindowsOfFocusedWindowWMClass">
       </method>
    </interface>
 </node>`;
@@ -395,9 +393,9 @@ export class WindowFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ActivateWindowGivenWinID uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowActivateGivenWinID uint32:44129093
 
-    ActivateWindowGivenWinID(win_id) {
+    WindowActivateGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
         if (win !== null){
             let win_workspace = win.get_workspace();
@@ -406,9 +404,9 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ActivateWindowsGivenWMClass string:"firefox-esr"
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsActivateGivenWMClass string:"firefox-esr"
 
-    ActivateWindowsGivenWMClass(wm_class) {
+    WindowsActivateGivenWMClass(wm_class) {
         let wins = this._get_normal_windows_given_wm_class(wm_class);
 
         wins.forEach(win => {
@@ -427,9 +425,9 @@ export class WindowFunctions {
         this._align_windows(windows_array, windows_per_container, align_windows_state_all_windows);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Close uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowCloseGivenWinID uint32:44129093
 
-    Close(win_id) {
+    WindowCloseGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
         // win.get_compositor_private().destroy();
 
@@ -438,9 +436,9 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseDuplicateNemoWindows
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsCloseDuplicateNemo
 
-    CloseDuplicateNemoWindows() {
+    WindowsCloseDuplicateNemo() {
         let wins = this._get_normal_windows_current_workspace_given_wm_class("nemo");
         let seen = {};
         wins.forEach(win => {
@@ -478,9 +476,9 @@ export class WindowFunctions {
         })
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.FullScreen uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowFullScreenGivenWinID uint32:44129093
 
-    FullScreen(win_id) {
+    WindowFullScreenGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
 
         if (win !== null) {
@@ -654,9 +652,9 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Maximize uint32:3931313482
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMaximizeGivenWinID uint32:3931313482
 
-    Maximize(win_id) {
+    WindowMaximizeGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
 
         if (win !== null) {
@@ -669,9 +667,9 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Minimize uint32:3931313482
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMinimizeGivenWinID uint32:3931313482
 
-    Minimize(win_id) {
+    WindowMinimizeGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
         if (win !== null) {
             win.minimize();
@@ -685,9 +683,9 @@ export class WindowFunctions {
         wins.map(w => w.minimize());
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Move uint32:44129093 int32:100 int32:200
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveGivenWinID uint32:44129093 int32:100 int32:200
 
-    Move(win_id, x, y) {
+    WindowMoveGivenWinID(win_id, x, y) {
         let win = this._get_normal_window_given_window_id(win_id);
         if (win !== null) {
             this._make_window_movable_and_resizable(win);
@@ -704,9 +702,9 @@ export class WindowFunctions {
         this._move_app_windows_to_workspace(wm_class, workspace_num)
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveResizeGivenWinID uint32:44129093 int32:0 int32:0 int32:0 int32:0
 
-    MoveResize(win_id, x, y, width, height) {
+    WindowMoveResizeGivenWinID(win_id, x, y, width, height) {
         let win = this._get_normal_window_given_window_id(win_id);
 
         if (win !== null) {
@@ -722,15 +720,15 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsSideBySide uint32:win_id_1 uint32:win_id_2
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsMoveSideBySide uint32:win_id_1 uint32:win_id_2
 
-    MoveWindowsSideBySide(win_id_1, win_id_2) {
+    WindowsMoveSideBySide(win_id_1, win_id_2) {
         this._move_windows_side_by_side(win_id_1, win_id_2);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToCurrentWorkspace uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToCurrentWorkspace uint32:44129093
 
-    MoveWindowToCurrentWorkspace(win_id) {
+    WindowMoveToCurrentWorkspace(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
 
         if (win !== null) {
@@ -740,9 +738,9 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToGivenWorkspace uint32:44129093 int32:0
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToGivenWorkspace uint32:44129093 int32:0
 
-    MoveWindowToGivenWorkspace(win_id, workspaceNum) {
+    WindowMoveToGivenWorkspace(win_id, workspaceNum) {
         let win = this._get_normal_window_given_window_id(win_id);
 
         if (win !== null) {
@@ -751,7 +749,9 @@ export class WindowFunctions {
         }
     }
 
-    Raise(win_id) {
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowRaiseGivenWinID uint32:44129093
+
+    WindowRaiseGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
         if (win !== null) {
             win.raise();
@@ -759,9 +759,9 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Resize uint32:44129093 int32:800 int32:600
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowResizeGivenWinID uint32:44129093 int32:800 int32:600
 
-    Resize(win_id, width, height) {
+    WindowResizeGivenWinID(win_id, width, height) {
         let win = this._get_normal_window_given_window_id(win_id);
         if (win !== null) {
             this._move_resize_window(win, win.get_x(), win.get_y(), width, height);
@@ -769,9 +769,9 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Resize uint32:44129093 int32:800 int32:600
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowUnmaximizeGivenWinID uint32:44129093
 
-    Unmaximize(win_id) {
+    WindowUnmaximizeGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
 
         if (win !== null) {
@@ -782,25 +782,14 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.Unminimize uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowUnminimizeGivenWinID uint32:44129093
 
-    Unminimize(win_id) {
+    WindowUnminimizeGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
         if (win !== null) {
             if (win.minimized) {
                 win.unminimize();
             }
         }
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.UnMinimizeOtherWindowsOfFocusedWindowWMClass
-
-    UnMinimizeOtherWindowsOfFocusedWindowWMClass() {
-        let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
-
-        wins.map(w => {
-            w.unminimize();
-            w.raise();
-        });
     }
 }
