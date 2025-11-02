@@ -73,7 +73,7 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="MoveAppWindowsToGivenWorkspaceGivenWMClass">
             <arg type="s" direction="in" name="wm_class" />
-            <arg type="i" direction="in" name="workspace_num" />
+            <arg type="u" direction="in" name="workspace_num" />
         </method>
         <method name="WindowActivateGivenWinID">
             <arg type="u" direction="in" name="win_id" />
@@ -92,30 +92,30 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="WindowMoveGivenWinID">
             <arg type="u" direction="in" name="win_id" />
-            <arg type="i" direction="in" name="x" />
-            <arg type="i" direction="in" name="y" />
+            <arg type="u" direction="in" name="x" />
+            <arg type="u" direction="in" name="y" />
         </method>
         <method name="WindowMoveResizeGivenWinID">
             <arg type="u" direction="in" name="win_id" />
-            <arg type="i" direction="in" name="x" />
-            <arg type="i" direction="in" name="y" />
-            <arg type="i" direction="in" name="width" />
-            <arg type="i" direction="in" name="height" />
+            <arg type="u" direction="in" name="x" />
+            <arg type="u" direction="in" name="y" />
+            <arg type="u" direction="in" name="width" />
+            <arg type="u" direction="in" name="height" />
         </method>
         <method name="WindowMoveToCurrentWorkspace">
             <arg type="u" direction="in" name="win_id" />
         </method>
         <method name="WindowMoveToGivenWorkspace">
             <arg type="u" direction="in" name="win_id" />
-            <arg type="i" direction="in" name="workspace_num" />
+            <arg type="u" direction="in" name="workspace_num" />
         </method>
         <method name="WindowRaiseGivenWinID">
             <arg type="u" direction="in" name="win_id" />
         </method>
         <method name="WindowResizeGivenWinID">
             <arg type="u" direction="in" name="win_id" />
-            <arg type="i" direction="in" name="width" />
-            <arg type="i" direction="in" name="height" />
+            <arg type="u" direction="in" name="width" />
+            <arg type="u" direction="in" name="height" />
         </method>
         <method name="WindowsActivateGivenWMClass">
             <arg type="s" direction="in" name="wm_class" />
@@ -600,7 +600,7 @@ export class WindowFunctions {
         wins.map(w => w.minimize());
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAppWindowsToGivenWorkspaceGivenWMClass string:"firefox-esr" int32:0
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAppWindowsToGivenWorkspaceGivenWMClass string:"firefox-esr" uint32:0
 
     // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "nemo"
 
@@ -666,7 +666,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveGivenWinID uint32:44129093 int32:100 int32:200
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveGivenWinID uint32:44129093 uint32:100 uint32:200
 
     WindowMoveGivenWinID(win_id, x, y) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -677,7 +677,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveResizeGivenWinID uint32:44129093 int32:0 int32:0 int32:0 int32:0
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveResizeGivenWinID uint32:44129093 uint32:0 uint32:0 uint32:0 uint32:0
 
     WindowMoveResizeGivenWinID(win_id, x, y, width, height) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -707,7 +707,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToGivenWorkspace uint32:44129093 int32:0
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToGivenWorkspace uint32:44129093 uint32:0
 
     WindowMoveToGivenWorkspace(win_id, workspaceNum) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -728,7 +728,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowResizeGivenWinID uint32:44129093 int32:800 int32:600
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowResizeGivenWinID uint32:44129093 uint32:800 uint32:600
 
     WindowResizeGivenWinID(win_id, width, height) {
         let win = this._get_normal_window_given_window_id(win_id);
