@@ -381,10 +381,6 @@ export class WindowFunctions {
 
     _move_app_windows_to_workspace(wm_class, workspace_num) {
         let app = AppSystem.lookup_desktop_wmclass(wm_class);
-        if (!app) {
-            log(`App not found for wm_class: ${wm_class}`);
-            return;
-        }
 
         app.get_windows().forEach(win => {
             if (win) {
@@ -598,7 +594,7 @@ export class WindowFunctions {
     // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "nemo"
 
     MoveAppWindowsToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
-        this._move_app_windows_to_workspace(wm_class, workspace_num)
+        this._move_app_windows_to_workspace(wm_class, workspace_num);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowActivateGivenWinID uint32:44129093
