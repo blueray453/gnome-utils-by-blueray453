@@ -23,8 +23,6 @@ export const MR_DBUS_IFACE = `
       <method name="ActivateWindowsGivenWMClass">
         <arg type="s" direction="in" name="wm_class" />
       </method>
-      <method name="AlignNemoWindows">
-      </method>
       <method name="AlignWindowsOfFocusedWindowWMClass">
       </method>
       <method name="Close">
@@ -59,11 +57,14 @@ export const MR_DBUS_IFACE = `
       <method name="GetAppsRunning">
          <arg type="s" direction="out" name="app" />
       </method>
-      <method name="GetWindows">
-         <arg type="s" direction="out" name="win" />
+      <method name="GetWindowFocused">
+        <arg type="s" direction="out" name="win" />
       </method>
       <method name="GetWindowGivenWindowID">
          <arg type="u" direction="in" name="win_id" />
+         <arg type="s" direction="out" name="win" />
+      </method>
+      <method name="GetWindows">
          <arg type="s" direction="out" name="win" />
       </method>
       <method name="GetWindowsCurrentWorkspace">
@@ -77,9 +78,6 @@ export const MR_DBUS_IFACE = `
       </method>
       <method name="GetWindowsForRofi">
          <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetWindowFocused">
-        <arg type="s" direction="out" name="win" />
       </method>
       <method name="GetWindowsGivenWMClass">
         <arg type="s" direction="in" name="wm_class" />
@@ -98,8 +96,9 @@ export const MR_DBUS_IFACE = `
          <arg type="i" direction="in" name="x" />
          <arg type="i" direction="in" name="y" />
       </method>
-      <method name="MoveAppWindowsToCurrentWorkspaceGivenWMClass">
-         <arg type="s" direction="in" name="wm_class" />
+      <method name="MoveAppWindowsToGivenWorkspaceGivenWMClass">
+      <arg type="s" direction="in" name="wm_class" />
+         <arg type="i" direction="in" name="workspace_num" />
       </method>
       <method name="MoveResize">
          <arg type="u" direction="in" name="win_id" />
@@ -114,10 +113,6 @@ export const MR_DBUS_IFACE = `
       </method>
       <method name="MoveWindowToCurrentWorkspace">
          <arg type="u" direction="in" name="win_id" />
-      </method>
-      <method name="MoveAppWindowsToGivenWorkspaceGivenWMClass">
-      <arg type="s" direction="in" name="wm_class" />
-         <arg type="i" direction="in" name="workspace_num" />
       </method>
       <method name="MoveWindowToGivenWorkspace">
          <arg type="u" direction="in" name="win_id" />
@@ -423,15 +418,6 @@ export class WindowFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignNemoWindows
-
-    AlignNemoWindows() {
-        let windows_array = this._get_normal_windows_current_workspace_given_wm_class("nemo");
-        let windows_per_container = 2;
-
-        this._align_windows(windows_array, windows_per_container, align_windows_state_nemo);
-    }
-
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsOfFocusedWindowWMClass | jq .
 
     AlignWindowsOfFocusedWindowWMClass() {
@@ -558,6 +544,15 @@ export class WindowFunctions {
         return JSON.stringify(results);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowFocused | jq -r '.[].id'
+
+    GetWindowFocused() {
+        let win = Display.get_focus_window();
+        let winPropertiesArr = this._get_properties_brief_given_meta_window(win);
+
+        return JSON.stringify(winPropertiesArr);
+    }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowGivenWindowID uint32:44129093
 
     GetWindowGivenWindowID(win_id) {
@@ -615,26 +610,6 @@ export class WindowFunctions {
 
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowFocused | jq -r '.[].id'
-
-    GetWindowFocused() {
-        let win = Display.get_focus_window();
-        let winPropertiesArr = this._get_properties_brief_given_meta_window(win);
-
-        return JSON.stringify(winPropertiesArr);
-    }
-
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsGivenWMClass string:"firefox-esr" | jq -r '.[].id'
-
-    GetWindowsGivenWMClass(wm_class) {
-        let wins = this._get_normal_windows_given_wm_class(wm_class);
-
-        // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
-
-        return JSON.stringify(winPropertiesArr);
-    }
-
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofi | jq .
 
     GetWindowsForRofi() {
@@ -661,6 +636,17 @@ export class WindowFunctions {
 
             return orderA - orderB;
         });
+
+        // Map each window to its properties
+        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
+
+        return JSON.stringify(winPropertiesArr);
+    }
+
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsGivenWMClass string:"firefox-esr" | jq -r '.[].id'
+
+    GetWindowsGivenWMClass(wm_class) {
+        let wins = this._get_normal_windows_given_wm_class(wm_class);
 
         // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
@@ -710,44 +696,12 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToCurrentWorkspace uint32:44129093
-
-    MoveWindowToCurrentWorkspace(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-
-        if (win !== null) {
-            let current_workspace = WorkspaceManager.get_active_workspace();
-            win.change_workspace(current_workspace);
-            // current_workspace.activate_with_focus(win, 0);
-        }
-    }
-
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAppWindowsToCurrentWorkspaceGivenWMClass string:"firefox-esr"
-
-    // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "nemo"
-
-    MoveAppWindowsToCurrentWorkspaceGivenWMClass(wm_class) {
-        let workspace_num = WorkspaceManager.get_active_workspace().index();
-        this._move_app_windows_to_workspace(wm_class, workspace_num);
-    }
-
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAppWindowsToGivenWorkspaceGivenWMClass string:"firefox-esr" int32:0
 
     // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "nemo"
 
     MoveAppWindowsToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
         this._move_app_windows_to_workspace(wm_class, workspace_num)
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToGivenWorkspace uint32:44129093 int32:0
-
-    MoveWindowToGivenWorkspace(win_id, workspaceNum) {
-        let win = this._get_normal_window_given_window_id(win_id);
-
-        if (win !== null) {
-            win.change_workspace_by_index(workspaceNum, false);
-            // current_workspace.activate_with_focus(win, 0);
-        }
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveResize uint32:44129093 int32:0 int32:0 int32:0 int32:0
@@ -772,6 +726,29 @@ export class WindowFunctions {
 
     MoveWindowsSideBySide(win_id_1, win_id_2) {
         this._move_windows_side_by_side(win_id_1, win_id_2);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToCurrentWorkspace uint32:44129093
+
+    MoveWindowToCurrentWorkspace(win_id) {
+        let win = this._get_normal_window_given_window_id(win_id);
+
+        if (win !== null) {
+            let current_workspace = WorkspaceManager.get_active_workspace();
+            win.change_workspace(current_workspace);
+            // current_workspace.activate_with_focus(win, 0);
+        }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToGivenWorkspace uint32:44129093 int32:0
+
+    MoveWindowToGivenWorkspace(win_id, workspaceNum) {
+        let win = this._get_normal_window_given_window_id(win_id);
+
+        if (win !== null) {
+            win.change_workspace_by_index(workspaceNum, false);
+            // current_workspace.activate_with_focus(win, 0);
+        }
     }
 
     Raise(win_id) {
