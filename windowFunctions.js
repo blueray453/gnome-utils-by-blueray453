@@ -16,123 +16,123 @@ let align_windows_state_all_windows = { value: 0 };
 
 export const MR_DBUS_IFACE = `
 <node>
-   <interface name="org.gnome.Shell.Extensions.GnomeUtilsWindows">
-      <method name="WindowActivateGivenWinID">
-         <arg type="u" direction="in" name="win_id" />
-      </method>
-      <method name="WindowsActivateGivenWMClass">
-        <arg type="s" direction="in" name="wm_class" />
-      </method>
-      <method name="AlignWindowsOfFocusedWindowWMClass">
-      </method>
-      <method name="WindowCloseGivenWinID">
-         <arg type="u" direction="in" name="win_id" />
-      </method>
-      <method name="WindowsCloseDuplicateNemo">
-      </method>
-      <method name="CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass">
-      </method>
-      <method name="WindowFullScreenGivenWinID">
-         <arg type="u" direction="in" name="win_id" />
-      </method>
-      <method name="GetAppFocusedWindow">
-         <arg type="s" direction="out" name="app" />
-      </method>
-      <method name="GetAppGivenAppID">
-         <arg type="s" direction="in" name="app_id" />
-         <arg type="s" direction="out" name="app" />
-      </method>
-      <method name="GetAppGivenPID">
-         <arg type="u" direction="in" name="pid" />
-         <arg type="s" direction="out" name="app" />
-      </method>
-      <method name="GetAppGivenWindowID">
-         <arg type="u" direction="in" name="win_id" />
-         <arg type="s" direction="out" name="icon" />
-      </method>
-      <method name="GetAppGivenWMClass">
+    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWindows">
+        <method name="AlignWindowsOfFocusedWindowWMClass">
+        </method>
+        <method name="CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass">
+        </method>
+        <method name="GetAppFocusedWindow">
+            <arg type="s" direction="out" name="app" />
+        </method>
+        <method name="GetAppGivenAppID">
+            <arg type="s" direction="in" name="app_id" />
+            <arg type="s" direction="out" name="app" />
+        </method>
+        <method name="GetAppGivenPID">
+            <arg type="u" direction="in" name="pid" />
+            <arg type="s" direction="out" name="app" />
+        </method>
+        <method name="GetAppGivenWindowID">
+            <arg type="u" direction="in" name="win_id" />
+            <arg type="s" direction="out" name="icon" />
+        </method>
+        <method name="GetAppGivenWMClass">
         <arg type="s" direction="in" name="wm_class" />
         <arg type="s" direction="out" name="windows" />
-      </method>
-      <method name="GetAppsRunning">
-         <arg type="s" direction="out" name="app" />
-      </method>
-      <method name="GetWindowFocused">
+        </method>
+        <method name="GetAppsRunning">
+            <arg type="s" direction="out" name="app" />
+        </method>
+        <method name="GetWindowFocused">
         <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetWindowGivenWindowID">
-         <arg type="u" direction="in" name="win_id" />
-         <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetWindows">
-         <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetWindowsCurrentWorkspace">
-         <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetWindowsCurrentWorkspaceCurrentMonitor">
-         <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetWindowsCurrentWorkspaceOfFocusedWindowWMClass">
-         <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetWindowsForRofi">
-         <arg type="s" direction="out" name="win" />
-      </method>
-      <method name="GetWindowsGivenWMClass">
+        </method>
+        <method name="GetWindowGivenWindowID">
+            <arg type="u" direction="in" name="win_id" />
+            <arg type="s" direction="out" name="win" />
+        </method>
+        <method name="GetWindows">
+            <arg type="s" direction="out" name="win" />
+        </method>
+        <method name="GetWindowsCurrentWorkspace">
+            <arg type="s" direction="out" name="win" />
+        </method>
+        <method name="GetWindowsCurrentWorkspaceCurrentMonitor">
+            <arg type="s" direction="out" name="win" />
+        </method>
+        <method name="GetWindowsCurrentWorkspaceOfFocusedWindowWMClass">
+            <arg type="s" direction="out" name="win" />
+        </method>
+        <method name="GetWindowsForRofi">
+            <arg type="s" direction="out" name="win" />
+        </method>
+        <method name="GetWindowsGivenWMClass">
         <arg type="s" direction="in" name="wm_class" />
         <arg type="s" direction="out" name="wins" />
-      </method>
-      <method name="WindowMaximizeGivenWinID">
-         <arg type="u" direction="in" name="win_id" />
-      </method>
-      <method name="WindowMinimizeGivenWinID">
-         <arg type="u" direction="in" name="win_id" />
-      </method>
-      <method name="MinimizeOtherWindowsOfFocusedWindowWMClass">
-      </method>
-      <method name="WindowMoveGivenWinID">
-         <arg type="u" direction="in" name="win_id" />
-         <arg type="i" direction="in" name="x" />
-         <arg type="i" direction="in" name="y" />
-      </method>
-      <method name="MoveAppWindowsToGivenWorkspaceGivenWMClass">
-      <arg type="s" direction="in" name="wm_class" />
-         <arg type="i" direction="in" name="workspace_num" />
-      </method>
-      <method name="WindowMoveResizeGivenWinID">
-         <arg type="u" direction="in" name="win_id" />
-         <arg type="i" direction="in" name="x" />
-         <arg type="i" direction="in" name="y" />
-         <arg type="i" direction="in" name="width" />
-         <arg type="i" direction="in" name="height" />
-      </method>
-      <method name="WindowsMoveSideBySide">
-         <arg type="u" direction="in" name="win_id_1" />
-         <arg type="u" direction="in" name="win_id_2" />
-      </method>
-      <method name="WindowMoveToCurrentWorkspace">
-         <arg type="u" direction="in" name="win_id" />
-      </method>
-      <method name="WindowMoveToGivenWorkspace">
-         <arg type="u" direction="in" name="win_id" />
-         <arg type="i" direction="in" name="workspace_num" />
-      </method>
-      <method name="WindowRaiseGivenWinID">
-         <arg type="u" direction="in" name="win_id" />
-      </method>
-      <method name="WindowResizeGivenWinID">
-         <arg type="u" direction="in" name="win_id" />
-         <arg type="i" direction="in" name="width" />
-         <arg type="i" direction="in" name="height" />
-      </method>
-      <method name="WindowUnmaximizeGivenWinID">
-         <arg type="u" direction="in" name="win_id" />
-      </method>
-      <method name="WindowUnminimizeGivenWinID">
-         <arg type="u" direction="in" name="win_id" />
-      </method>
-   </interface>
+        </method>
+        <method name="MinimizeOtherWindowsOfFocusedWindowWMClass">
+        </method>
+        <method name="MoveAppWindowsToGivenWorkspaceGivenWMClass">
+            <arg type="s" direction="in" name="wm_class" />
+            <arg type="i" direction="in" name="workspace_num" />
+        </method>
+        <method name="WindowActivateGivenWinID">
+            <arg type="u" direction="in" name="win_id" />
+        </method>
+        <method name="WindowCloseGivenWinID">
+            <arg type="u" direction="in" name="win_id" />
+        </method>
+        <method name="WindowFullScreenGivenWinID">
+            <arg type="u" direction="in" name="win_id" />
+        </method>
+        <method name="WindowMaximizeGivenWinID">
+            <arg type="u" direction="in" name="win_id" />
+        </method>
+        <method name="WindowMinimizeGivenWinID">
+            <arg type="u" direction="in" name="win_id" />
+        </method>
+        <method name="WindowMoveGivenWinID">
+            <arg type="u" direction="in" name="win_id" />
+            <arg type="i" direction="in" name="x" />
+            <arg type="i" direction="in" name="y" />
+        </method>
+        <method name="WindowMoveResizeGivenWinID">
+            <arg type="u" direction="in" name="win_id" />
+            <arg type="i" direction="in" name="x" />
+            <arg type="i" direction="in" name="y" />
+            <arg type="i" direction="in" name="width" />
+            <arg type="i" direction="in" name="height" />
+        </method>
+        <method name="WindowMoveToCurrentWorkspace">
+            <arg type="u" direction="in" name="win_id" />
+        </method>
+        <method name="WindowMoveToGivenWorkspace">
+            <arg type="u" direction="in" name="win_id" />
+            <arg type="i" direction="in" name="workspace_num" />
+        </method>
+        <method name="WindowRaiseGivenWinID">
+            <arg type="u" direction="in" name="win_id" />
+        </method>
+        <method name="WindowResizeGivenWinID">
+            <arg type="u" direction="in" name="win_id" />
+            <arg type="i" direction="in" name="width" />
+            <arg type="i" direction="in" name="height" />
+        </method>
+        <method name="WindowsActivateGivenWMClass">
+        <arg type="s" direction="in" name="wm_class" />
+        </method>
+        <method name="WindowsCloseDuplicateNemo">
+        </method>
+        <method name="WindowsMoveSideBySide">
+            <arg type="u" direction="in" name="win_id_1" />
+            <arg type="u" direction="in" name="win_id_2" />
+        </method>
+        <method name="WindowUnmaximizeGivenWinID">
+            <arg type="u" direction="in" name="win_id" />
+        </method>
+        <method name="WindowUnminimizeGivenWinID">
+            <arg type="u" direction="in" name="win_id" />
+        </method>
+    </interface>
 </node>`;
 
 export class WindowFunctions {
@@ -783,7 +783,6 @@ export class WindowFunctions {
 
         if (win !== null) {
             this._make_window_movable_and_resizable(win);
-
             win.unmaximize(3);
             win.activate(0);
         }
