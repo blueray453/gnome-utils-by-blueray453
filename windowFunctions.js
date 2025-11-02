@@ -98,7 +98,7 @@ export const MR_DBUS_IFACE = `
          <arg type="i" direction="in" name="x" />
          <arg type="i" direction="in" name="y" />
       </method>
-      <method name="MoveWindowsToCurrentWorkspaceGivenWMClass">
+      <method name="MoveAppWindowsToCurrentWorkspaceGivenWMClass">
          <arg type="s" direction="in" name="wm_class" />
       </method>
       <method name="MoveResize">
@@ -115,7 +115,7 @@ export const MR_DBUS_IFACE = `
       <method name="MoveWindowToCurrentWorkspace">
          <arg type="u" direction="in" name="win_id" />
       </method>
-      <method name="MoveWindowsToGivenWorkspaceGivenWMClass">
+      <method name="MoveAppWindowsToGivenWorkspaceGivenWMClass">
       <arg type="s" direction="in" name="wm_class" />
          <arg type="i" direction="in" name="workspace_num" />
       </method>
@@ -325,21 +325,6 @@ export class WindowFunctions {
         global_object.value = state + 1;
     };
 
-    _move_all_app_windows_to_current_workspace = function (wm_class) {
-        let current_workspace_index = WorkspaceManager.get_active_workspace().index();
-
-        this._move_all_app_windows_to_given_workspace(wm_class, current_workspace_index);
-    }
-
-    _move_all_app_windows_to_given_workspace = function (wm_class, workspace_num) {
-        let windows_array = this._get_normal_windows_given_wm_class(wm_class);
-        windows_array.forEach(win => {
-            if (win.get_workspace().index() != workspace_num) {
-                win.change_workspace_by_index(workspace_num, false);
-            }
-        });
-    }
-
     _get_app_given_meta_window = function (win) {
         let app = WindowTracker.get_window_app(win);
         return app;
@@ -399,6 +384,20 @@ export class WindowFunctions {
             this._move_resize_window(win1, 0, 0, window_width, window_height);
             this._move_resize_window(win2, window_width, 0, window_width, window_height);
         }
+    }
+
+    _move_app_windows_to_workspace(wm_class, workspace_num) {
+        let app = AppSystem.lookup_desktop_wmclass(wm_class);
+        if (!app) {
+            log(`App not found for wm_class: ${wm_class}`);
+            return;
+        }
+
+        app.get_windows().forEach(win => {
+            if (win) {
+                win.change_workspace_by_index(workspace_num, false);
+            }
+        });
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ActivateWindowGivenWinID uint32:44129093
@@ -723,20 +722,21 @@ export class WindowFunctions {
         }
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToCurrentWorkspaceGivenWMClass string:"firefox-esr"
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAppWindowsToCurrentWorkspaceGivenWMClass string:"firefox-esr"
 
     // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "nemo"
 
-    MoveWindowsToCurrentWorkspaceGivenWMClass(wm_class) {
-        this._move_all_app_windows_to_current_workspace(wm_class);
+    MoveAppWindowsToCurrentWorkspaceGivenWMClass(wm_class) {
+        let workspace_num = WorkspaceManager.get_active_workspace().index();
+        this._move_app_windows_to_workspace(wm_class, workspace_num);
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowsToGivenWorkspaceGivenWMClass string:"firefox-esr" int32:0
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAppWindowsToGivenWorkspaceGivenWMClass string:"firefox-esr" int32:0
 
     // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "nemo"
 
-    MoveWindowsToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
-        this._move_all_app_windows_to_given_workspace(wm_class, workspace_num);
+    MoveAppWindowsToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
+        this._move_app_windows_to_workspace(wm_class, workspace_num)
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveWindowToGivenWorkspace uint32:44129093 int32:0
