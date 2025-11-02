@@ -380,10 +380,21 @@ export class WindowFunctions {
     }
 
     _move_app_windows_to_workspace(wm_class, workspace_num) {
-        let app = AppSystem.lookup_desktop_wmclass(wm_class);
+        const app = AppSystem.lookup_desktop_wmclass(wm_class);
+        let windows;
+        if (app) {
+            // App found using wm_class
+            windows = app.get_windows();
+        } else {
+            // App not found — manually get windows of that wm_class
+            windows = this._get_normal_windows_given_wm_class(wm_class);
+        }
 
-        app.get_windows().forEach(win => {
-            if (win) {
+        windows.forEach(win => {
+            if (!win) return;
+
+            const currentIndex = win.get_workspace().index?.() ?? workspace_num;
+            if (currentIndex !== workspace_num) {
                 win.change_workspace_by_index(workspace_num, false);
             }
         });
