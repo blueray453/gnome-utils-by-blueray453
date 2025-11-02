@@ -37,14 +37,14 @@ export const MR_DBUS_IFACE = `
             <arg type="s" direction="out" name="icon" />
         </method>
         <method name="GetAppGivenWMClass">
-        <arg type="s" direction="in" name="wm_class" />
-        <arg type="s" direction="out" name="windows" />
+            <arg type="s" direction="in" name="wm_class" />
+            <arg type="s" direction="out" name="windows" />
         </method>
         <method name="GetAppsRunning">
             <arg type="s" direction="out" name="app" />
         </method>
         <method name="GetWindowFocused">
-        <arg type="s" direction="out" name="win" />
+            <arg type="s" direction="out" name="win" />
         </method>
         <method name="GetWindowGivenWindowID">
             <arg type="u" direction="in" name="win_id" />
@@ -66,8 +66,8 @@ export const MR_DBUS_IFACE = `
             <arg type="s" direction="out" name="win" />
         </method>
         <method name="GetWindowsGivenWMClass">
-        <arg type="s" direction="in" name="wm_class" />
-        <arg type="s" direction="out" name="wins" />
+            <arg type="s" direction="in" name="wm_class" />
+            <arg type="s" direction="out" name="wins" />
         </method>
         <method name="MinimizeOtherWindowsOfFocusedWindowWMClass">
         </method>
@@ -118,7 +118,7 @@ export const MR_DBUS_IFACE = `
             <arg type="i" direction="in" name="height" />
         </method>
         <method name="WindowsActivateGivenWMClass">
-        <arg type="s" direction="in" name="wm_class" />
+            <arg type="s" direction="in" name="wm_class" />
         </method>
         <method name="WindowsCloseDuplicateNemo">
         </method>
