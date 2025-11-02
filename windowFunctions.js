@@ -7,7 +7,7 @@ const WindowTracker = global.get_window_tracker();
 const WorkspaceManager = global.get_workspace_manager();
 
 // privamive global variables can not be passed by reference that is why using objects. Array also work.
-let align_windows_state_nemo = { value: 0 };
+
 let align_windows_state_all_windows = { value: 0 };
 
 // distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
@@ -393,29 +393,6 @@ export class WindowFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowActivateGivenWinID uint32:44129093
-
-    WindowActivateGivenWinID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-        if (win !== null){
-            let win_workspace = win.get_workspace();
-            // Here global.get_current_time() instead of 0 will also work
-            win_workspace.activate_with_focus(win, 0);
-        }
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsActivateGivenWMClass string:"firefox-esr"
-
-    WindowsActivateGivenWMClass(wm_class) {
-        let wins = this._get_normal_windows_given_wm_class(wm_class);
-
-        wins.forEach(win => {
-            let win_workspace = win.get_workspace();
-            // Here global.get_current_time() instead of 0 will also work
-            win_workspace.activate_with_focus(win, 0);
-        });
-    }
-
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsOfFocusedWindowWMClass | jq .
 
     AlignWindowsOfFocusedWindowWMClass() {
@@ -423,37 +400,6 @@ export class WindowFunctions {
         let windows_per_container = 2;
 
         this._align_windows(windows_array, windows_per_container, align_windows_state_all_windows);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowCloseGivenWinID uint32:44129093
-
-    WindowCloseGivenWinID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-        // win.get_compositor_private().destroy();
-
-        if (win !== null) {
-            win.delete(0);
-        }
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsCloseDuplicateNemo
-
-    WindowsCloseDuplicateNemo() {
-        let wins = this._get_normal_windows_current_workspace_given_wm_class("nemo");
-        let seen = {};
-        wins.forEach(win => {
-            let key = win.get_title();
-            if (!seen[key]) {
-                seen[key] = win;
-            } else {
-                if (win.get_user_time() < seen[key].get_user_time()) {
-                    win.delete(0);
-                } else {
-                    seen[key].delete(0);
-                    seen[key] = win;
-                }
-            }
-        });
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
@@ -474,18 +420,6 @@ export class WindowFunctions {
 
             w.delete(0);
         })
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowFullScreenGivenWinID uint32:44129093
-
-    WindowFullScreenGivenWinID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-
-        if (win !== null) {
-            let win_workspace = win.get_workspace();
-            win.maximize(3);
-            win_workspace.activate_with_focus(win, 0);
-        }
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppFocusedWindow | jq .
@@ -652,6 +586,55 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MinimizeOtherWindowsOfFocusedWindowWMClass
+
+    MinimizeOtherWindowsOfFocusedWindowWMClass() {
+        let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
+        wins.map(w => w.minimize());
+    }
+
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAppWindowsToGivenWorkspaceGivenWMClass string:"firefox-esr" int32:0
+
+    // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "nemo"
+
+    MoveAppWindowsToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
+        this._move_app_windows_to_workspace(wm_class, workspace_num)
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowActivateGivenWinID uint32:44129093
+
+    WindowActivateGivenWinID(win_id) {
+        let win = this._get_normal_window_given_window_id(win_id);
+        if (win !== null) {
+            let win_workspace = win.get_workspace();
+            // Here global.get_current_time() instead of 0 will also work
+            win_workspace.activate_with_focus(win, 0);
+        }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowCloseGivenWinID uint32:44129093
+
+    WindowCloseGivenWinID(win_id) {
+        let win = this._get_normal_window_given_window_id(win_id);
+        // win.get_compositor_private().destroy();
+
+        if (win !== null) {
+            win.delete(0);
+        }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowFullScreenGivenWinID uint32:44129093
+
+    WindowFullScreenGivenWinID(win_id) {
+        let win = this._get_normal_window_given_window_id(win_id);
+
+        if (win !== null) {
+            let win_workspace = win.get_workspace();
+            win.maximize(3);
+            win_workspace.activate_with_focus(win, 0);
+        }
+    }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMaximizeGivenWinID uint32:3931313482
 
     WindowMaximizeGivenWinID(win_id) {
@@ -676,13 +659,6 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MinimizeOtherWindowsOfFocusedWindowWMClass
-
-    MinimizeOtherWindowsOfFocusedWindowWMClass() {
-        let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
-        wins.map(w => w.minimize());
-    }
-
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveGivenWinID uint32:44129093 int32:100 int32:200
 
     WindowMoveGivenWinID(win_id, x, y) {
@@ -692,14 +668,6 @@ export class WindowFunctions {
             win.move_frame(1, x, y);
             win.activate(0);
         }
-    }
-
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAppWindowsToGivenWorkspaceGivenWMClass string:"firefox-esr" int32:0
-
-    // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "nemo"
-
-    MoveAppWindowsToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
-        this._move_app_windows_to_workspace(wm_class, workspace_num)
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveResizeGivenWinID uint32:44129093 int32:0 int32:0 int32:0 int32:0
@@ -718,12 +686,6 @@ export class WindowFunctions {
 
             win.activate(0);
         }
-    }
-
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsMoveSideBySide uint32:win_id_1 uint32:win_id_2
-
-    WindowsMoveSideBySide(win_id_1, win_id_2) {
-        this._move_windows_side_by_side(win_id_1, win_id_2);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToCurrentWorkspace uint32:44129093
@@ -767,6 +729,44 @@ export class WindowFunctions {
             this._move_resize_window(win, win.get_x(), win.get_y(), width, height);
             win.activate(0);
         }
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsActivateGivenWMClass string:"firefox-esr"
+
+    WindowsActivateGivenWMClass(wm_class) {
+        let wins = this._get_normal_windows_given_wm_class(wm_class);
+
+        wins.forEach(win => {
+            let win_workspace = win.get_workspace();
+            // Here global.get_current_time() instead of 0 will also work
+            win_workspace.activate_with_focus(win, 0);
+        });
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsCloseDuplicateNemo
+
+    WindowsCloseDuplicateNemo() {
+        let wins = this._get_normal_windows_current_workspace_given_wm_class("nemo");
+        let seen = {};
+        wins.forEach(win => {
+            let key = win.get_title();
+            if (!seen[key]) {
+                seen[key] = win;
+            } else {
+                if (win.get_user_time() < seen[key].get_user_time()) {
+                    win.delete(0);
+                } else {
+                    seen[key].delete(0);
+                    seen[key] = win;
+                }
+            }
+        });
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsMoveSideBySide uint32:win_id_1 uint32:win_id_2
+
+    WindowsMoveSideBySide(win_id_1, win_id_2) {
+        this._move_windows_side_by_side(win_id_1, win_id_2);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowUnmaximizeGivenWinID uint32:44129093
