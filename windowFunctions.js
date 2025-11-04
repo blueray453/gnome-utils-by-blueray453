@@ -326,46 +326,6 @@ export class WindowFunctions {
         global_object.value = state + 1;
     }
 
-    // _align_windows = function (windows_array, windows_per_container, global_object) {
-    //     const total_windows = windows_array.length;
-    //     const total_states = Math.ceil(total_windows / windows_per_container);
-
-    //     let state = global_object.value % total_states; // Wrap around automatically
-
-    //     const workspace = WorkspaceManager.get_active_workspace();
-    //     const work_area = workspace.get_work_area_all_monitors();
-    //     const { width: area_width, height: area_height } = work_area;
-
-    //     const window_width = area_width / windows_per_container;
-    //     const window_height = area_height;
-
-    //     // Precompute X positions for each window
-    //     const x_positions = []; // this will hold the X coordinate (left position) for each window
-
-    //     for (let i = 0; i < windows_per_container; i++) {
-    //         let x = i * window_width;  // each window is placed side by side horizontally
-    //         x_positions.push(x);       // add the computed X position to the array
-    //     }
-
-    //     // Minimize all windows before rearranging
-    //     for (const win of windows_array) {
-    //         win.minimize();
-    //     }
-
-    //     // Determine the slice of windows for the current state
-    //     const start_index = state * windows_per_container;
-    //     const visible_windows = windows_array.slice(start_index, start_index + windows_per_container);
-
-    //     // Position and activate each visible window
-    //     visible_windows.forEach((win, idx) => {
-    //         this._move_resize_window(win, x_positions[idx], 0, window_width, window_height);
-    //         win.activate(0);
-    //     });
-
-    //     // Move to next state
-    //     global_object.value = state + 1;
-    // };
-
     _get_app_given_meta_window = function (win) {
         let app = WindowTracker.get_window_app(win);
         return app;
@@ -452,6 +412,11 @@ export class WindowFunctions {
 
     AlignWindowsOfFocusedWindowWMClass() {
         let windows_array = this._get_normal_windows_current_workspace_of_focused_window_wm_class();
+
+        if (windows_array.length === 0) {
+            windows_array = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
+        }
+
         let windows_per_container = 2;
 
         this._align_windows(windows_array, windows_per_container, align_windows_state_all_windows);
@@ -606,7 +571,7 @@ export class WindowFunctions {
             "io.github.cboxdoerfer.FSearch": 1,
             "VSCodium": 2,
             "firefox-esr": 3,
-            "nemo": 4,
+            "Nemo": 4,
             "Alacritty": 5
         };
 
@@ -650,7 +615,7 @@ export class WindowFunctions {
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAppWindowsToGivenWorkspaceGivenWMClass string:"firefox-esr" uint32:0
 
-    // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "nemo"
+    // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "Nemo"
 
     MoveAppWindowsToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
         this._move_app_windows_to_workspace(wm_class, workspace_num);
@@ -801,7 +766,7 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsCloseDuplicateNemo
 
     WindowsCloseDuplicateNemo() {
-        let wins = this._get_normal_windows_current_workspace_given_wm_class("nemo");
+        let wins = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
         let seen = {};
         wins.forEach(win => {
             let key = win.get_title();
