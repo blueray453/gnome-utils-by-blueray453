@@ -279,44 +279,92 @@ export class WindowFunctions {
     /* Utility Functions */
 
     _align_windows = function (windows_array, windows_per_container, global_object) {
-        const total_windows = windows_array.length;
-        const total_states = Math.ceil(total_windows / windows_per_container);
 
-        let state = global_object.value % total_states; // Wrap around automatically
+        // remove windows from windows_array that do not have a minimize() method
+        // This is just to check these are valid windows
+        // windows_array = windows_array.filter(win => typeof win.minimize === 'function');
 
-        const workspace = WorkspaceManager.get_active_workspace();
-        const work_area = workspace.get_work_area_all_monitors();
-        const { width: area_width, height: area_height } = work_area;
+        let number_of_windows = windows_array.length;
+        let number_of_states = Math.ceil(number_of_windows / windows_per_container);
 
-        const window_width = area_width / windows_per_container;
-        const window_height = area_height;
+        let state = global_object.value;
 
-        // Precompute X positions for each window
-        const x_positions = []; // this will hold the X coordinate (left position) for each window
+        // console.log(`state : ${state}`);
 
-        for (let i = 0; i < windows_per_container; i++) {
-            let x = i * window_width;  // each window is placed side by side horizontally
-            x_positions.push(x);       // add the computed X position to the array
+        if (state >= number_of_states) {
+            state = 0;
         }
 
-        // Minimize all windows before rearranging
-        for (const win of windows_array) {
-            win.minimize();
+        let current_workspace = WorkspaceManager.get_active_workspace();
+        // let monitor = this._get_current_monitor();
+        // let work_area = current_workspace.get_work_area_for_monitor(monitor);
+        let work_area = current_workspace.get_work_area_all_monitors();
+        // let work_area = windows_array[0].get_work_area_current_monitor();
+        let work_area_width = work_area.width;
+        let work_area_height = work_area.height;
+
+        let window_height = work_area_height;
+        let window_width = work_area_width / windows_per_container;
+
+        let all_x = [];
+
+        for (let n = 0; n < windows_per_container; n++) {
+            all_x[n] = window_width * n;
         }
 
-        // Determine the slice of windows for the current state
-        const start_index = state * windows_per_container;
-        const visible_windows = windows_array.slice(start_index, start_index + windows_per_container);
+        // minimize all the windows
+        // windows_array.forEach(win => win?.minimize() || console.log(`Win Not Found`));
 
-        // Position and activate each visible window
-        visible_windows.forEach((win, idx) => {
-            this._move_resize_window(win, x_positions[idx], 0, window_width, window_height);
+        for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
+            let win = windows_array[i];
+
+            this._move_resize_window(win, all_x[j], 0, window_width, window_height);
+
             win.activate(0);
-        });
+        }
 
-        // Move to next state
         global_object.value = state + 1;
-    };
+    }
+
+    // _align_windows = function (windows_array, windows_per_container, global_object) {
+    //     const total_windows = windows_array.length;
+    //     const total_states = Math.ceil(total_windows / windows_per_container);
+
+    //     let state = global_object.value % total_states; // Wrap around automatically
+
+    //     const workspace = WorkspaceManager.get_active_workspace();
+    //     const work_area = workspace.get_work_area_all_monitors();
+    //     const { width: area_width, height: area_height } = work_area;
+
+    //     const window_width = area_width / windows_per_container;
+    //     const window_height = area_height;
+
+    //     // Precompute X positions for each window
+    //     const x_positions = []; // this will hold the X coordinate (left position) for each window
+
+    //     for (let i = 0; i < windows_per_container; i++) {
+    //         let x = i * window_width;  // each window is placed side by side horizontally
+    //         x_positions.push(x);       // add the computed X position to the array
+    //     }
+
+    //     // Minimize all windows before rearranging
+    //     for (const win of windows_array) {
+    //         win.minimize();
+    //     }
+
+    //     // Determine the slice of windows for the current state
+    //     const start_index = state * windows_per_container;
+    //     const visible_windows = windows_array.slice(start_index, start_index + windows_per_container);
+
+    //     // Position and activate each visible window
+    //     visible_windows.forEach((win, idx) => {
+    //         this._move_resize_window(win, x_positions[idx], 0, window_width, window_height);
+    //         win.activate(0);
+    //     });
+
+    //     // Move to next state
+    //     global_object.value = state + 1;
+    // };
 
     _get_app_given_meta_window = function (win) {
         let app = WindowTracker.get_window_app(win);
