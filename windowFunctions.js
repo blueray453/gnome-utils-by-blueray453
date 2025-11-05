@@ -119,6 +119,10 @@ export const MR_DBUS_IFACE = `
         <method name="WindowMoveToCurrentWorkspace">
             <arg type="u" direction="in" name="win_id" />
         </method>
+        <method name="WindowMoveToExcludingGivenWMClasses">
+            <arg type="as" direction="in" name="wm_classes" />
+            <arg type="u" direction="in" name="workspace_num" />
+        </method>
         <method name="WindowMoveToGivenWorkspace">
             <arg type="u" direction="in" name="win_id" />
             <arg type="u" direction="in" name="workspace_num" />
@@ -763,13 +767,24 @@ export class WindowFunctions {
         }
     }
 
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToExcludingGivenWMClasses array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" uint32:0
+
+    WindowMoveToExcludingGivenWMClasses(wm_classes, workspace_num) {
+        let wins = this._get_normal_windows_excluding_given_wm_classes(wm_classes);
+        wins.forEach(win => {
+            if (win !== null) {
+                win.change_workspace_by_index(workspace_num, false);
+            }
+        });
+    }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToGivenWorkspace uint32:44129093 uint32:0
 
-    WindowMoveToGivenWorkspace(win_id, workspaceNum) {
+    WindowMoveToGivenWorkspace(win_id, workspace_num) {
         let win = this._get_normal_window_given_window_id(win_id);
 
         if (win !== null) {
-            win.change_workspace_by_index(workspaceNum, false);
+            win.change_workspace_by_index(workspace_num, false);
             // current_workspace.activate_with_focus(win, 0);
         }
     }
