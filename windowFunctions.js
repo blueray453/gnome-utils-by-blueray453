@@ -49,6 +49,10 @@ export const MR_DBUS_IFACE = `
         <method name="GetAppsRunning">
             <arg type="s" direction="out" name="app" />
         </method>
+        <method name="GetAppsRunningGivenWMClass">
+            <arg type="s" direction="in" name="wm_class" />
+            <arg type="s" direction="out" name="win_num" />
+        </method>
         <method name="GetWindowFocused">
             <arg type="s" direction="out" name="win" />
         </method>
@@ -508,6 +512,20 @@ export class WindowFunctions {
         });
 
         return JSON.stringify(results);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppsRunningGivenWMClass string:"firefox-esr" | jq .
+
+    GetAppsRunningGivenWMClass(wm_class) {
+        // let app = AppSystem.lookup_desktop_wmclass(wm_class);
+        // if (!app) {
+        //     return JSON.stringify(0); // app not found → 0 windows
+        // }
+        // else{
+        //     return JSON.stringify(app.get_n_windows());  // returns integer
+        // }
+        let wins = this._get_normal_windows_given_wm_class(wm_class);
+        return JSON.stringify(wins.length);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowFocused | jq -r '.[].id'
