@@ -6,6 +6,12 @@ const Display = global.get_display();
 const WindowTracker = global.get_window_tracker();
 const WorkspaceManager = global.get_workspace_manager();
 
+const FSEARCH = "Io.github.cboxdoerfer.FSearch";
+const VSCODIUM = "VSCodium";
+const FIREFOX = "firefox-esr";
+const NEMO = "Nemo";
+const ALACRITTY = "Alacritty";
+
 // privamive global variables can not be passed by reference that is why using objects. Array also work.
 
 let align_windows_state_all_windows = { value: 0 };
@@ -418,7 +424,7 @@ export class WindowFunctions {
         let windows_array = this._get_normal_windows_current_workspace_of_focused_window_wm_class();
 
         if (windows_array.length === 0) {
-            windows_array = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
+            windows_array = this._get_normal_windows_current_workspace_given_wm_class(NEMO);
         }
 
         let windows_per_container = 2;
@@ -563,7 +569,6 @@ export class WindowFunctions {
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
-
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsExcludingGivenWMClass array:string:"io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" | jq .
@@ -584,11 +589,11 @@ export class WindowFunctions {
         let wins = this._get_normal_windows();
 
         const classOrder = {
-            "io.github.cboxdoerfer.FSearch": 1,
-            "VSCodium": 2,
-            "firefox-esr": 3,
-            "Nemo": 4,
-            "Alacritty": 5
+            [FSEARCH]: 1,
+            [VSCODIUM]: 2,
+            [FIREFOX]: 3,
+            [NEMO]: 4,
+            [ALACRITTY]: 5,
         };
 
         wins.sort((winA, winB) => {
@@ -782,7 +787,7 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsCloseDuplicateNemo
 
     WindowsCloseDuplicateNemo() {
-        let wins = this._get_normal_windows_current_workspace_given_wm_class("Nemo");
+        let wins = this._get_normal_windows_current_workspace_given_wm_class(NEMO);
         let seen = {};
         wins.forEach(win => {
             let key = win.get_title();
