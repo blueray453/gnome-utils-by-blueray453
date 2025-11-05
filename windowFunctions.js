@@ -62,6 +62,10 @@ export const MR_DBUS_IFACE = `
         <method name="GetWindowsCurrentWorkspaceOfFocusedWindowWMClass">
             <arg type="s" direction="out" name="win" />
         </method>
+        <method name="GetWindowsExcludingGivenWMClass">
+            <arg type="as" direction="in" name="wm_classes" />
+            <arg type="s" direction="out" name="win" />
+        </method>
         <method name="GetWindowsForRofi">
             <arg type="s" direction="out" name="win" />
         </method>
@@ -560,6 +564,18 @@ export class WindowFunctions {
 
         return JSON.stringify(winPropertiesArr);
 
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsExcludingGivenWMClass array:string:"io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" | jq .
+
+    GetWindowsExcludingGivenWMClass(wm_classes) {
+        // 1) Get all normal windows
+        let wins = this._get_normal_windows();
+
+        // 2) Filter out windows whose wm_class is listed in wm_classes
+        let winPropertiesArr = wins.filter(w => !wm_classes.includes(w.get_wm_class())).map(win => this._get_properties_brief_given_meta_window(win));
+
+        return JSON.stringify(winPropertiesArr);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofi | jq .
