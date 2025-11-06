@@ -413,8 +413,6 @@ export class WindowFunctions {
         let wins = this._get_normal_windows_given_wm_class(wm_class);
 
         wins.forEach(win => {
-            if (!win) return;
-
             const currentIndex = win.get_workspace().index?.() ?? workspace_num;
             if (currentIndex !== workspace_num) {
                 win.change_workspace_by_index(workspace_num, false);
