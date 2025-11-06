@@ -85,10 +85,6 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="MinimizeOtherWindowsOfFocusedWindowWMClass">
         </method>
-        <method name="MoveAppWindowsToGivenWorkspaceGivenWMClass">
-            <arg type="s" direction="in" name="wm_class" />
-            <arg type="u" direction="in" name="workspace_num" />
-        </method>
         <method name="WindowActivateGivenWinID">
             <arg type="u" direction="in" name="win_id" />
         </method>
@@ -123,7 +119,7 @@ export const MR_DBUS_IFACE = `
             <arg type="as" direction="in" name="wm_classes" />
             <arg type="u" direction="in" name="workspace_num" />
         </method>
-        <method name="WindowMoveToGivenWorkspace">
+        <method name="WindowMoveToGivenWorkspaceGivenWinID">
             <arg type="u" direction="in" name="win_id" />
             <arg type="u" direction="in" name="workspace_num" />
         </method>
@@ -143,6 +139,10 @@ export const MR_DBUS_IFACE = `
         <method name="WindowsMoveSideBySide">
             <arg type="u" direction="in" name="win_id_1" />
             <arg type="u" direction="in" name="win_id_2" />
+        </method>
+        <method name="WindowsMoveToGivenWorkspaceGivenWMClass">
+            <arg type="s" direction="in" name="wm_class" />
+            <arg type="u" direction="in" name="workspace_num" />
         </method>
         <method name="WindowUnmaximizeGivenWinID">
             <arg type="u" direction="in" name="win_id" />
@@ -409,18 +409,10 @@ export class WindowFunctions {
         }
     }
 
-    _move_app_windows_to_workspace(wm_class, workspace_num) {
-        const app = AppSystem.lookup_desktop_wmclass(wm_class);
-        let windows;
-        if (app) {
-            // App found using wm_class
-            windows = app.get_windows();
-        } else {
-            // App not found — manually get windows of that wm_class
-            windows = this._get_normal_windows_given_wm_class(wm_class);
-        }
+    _move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num) {
+        let wins = this._get_normal_windows_given_wm_class(wm_class);
 
-        windows.forEach(win => {
+        wins.forEach(win => {
             if (!win) return;
 
             const currentIndex = win.get_workspace().index?.() ?? workspace_num;
@@ -660,14 +652,6 @@ export class WindowFunctions {
         wins.map(w => w.minimize());
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MoveAppWindowsToGivenWorkspaceGivenWMClass string:"firefox-esr" uint32:0
-
-    // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "Nemo"
-
-    MoveAppWindowsToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
-        this._move_app_windows_to_workspace(wm_class, workspace_num);
-    }
-
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowActivateGivenWinID uint32:44129093
 
     WindowActivateGivenWinID(win_id) {
@@ -778,9 +762,9 @@ export class WindowFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToGivenWorkspace uint32:44129093 uint32:0
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToGivenWorkspaceGivenWinID uint32:44129093 uint32:0
 
-    WindowMoveToGivenWorkspace(win_id, workspace_num) {
+    WindowMoveToGivenWorkspaceGivenWinID(win_id, workspace_num) {
         let win = this._get_normal_window_given_window_id(win_id);
 
         if (win !== null) {
@@ -845,6 +829,14 @@ export class WindowFunctions {
 
     WindowsMoveSideBySide(win_id_1, win_id_2) {
         this._move_windows_side_by_side(win_id_1, win_id_2);
+    }
+
+    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsMoveToGivenWorkspaceGivenWMClass string:"firefox-esr" uint32:0
+
+    // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "Nemo"
+
+    WindowsMoveToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
+        this._move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowUnmaximizeGivenWinID uint32:44129093
