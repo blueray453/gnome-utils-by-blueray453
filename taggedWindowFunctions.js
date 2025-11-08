@@ -92,7 +92,7 @@ export class MarkedWindowFunctions {
                     wg.set_child_above_sibling(this._get_border(actor), actor);
                 }
             });
-            this._get_border(actor);
+            // this._get_border(actor);
         });
 
         this.windowFunctions = new windowFunctions.WindowFunctions();
