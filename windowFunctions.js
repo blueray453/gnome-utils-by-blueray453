@@ -1,5 +1,6 @@
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 const AppSystem = global.get_app_system();
 const Display = global.get_display();
@@ -82,6 +83,8 @@ export const MR_DBUS_IFACE = `
         <method name="GetWindowsGivenWMClass">
             <arg type="s" direction="in" name="wm_class" />
             <arg type="s" direction="out" name="wins" />
+        </method>
+        <method name="ToggleLookingGlass">
         </method>
         <method name="MinimizeOtherWindowsOfFocusedWindowWMClass">
         </method>
@@ -641,6 +644,15 @@ export class WindowFunctions {
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ToggleLookingGlass
+
+    ToggleLookingGlass(){
+        if (Main.lookingGlass === null){
+            Main.createLookingGlass();
+        }
+        Main.lookingGlass.toggle();
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MinimizeOtherWindowsOfFocusedWindowWMClass
