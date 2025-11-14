@@ -383,6 +383,12 @@ export class WindowFunctions {
 
         this._make_window_movable_and_resizable(win);
 
+        // let actor = win.get_compositor_private();
+        // let id = actor.connect('first-frame', _ => {
+        //     win.move_resize_frame(1, x, y, width, height);
+        //     actor.disconnect(id);
+        // });
+
         GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             win.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
             return GLib.SOURCE_REMOVE;
@@ -738,12 +744,6 @@ export class WindowFunctions {
 
         if (win !== null) {
             this._move_resize_window(win, x, y, width, height);
-
-            // let actor = win.get_compositor_private();
-            // let id = actor.connect('first-frame', _ => {
-            //     win.move_resize_frame(1, x, y, width, height);
-            //     actor.disconnect(id);
-            // });
 
             win.activate(0);
         }
