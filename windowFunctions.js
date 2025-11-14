@@ -362,7 +362,7 @@ export class WindowFunctions {
             win.unminimize();
         }
 
-        if (window.get_maximized() === 3) {
+        if (window.get_maximized() === 1 || window.get_maximized() === 2 || window.get_maximized() === 3) {
             win.unmaximize(3);
         }
     }
