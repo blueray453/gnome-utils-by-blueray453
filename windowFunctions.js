@@ -2,6 +2,8 @@ import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+import { journal } from './utils.js'
+
 const AppSystem = global.get_app_system();
 const Display = global.get_display();
 const WindowTracker = global.get_window_tracker();
@@ -554,6 +556,7 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq -r '.[].id'
 
     GetWindows() {
+        journal(`Getting Windows`);
         let wins = this._get_normal_windows();
 
         // Map each window to its properties
