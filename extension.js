@@ -20,6 +20,7 @@
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 
 // const ExtensionUtils = imports.misc.extensionUtils;
 // const Me = ExtensionUtils.getCurrentExtension();
@@ -27,6 +28,8 @@ import Gio from 'gi://Gio';
 import * as taggedWindowFunctions from './taggedWindowFunctions.js';
 import * as windowFunctions from './windowFunctions.js';
 import * as workspaceFunctions from './workspaceFunctions.js';
+
+import { setLogging, setLogFn, journal } from './utils.js'
 
 // const taggedWindowFunctions = Me.imports.taggedWindowFunctions;
 // const windowFunctions = Me.imports.windowFunctions;
@@ -49,6 +52,31 @@ export default class GnomeUtils extends Extension {
     }
 
     enable() {
+
+        setLogFn((msg, error = false) => {
+            let level;
+            if (error) {
+                level = GLib.LogLevelFlags.LEVEL_CRITICAL;
+            } else {
+                level = GLib.LogLevelFlags.LEVEL_MESSAGE;
+            }
+
+            GLib.log_structured(
+                'gnome-utils-by-blueray453',
+                level,
+                {
+                    MESSAGE: `${msg}`,
+                    SYSLOG_IDENTIFIER: 'gnome-utils-by-blueray453',
+                    CODE_FILE: GLib.filename_from_uri(import.meta.url)[0]
+                }
+            );
+        });
+
+
+        setLogging(true);
+
+        // journalctl -f -o cat SYSLOG_IDENTIFIER=gnome-utils-by-blueray453
+        journal(`Enabled`);
 
         // console.log(`enabling ${Me.metadata.name}`);
         this._registerDbusInterface('_dbus_windows', windowFunctions, 'WindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
