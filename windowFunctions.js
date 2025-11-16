@@ -358,14 +358,18 @@ export class WindowFunctions {
         return app;
     }
 
-    _make_window_movable_and_resizable = function (win) {
+    _make_window_movable_and_resizable = function (window) {
 
-        if (win.minimized) {
-            win.unminimize();
+        if (window.fullscreen) {
+            window.unmake_fullscreen();
         }
 
-        if (window.get_maximized() === 1 || window.get_maximized() === 2 || window.get_maximized() === 3) {
-            win.unmaximize(3);
+        if (window.maximized_horizontally) {
+            window.unmaximize(1);
+        }
+
+        if (window.maximized_vertically) {
+            window.unmaximize(2);
         }
     }
 
@@ -381,20 +385,37 @@ export class WindowFunctions {
     //     }
     // }
 
-    _move_resize_window = function (win, x_coordinate, y_coordinate, width, height) {
+    _move_resize_window = function (meta_window, x_coordinate, y_coordinate, width, height) {
 
-        this._make_window_movable_and_resizable(win);
+        this._make_window_movable_and_resizable(meta_window);
 
-        // let actor = win.get_compositor_private();
-        // let id = actor.connect('first-frame', _ => {
-        //     win.move_resize_frame(1, x, y, width, height);
-        //     actor.disconnect(id);
+        // let metaWindowActor = meta_window.get_compositor_private();
+
+        // let id = metaWindowActor.connect('first-frame', _ => {
+        //     meta_window.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
+        //     metaWindowActor.disconnect(id);
         // });
 
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            win.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
+        let windowReadyId = 0;
+
+        windowReadyId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            // stuff
+            meta_window.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
+            journal(`Alhamdulillah, moved meta_window`);
+            // before returning GLib.SOURCE_REMOVE, zero out the id
+            windowReadyId = 0
             return GLib.SOURCE_REMOVE;
         });
+
+        meta_window.connect('unmanaging', () => {
+            if (windowReadyId)
+                GLib.Source.remove(windowReadyId);
+        });
+
+        // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+        //     win.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
+        //     return GLib.SOURCE_REMOVE;
+        // });
 
     }
 
@@ -556,7 +577,6 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq -r '.[].id'
 
     GetWindows() {
-        journal(`Getting Windows`);
         let wins = this._get_normal_windows();
 
         // Map each window to its properties
