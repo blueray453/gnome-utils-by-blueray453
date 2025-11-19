@@ -246,7 +246,7 @@ export class WindowFunctions {
     _get_normal_windows() {
         // let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).sort((a, b) => a.get_id() - b.get_id());
 
-        let wins = global.get_window_actors().map(actor => actor.meta_window).filter(win => win.get_window_type() === Meta.WindowType.NORMAL).sort((a, b) => a.get_id() - b.get_id()); // ascending order
+        let wins = global.get_window_actors().map(actor => actor.meta_window).filter(win => win.get_window_type() === Meta.WindowType.NORMAL).sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence()); // ascending order
 
         return wins;
     }
@@ -648,10 +648,10 @@ export class WindowFunctions {
             let orderA = classOrder[winA.wm_class] || Number.MAX_SAFE_INTEGER;
             let orderB = classOrder[winB.wm_class] || Number.MAX_SAFE_INTEGER;
 
-            // If both windows belong to the same class, sort based on user time
+            // If both windows belong to the same class, sort
             if (orderA === orderB) {
-                let userTimeA = winA.get_user_time();
-                let userTimeB = winB.get_user_time();
+                let userTimeA = winA.get_stable_sequence();
+                let userTimeB = winB.get_stable_sequence();
                 return userTimeB - userTimeA; // Sort in descending order of user time
             }
 
