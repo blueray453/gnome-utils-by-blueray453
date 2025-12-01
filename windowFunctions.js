@@ -1,3 +1,4 @@
+import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -29,6 +30,8 @@ export const MR_DBUS_IFACE = `
         <method name="AlignWindowsOfFocusedWindowWMClass">
         </method>
         <method name="CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass">
+        </method>
+        <method name="EmitMetaO">
         </method>
         <method name="GetAppFocusedWindow">
             <arg type="s" direction="out" name="app" />
@@ -464,6 +467,23 @@ export class WindowFunctions {
         let windows_per_container = 2;
 
         this._align_windows(windows_array, windows_per_container, align_windows_state_all_windows);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.EmitMetaO
+
+    EmitMetaO() {
+        // Create virtual keyboard device
+        const VirtualKeyboard = Clutter.get_default_backend()
+            .get_default_seat()
+            .create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
+
+        // Clutter wants time in microseconds, so multiply event time by 1000
+        const eventTime = Clutter.get_current_event_time() * 1000;
+
+        VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_Super_L, Clutter.KeyState.PRESSED);
+        VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_O, Clutter.KeyState.PRESSED);
+        VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_O, Clutter.KeyState.RELEASED);
+        VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_Super_L, Clutter.KeyState.RELEASED);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
