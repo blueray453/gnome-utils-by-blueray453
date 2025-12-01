@@ -14,14 +14,6 @@ export class KeyboardSimulatorFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.EmitMetaO
 
     EmitMetaO() {
-        // let wins = this._get_normal_windows_given_wm_class(VSCODIUM);
-
-        // // Focus VS Code window
-        // wins.forEach(win => {
-        //     let win_workspace = win.get_workspace();
-        //     win_workspace.activate_with_focus(win, 0);
-        // });
-
         // Schema for custom keybindings
         const settings = new Gio.Settings({ schema: 'org.gnome.settings-daemon.plugins.media-keys' });
         const customListKey = 'custom-keybindings';
