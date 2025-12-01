@@ -25,6 +25,7 @@ import GLib from 'gi://GLib';
 // const ExtensionUtils = imports.misc.extensionUtils;
 // const Me = ExtensionUtils.getCurrentExtension();
 
+import * as keyboardSimulatorFunctions from './keyboardSimulatorFunctions.js';
 import * as taggedWindowFunctions from './taggedWindowFunctions.js';
 import * as windowFunctions from './windowFunctions.js';
 import * as workspaceFunctions from './workspaceFunctions.js';
@@ -79,8 +80,9 @@ export default class GnomeUtils extends Extension {
         journal(`Enabled`);
 
         // console.log(`enabling ${Me.metadata.name}`);
+        this._registerDbusInterface('_dbus_keyboard_simulator', keyboardSimulatorFunctions, 'KeyboardSimulatorFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator');
+        this._registerDbusInterface('_dbus_tagged_windows', taggedWindowFunctions, 'TaggedWindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows');
         this._registerDbusInterface('_dbus_windows', windowFunctions, 'WindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
-        this._registerDbusInterface('_dbus_marked_windows', taggedWindowFunctions, 'MarkedWindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows');
         this._registerDbusInterface('_dbus_workspaces', workspaceFunctions, 'WorkspaceFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces');
 
         // Register keybindings
@@ -90,8 +92,9 @@ export default class GnomeUtils extends Extension {
     disable() {
         // console.log(`disabling ${Me.metadata.name}`);
 
+        this._unregisterDbusInterface('_dbus_keyboard_simulator');
+        this._unregisterDbusInterface('_dbus_tagged_windows');
         this._unregisterDbusInterface('_dbus_windows');
-        this._unregisterDbusInterface('_dbus_marked_windows');
         this._unregisterDbusInterface('_dbus_workspaces');
 
         // Disconnect the keybinding

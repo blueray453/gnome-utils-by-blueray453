@@ -33,7 +33,7 @@ export const MR_DBUS_IFACE = `
    </interface>
 </node>`;
 
-export class MarkedWindowFunctions {
+export class TaggedWindowFunctions {
 
     constructor() {
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => {
