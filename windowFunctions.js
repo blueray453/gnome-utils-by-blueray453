@@ -472,6 +472,13 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.EmitMetaO
 
     EmitMetaO() {
+        let wins = this._get_normal_windows_given_wm_class(VSCODIUM);
+
+        wins.forEach(win => {
+            let win_workspace = win.get_workspace();
+            // Here global.get_current_time() instead of 0 will also work
+            win_workspace.activate_with_focus(win, 0);
+        });
         // Create virtual keyboard device
         const VirtualKeyboard = Clutter.get_default_backend()
             .get_default_seat()
@@ -480,10 +487,13 @@ export class WindowFunctions {
         // Clutter wants time in microseconds, so multiply event time by 1000
         const eventTime = Clutter.get_current_event_time() * 1000;
 
-        VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_Super_L, Clutter.KeyState.PRESSED);
-        VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_O, Clutter.KeyState.PRESSED);
-        VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_O, Clutter.KeyState.RELEASED);
-        VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_Super_L, Clutter.KeyState.RELEASED);
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+            VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_Super_L, Clutter.KeyState.PRESSED);
+            VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_O, Clutter.KeyState.PRESSED);
+            VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_O, Clutter.KeyState.RELEASED);
+            VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_Super_L, Clutter.KeyState.RELEASED);
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
