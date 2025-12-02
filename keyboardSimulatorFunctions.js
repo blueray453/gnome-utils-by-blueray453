@@ -1,5 +1,6 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 
 export const MR_DBUS_IFACE = `
 <node>
@@ -14,24 +15,8 @@ export class KeyboardSimulatorFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.EmitMetaO
 
     EmitMetaO() {
-        // Schema for custom keybindings
-        const settings = new Gio.Settings({ schema: 'org.gnome.settings-daemon.plugins.media-keys' });
-        const customListKey = 'custom-keybindings';
-        let customList = settings.get_strv(customListKey);
-
-        // Find the index of our custom binding path
-        const customPath = '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom11/';
-        const index = customList.indexOf(customPath);
-
-        if (index !== -1) {
-            // Temporarily remove it from the list
-            const newList = customList.slice();
-            newList.splice(index, 1);
-            settings.set_strv(customListKey, newList);
-        }
-
-        // Delay to ensure VS Code window is focused
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
+        // // Delay to ensure VS Code window is focused
+        // GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
             const VirtualKeyboard = Clutter.get_default_backend()
                 .get_default_seat()
                 .create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
@@ -55,14 +40,7 @@ export class KeyboardSimulatorFunctions {
             VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_o, Clutter.KeyState.RELEASED);
             VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_Super_L, Clutter.KeyState.RELEASED);
 
-            // Restore the custom keybinding in the list
-            if (index !== -1) {
-                const restoredList = settings.get_strv(customListKey).slice();
-                restoredList.splice(index, 0, customPath);
-                settings.set_strv(customListKey, restoredList);
-            }
-
-            return GLib.SOURCE_REMOVE;
-        });
+        //     return GLib.SOURCE_REMOVE;
+        // });
     }
 }
