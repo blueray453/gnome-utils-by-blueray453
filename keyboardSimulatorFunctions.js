@@ -38,16 +38,16 @@ export class KeyboardSimulatorFunctions {
 
             const eventTime = Clutter.get_current_event_time() * 1000;
 
-            // Release stuck modifiers
-            const stuckModifiers = [
-                Clutter.KEY_Shift_L, Clutter.KEY_Shift_R,
-                Clutter.KEY_Control_L, Clutter.KEY_Control_R,
-                Clutter.KEY_Alt_L, Clutter.KEY_Alt_R,
-                Clutter.KEY_Super_L, Clutter.KEY_Super_R
-            ];
-            stuckModifiers.forEach(key => {
-                VirtualKeyboard.notify_keyval(eventTime, key, Clutter.KeyState.RELEASED);
-            });
+            // // Release stuck modifiers
+            // const stuckModifiers = [
+            //     Clutter.KEY_Shift_L, Clutter.KEY_Shift_R,
+            //     Clutter.KEY_Control_L, Clutter.KEY_Control_R,
+            //     Clutter.KEY_Alt_L, Clutter.KEY_Alt_R,
+            //     Clutter.KEY_Super_L, Clutter.KEY_Super_R
+            // ];
+            // stuckModifiers.forEach(key => {
+            //     VirtualKeyboard.notify_keyval(eventTime, key, Clutter.KeyState.RELEASED);
+            // });
 
             // Press Meta+O
             VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_Super_L, Clutter.KeyState.PRESSED);
