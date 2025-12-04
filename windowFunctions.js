@@ -160,37 +160,6 @@ export const MR_DBUS_IFACE = `
 
 export class WindowFunctions {
 
-    is_covered(window) {
-        // Get windows on the current workspace in stacking order
-        let windows_by_stacking = Display.sort_windows_by_stacking(this._get_normal_windows_current_workspace());
-
-        // // Find the target window
-        // let targetWin = windows_by_stacking.find(win => win.get_id() === window.get_id());
-        // if (!targetWin) return false;
-        journal(`${windows_by_stacking}`);
-        let targetRect = window.get_frame_rect();
-        let targetIndex = windows_by_stacking.indexOf(window);
-        journal(`${targetIndex}`);
-
-        // Check only windows above the target in stacking order
-        for (let i = targetIndex + 1; i < windows_by_stacking.length; i++) {
-          let topWin = windows_by_stacking[i];
-            let topRect = topWin.get_frame_rect();
-
-          // Check if topWin fully covers window
-          if (
-            topRect.x <= targetRect.x &&
-            topRect.y <= targetRect.y &&
-            topRect.x + topRect.width >= targetRect.x + targetRect.width &&
-            topRect.y + topRect.height >= targetRect.y + targetRect.height
-          ) {
-            return true;
-          }
-        }
-
-        return false; // no window fully covers it
-    }
-
     /* Get Properties */
 
     _get_properties_brief_given_app_id = function (app_id) {
@@ -388,6 +357,38 @@ export class WindowFunctions {
         }
 
         global_object.value = state + 1;
+    }
+
+    is_covered(window) {
+        if (window.minimized) { return false; }
+        // Get windows on the current workspace in stacking order
+        let windows_by_stacking = Display.sort_windows_by_stacking(this._get_normal_windows_current_workspace());
+
+        // // Find the target window
+        // let targetWin = windows_by_stacking.find(win => win.get_id() === window.get_id());
+        // if (!targetWin) return false;
+        journal(`${windows_by_stacking}`);
+        let targetRect = window.get_frame_rect();
+        let targetIndex = windows_by_stacking.indexOf(window);
+        journal(`${targetIndex}`);
+
+        // Check only windows above the target in stacking order
+        for (let i = targetIndex + 1; i < windows_by_stacking.length; i++) {
+            let topWin = windows_by_stacking[i];
+            let topRect = topWin.get_frame_rect();
+
+            // Check if topWin fully covers window
+            if (
+                topRect.x <= targetRect.x &&
+                topRect.y <= targetRect.y &&
+                topRect.x + topRect.width >= targetRect.x + targetRect.width &&
+                topRect.y + topRect.height >= targetRect.y + targetRect.height
+            ) {
+                return true;
+            }
+        }
+
+        return false; // no window fully covers it
     }
 
     _get_app_given_meta_window = function (win) {
