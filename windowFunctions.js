@@ -220,7 +220,7 @@ export class WindowFunctions {
         };
 
         if (show_is_covered) {
-            obj.is_covered = this.is_covered(win);
+            obj.is_covered = this._is_covered(win);
         }
 
         return obj;
@@ -359,7 +359,7 @@ export class WindowFunctions {
         global_object.value = state + 1;
     }
 
-    is_covered(window) {
+    _is_covered(window) {
         if (window.minimized) { return false; }
         // Get windows on the current workspace in stacking order
         let windows_by_stacking = Display.sort_windows_by_stacking(this._get_normal_windows_current_workspace());
