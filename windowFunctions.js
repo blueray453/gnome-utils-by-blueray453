@@ -160,6 +160,37 @@ export const MR_DBUS_IFACE = `
 
 export class WindowFunctions {
 
+    is_covered(window) {
+        // Get windows on the current workspace in stacking order
+        let windows_by_stacking = Display.sort_windows_by_stacking(this._get_normal_windows_current_workspace());
+
+        // // Find the target window
+        // let targetWin = windows_by_stacking.find(win => win.get_id() === window.get_id());
+        // if (!targetWin) return false;
+        journal(`${windows_by_stacking}`);
+        let targetRect = window.get_frame_rect();
+        let targetIndex = windows_by_stacking.indexOf(window);
+        journal(`${targetIndex}`);
+
+        // Check only windows above the target in stacking order
+        for (let i = targetIndex + 1; i < windows_by_stacking.length; i++) {
+          let topWin = windows_by_stacking[i];
+            let topRect = topWin.get_frame_rect();
+
+          // Check if topWin fully covers window
+          if (
+            topRect.x <= targetRect.x &&
+            topRect.y <= targetRect.y &&
+            topRect.x + topRect.width >= targetRect.x + targetRect.width &&
+            topRect.y + topRect.height >= targetRect.y + targetRect.height
+          ) {
+            return true;
+          }
+        }
+
+        return false; // no window fully covers it
+    }
+
     /* Get Properties */
 
     _get_properties_brief_given_app_id = function (app_id) {
@@ -199,7 +230,7 @@ export class WindowFunctions {
         }
     }
 
-    _get_properties_brief_given_meta_window = function (win) {
+    _get_properties_brief_given_meta_window = function (win, show_is_covered = false) {
         // let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
         // let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
 
@@ -208,7 +239,7 @@ export class WindowFunctions {
 
         let workspace_id = win.get_workspace().index();
 
-        return {
+        let obj = {
             id: win.get_id(),
             title: win.get_title(),
             pid: win.get_pid(),
@@ -218,6 +249,12 @@ export class WindowFunctions {
             workspace_name: Meta.prefs_get_workspace_name(workspace_id),
             monitor: win.get_monitor()
         };
+
+        if (show_is_covered) {
+            obj.is_covered = this.is_covered(win);
+        }
+
+        return obj;
     }
 
     /* Get Normal Windows */
@@ -569,7 +606,7 @@ export class WindowFunctions {
     GetWindowGivenWindowID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
 
-        return JSON.stringify(this._get_properties_brief_given_meta_window(win));
+        return JSON.stringify(this._get_properties_brief_given_meta_window(win, true));
     }
 
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq .
@@ -591,7 +628,7 @@ export class WindowFunctions {
         let wins = this._get_normal_windows_current_workspace();
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win, true));
 
         return JSON.stringify(winPropertiesArr);
     }
@@ -602,7 +639,7 @@ export class WindowFunctions {
         let wins = this._get_normal_windows_current_workspace_current_monitor();
 
         // Map each window to its properties
-        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
+        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win, true));
 
         return JSON.stringify(winPropertiesArr);
     }
