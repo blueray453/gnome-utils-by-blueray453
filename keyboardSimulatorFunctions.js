@@ -9,6 +9,9 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="Minus">
         </method>
+        <method name="PressFromString">
+            <arg type="s" direction="in" name="keys" />
+        </method>
    </interface>
 </node>`;
 
@@ -33,27 +36,46 @@ export class KeyboardSimulatorFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.EmitMetaO
-
-    EmitMetaO() {
-        this._press_keys([
-            Clutter.KEY_Control_L,
-            Clutter.KEY_Shift_L,
-            Clutter.KEY_Alt_L,
-            Clutter.KEY_Super_L,
-            Clutter.KEY_o
-        ]);
+    // Convert string like 'Control_L' or 'o' or 'minus' to Clutter.KEY_*
+    _key_name_to_clutter_key(keyName) {
+        const name = keyName.trim();
+        const keyConstant = `KEY_${name}`;
+        if (Clutter[keyConstant] === undefined) {
+            throw new Error(`Invalid key name: ${name}`);
+        }
+        return Clutter[keyConstant];
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.Equal
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.PressFromString string:"Control_L,Shift_L,Alt_L,Super_L,o"
 
-    Equal() {
-        this._press_keys([Clutter.KEY_equal]);
+    // Accept a string input: 'minus' or 'Control_L,Shift_L,o'
+    PressFromString(input) {
+        // Split by comma for combos
+        const keys = input.split(',').map(k => this._key_name_to_clutter_key(k));
+        this._press_keys(keys);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.Minus
+    // // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.EmitMetaO
 
-    Minus() {
-        this._press_keys([Clutter.KEY_minus]);
-    }
+    // EmitMetaO() {
+    //     this._press_keys([
+    //         Clutter.KEY_Control_L,
+    //         Clutter.KEY_Shift_L,
+    //         Clutter.KEY_Alt_L,
+    //         Clutter.KEY_Super_L,
+    //         Clutter.KEY_o
+    //     ]);
+    // }
+
+    // // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.Equal
+
+    // Equal() {
+    //     this._press_keys([Clutter.KEY_equal]);
+    // }
+
+    // // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.Minus
+
+    // Minus() {
+    //     this._press_keys([Clutter.KEY_minus]);
+    // }
 }
