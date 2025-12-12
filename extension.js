@@ -38,15 +38,42 @@ import { setLogging, setLogFn, journal } from './utils.js'
 
 export default class GnomeUtils extends Extension {
 
+    // _registerDbusInterface(instanceName, module, className, path) {
+    //     this[instanceName] = Gio.DBusExportedObject.wrapJSObject(
+    //         module.MR_DBUS_IFACE,
+    //         new module[className]()
+    //     );
+    //     this[instanceName].export(Gio.DBus.session, path);
+    // }
+
+    // _unregisterDbusInterface(instanceName) {
+    //     this[instanceName]?.flush();
+    //     this[instanceName]?.unexport();
+    //     delete this[instanceName];
+    // }
+
     _registerDbusInterface(instanceName, module, className, path) {
+        // store original instance
+        const instance = new module[className]();
+        this[`_${instanceName}_instance`] = instance;
+
+        // wrap for DBus
         this[instanceName] = Gio.DBusExportedObject.wrapJSObject(
             module.MR_DBUS_IFACE,
-            new module[className]()
+            instance
         );
         this[instanceName].export(Gio.DBus.session, path);
     }
 
     _unregisterDbusInterface(instanceName) {
+        // destroy original instance if exists
+        const originalInstance = this[`_${instanceName}_instance`];
+        if (originalInstance?.destroy) {
+            originalInstance.destroy();
+        }
+        delete this[`_${instanceName}_instance`];
+
+        // unexport DBus object
         this[instanceName]?.flush();
         this[instanceName]?.unexport();
         delete this[instanceName];
@@ -91,7 +118,6 @@ export default class GnomeUtils extends Extension {
 
     disable() {
         // console.log(`disabling ${Me.metadata.name}`);
-
         this._unregisterDbusInterface('_dbus_keyboard_simulator');
         this._unregisterDbusInterface('_dbus_tagged_windows');
         this._unregisterDbusInterface('_dbus_windows');

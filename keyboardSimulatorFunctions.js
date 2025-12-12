@@ -1,4 +1,5 @@
 import Clutter from 'gi://Clutter';
+import { journal } from './utils.js'
 
 export const MR_DBUS_IFACE = `
 <node>
@@ -16,6 +17,9 @@ export const MR_DBUS_IFACE = `
 </node>`;
 
 export class KeyboardSimulatorFunctions {
+    constructor(){
+        journal(`KeyboardSimulatorFunctions const`);
+    }
 
     // Generic function to emulate key press(es)
     _press_keys(keys) {
@@ -99,4 +103,7 @@ export class KeyboardSimulatorFunctions {
     // Minus() {
     //     this._press_keys([Clutter.KEY_minus]);
     // }
+    destroy(){
+        journal(`Destroy is called`)
+    }
 }
