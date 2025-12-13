@@ -1,5 +1,13 @@
 import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
 import { journal } from './utils.js'
+
+const MODS = {
+    SHIFT: Clutter.ModifierType.SHIFT_MASK,
+    CTRL: Clutter.ModifierType.CONTROL_MASK,
+    ALT: Clutter.ModifierType.MOD1_MASK,
+    META: Clutter.ModifierType.MOD4_MASK,
+};
 
 export const MR_DBUS_IFACE = `
 <node>
@@ -50,13 +58,49 @@ export class KeyboardSimulatorFunctions {
         return Clutter[keyConstant];
     }
 
+    _keys_released(onReleased) {
+        this._prevState = null;
+        this._attempts = 0;
+        const MAX_ATTEMPTS = 40;
+
+        this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 25, () => {
+            const [, , modifiers] = global.get_pointer();
+            this._attempts++;
+
+            let relevant = modifiers & (MODS.SHIFT | MODS.CTRL | MODS.ALT | MODS.META);
+
+            if (relevant !== this._prevState) {
+                if (relevant === 0) {
+                    onReleased();  // call the callback when all modifiers released
+                    journal('All relevant modifiers released!');
+                } else {
+                    let names = Object.entries(MODS)
+                        .filter(([_, mask]) => relevant & mask)
+                        .map(([name]) => name);
+                    journal('Modifiers pressed:', names.join(', '));
+                }
+                this._prevState = relevant;
+            }
+
+            if (this._attempts >= MAX_ATTEMPTS) {
+                onReleased();
+                journal('Max attempts reached, stopping logger.');
+                return GLib.SOURCE_REMOVE;
+            }
+
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.PressFromString string:"Control_L,Shift_L,Alt_L,Super_L,o"
 
     // Accept a string input: 'minus' or 'Control_L,Shift_L,o'
     PressFromString(input) {
         // Split by comma for combos
         const keys = input.split(',').map(k => this._key_name_to_clutter_key(k));
-        this._press_keys(keys);
+        this._keys_released(() => this._press_keys(keys));
+
+        // this._press_keys(keys);
     }
 
     // // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.EmitMetaO
@@ -104,6 +148,10 @@ export class KeyboardSimulatorFunctions {
     //     this._press_keys([Clutter.KEY_minus]);
     // }
     destroy(){
-        journal(`Destroy is called`)
+        journal(`Destroy is called`);
+        if (this._timeoutId) {
+            GLib.source_remove(this._timeoutId);
+            this._timeoutId = null;
+        }
     }
 }
