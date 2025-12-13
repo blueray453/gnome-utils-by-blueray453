@@ -72,12 +72,8 @@ export class KeyboardSimulatorFunctions {
             if (relevant !== this._prevState) {
                 if (relevant === 0) {
                     onReleased();  // call the callback when all modifiers released
-                    journal('All relevant modifiers released!');
-                } else {
-                    let names = Object.entries(MODS)
-                        .filter(([_, mask]) => relevant & mask)
-                        .map(([name]) => name);
-                    journal('Modifiers pressed:', names.join(', '));
+                    journal(`[Attempt ${this._attempts}] All relevant modifiers released!`);
+                    return GLib.SOURCE_REMOVE;
                 }
                 this._prevState = relevant;
             }
