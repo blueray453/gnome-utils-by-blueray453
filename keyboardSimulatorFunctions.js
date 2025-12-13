@@ -59,7 +59,6 @@ export class KeyboardSimulatorFunctions {
     }
 
     _keys_released(onReleased) {
-        this._prevState = null;
         this._attempts = 0;
         const MAX_ATTEMPTS = 40;
 
@@ -69,13 +68,31 @@ export class KeyboardSimulatorFunctions {
 
             let relevant = modifiers & (MODS.SHIFT | MODS.CTRL | MODS.ALT | MODS.META);
 
-            if (relevant !== this._prevState) {
-                if (relevant === 0) {
-                    onReleased();  // call the callback when all modifiers released
-                    journal(`[Attempt ${this._attempts}] All relevant modifiers released!`);
-                    return GLib.SOURCE_REMOVE;
-                }
-                this._prevState = relevant;
+            // journal(`modifiers ${modifiers}`);
+            // journal(`mask ${(MODS.SHIFT | MODS.CTRL | MODS.ALT | MODS.META)}`);
+            // journal(`modifiers ${modifiers.toString(2)}`);
+            // journal(`mask ${(MODS.SHIFT | MODS.CTRL | MODS.ALT | MODS.META).toString(2)}`);
+
+            //       bit: 64  32  16   8   4   2   1
+            // modifiers:  1   0   1   0   0   0   0 (80)
+            //      mask:  1   0   0   1   1   0   1 (77)
+            // SHIFT = 1
+            // CTRL = 4
+            // ALT = 8
+            // META = 64
+            // = 77
+            // modifiers = 80 = (64 + 16) = META + Num Lock
+            // What happens when you apply &
+            // modifiers:  00010000
+            // mask:       01001101
+            // relevant:   00000000
+            // Previously for 64 both was 1, so it was true
+            // At end in case of 64 it is (0x1=0)
+
+            if (relevant === 0) {
+                onReleased();  // call the callback when all modifiers released
+                journal(`[Attempt ${this._attempts}] All relevant modifiers released!`);
+                return GLib.SOURCE_REMOVE;
             }
 
             if (this._attempts >= MAX_ATTEMPTS) {
