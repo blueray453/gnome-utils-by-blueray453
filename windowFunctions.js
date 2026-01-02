@@ -256,8 +256,9 @@ export class WindowFunctions {
         let wins = global.get_window_actors()
             .map(actor => actor.meta_window)
             .filter(win =>
-            win.get_window_type() === Meta.WindowType.NORMAL ||
-            win.get_window_type() === Meta.WindowType.DIALOG)
+                win.get_window_type() === Meta.WindowType.NORMAL ||
+                win.get_window_type() === Meta.WindowType.DIALOG
+            )
             .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence()); // ascending order
 
         return wins;
