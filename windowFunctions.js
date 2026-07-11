@@ -253,13 +253,20 @@ export class WindowFunctions {
     _get_normal_windows() {
         // let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).sort((a, b) => a.get_id() - b.get_id());
 
-        let wins = global.get_window_actors()
-            .map(actor => actor.meta_window)
+        let wins = Display.list_all_windows()
             .filter(win =>
                 win.get_window_type() === Meta.WindowType.NORMAL ||
                 win.get_window_type() === Meta.WindowType.DIALOG
             )
             .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence()); // ascending order
+
+        // let wins = global.get_window_actors()
+        //     .map(actor => actor.meta_window)
+        //     .filter(win =>
+        //         win.get_window_type() === Meta.WindowType.NORMAL ||
+        //         win.get_window_type() === Meta.WindowType.DIALOG
+        //     )
+        //     .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence()); // ascending order
 
         return wins;
     }
