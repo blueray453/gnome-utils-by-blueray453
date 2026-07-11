@@ -150,7 +150,7 @@ export class WorkspaceFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveWindowToWorkspace uint32:44129093 uint32:0
 
     MoveWindowToWorkspace(win_id, workspaceNum) {
-        let win = global.get_window_actors().find(w => w.meta_window.get_id() == win_id).meta_window;
+        let win = Display.list_all_windows().find(w => w.get_id() == win_id);
         if (win) {
             // change_workspace(workspace)
             win.change_workspace_by_index(workspaceNum, false);
