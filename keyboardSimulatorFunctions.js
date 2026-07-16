@@ -196,6 +196,9 @@ export class KeyboardSimulatorFunctions {
         try {
 
             // To get the children use https://gitlab.gnome.org/GNOME/accerciser
+            // In IPython Console use help(acc) to get the functions
+            // you have to press esc>enter to execute commands
+            // you might need to set `gsettings set org.gnome.desktop.interface toolkit-accessibility true`
             entry = app
                 .get_child_at_index(0)  // frame
                 .get_child_at_index(0)  // filler
