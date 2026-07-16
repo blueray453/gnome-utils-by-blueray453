@@ -168,6 +168,7 @@ export class KeyboardSimulatorFunctions {
 
     SelectAllFsearchText() {
         const ATSPI_APP_NAME = 'io.github.cboxdoerfer.FSearch';
+        const KNOWN_PREFIXES = ['book-c ', 'notes-filtered '];
 
         if (!this._atspiInited) {
             Atspi.init();
@@ -204,32 +205,48 @@ export class KeyboardSimulatorFunctions {
             return;
         }
 
-        journal(`[SelectAllFsearchText] entry name: ${entry.get_name()}}`);
-        journal(`[SelectAllFsearchText] entry role: ${entry.get_role_name()}}`);
-        // entry.set_caret_offset(0);
-        // entry.add_selection(0, -1);
+        // journal(`[SelectAllFsearchText] entry name: ${entry.get_name()}}`);
+        // journal(`[SelectAllFsearchText] entry role: ${entry.get_role_name()}}`);
+        // // entry.set_caret_offset(0);
+        // // entry.add_selection(0, -1);
 
-        if (entry.is_text()){
-            journal(`[SelectAllFsearchText] entry is text}`);
-            // journal(`[SelectAllFsearchText] text2: ${entry.get_text_iface().get_text(0, -1)}}`);
-
-            const textIface = entry.get_text_iface();
-            const count = textIface.get_character_count();
-
-            let chars = [];
-            for (let i = 0; i < count; i++) {
-                const code = textIface.get_character_at_offset(i);
-                chars.push(String.fromCodePoint(code));
-            }
-
-            const reconstructed = chars.join('');
-            journal(`[SelectAllFsearchText] reconstructed text: "${reconstructed}"`);
-
-            entry.get_editable_text_iface().set_text_contents("Hello");
-
-            // entry.set_caret_offset(0);
-            textIface.add_selection(0, -1);
+        if (!entry.is_text()) {
+            journal('[SelectAllFsearchText] entry is not text');
+            return;
         }
+
+        // journal(`[SelectAllFsearchText] entry is text}`);
+        // journal(`[SelectAllFsearchText] text2: ${entry.get_text_iface().get_text(0, -1)}}`);
+
+        entry.grab_focus();
+
+        const textIface = entry.get_text_iface();
+        const count = textIface.get_character_count();
+
+        let chars = [];
+        for (let i = 0; i < count; i++) {
+            const code = textIface.get_character_at_offset(i);
+            chars.push(String.fromCodePoint(code));
+        }
+
+        const fullText = chars.join('');
+        journal(`[SelectAllFsearchText] fullText: "${fullText}"`);
+
+        // // entry.get_editable_text_iface().set_text_contents("Hello");
+
+        // // entry.set_caret_offset(0);
+        // textIface.add_selection(0, -1);
+
+        let startOffset = 0;
+        const matchedPrefix = KNOWN_PREFIXES.find(prefix => fullText.startsWith(prefix));
+        if (matchedPrefix) {
+            startOffset = matchedPrefix.length;
+        }
+
+        textIface.set_caret_offset(startOffset);
+
+        const result = textIface.add_selection(startOffset, -1);
+        journal(`[SelectAllFsearchText] select result: ${result}`);
     }
 
     destroy(){
