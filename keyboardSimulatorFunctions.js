@@ -205,18 +205,10 @@ export class KeyboardSimulatorFunctions {
             return;
         }
 
-        // journal(`[SelectAllFsearchText] entry name: ${entry.get_name()}}`);
-        // journal(`[SelectAllFsearchText] entry role: ${entry.get_role_name()}}`);
-        // // entry.set_caret_offset(0);
-        // // entry.add_selection(0, -1);
-
         if (!entry.is_text()) {
             journal('[SelectAllFsearchText] entry is not text');
             return;
         }
-
-        // journal(`[SelectAllFsearchText] entry is text}`);
-        // journal(`[SelectAllFsearchText] text2: ${entry.get_text_iface().get_text(0, -1)}}`);
 
         entry.grab_focus();
 
@@ -237,10 +229,7 @@ export class KeyboardSimulatorFunctions {
         const fullText = Atspi.Text.prototype.get_text.call(textIface, 0, -1);
         journal(`[SelectAllFsearchText] fullText: "${fullText}"`);
 
-        // // entry.get_editable_text_iface().set_text_contents("Hello");
-
-        // // entry.set_caret_offset(0);
-        // textIface.add_selection(0, -1);
+        // entry.get_editable_text_iface().set_text_contents("Hello");
 
         let startOffset = 0;
         const matchedPrefix = KNOWN_PREFIXES.find(prefix => fullText.startsWith(prefix));
@@ -249,7 +238,6 @@ export class KeyboardSimulatorFunctions {
         }
 
         textIface.set_caret_offset(startOffset);
-
         textIface.add_selection(startOffset, -1);
     }
 
