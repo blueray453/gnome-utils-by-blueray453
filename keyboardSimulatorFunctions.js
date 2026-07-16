@@ -221,7 +221,7 @@ export class KeyboardSimulatorFunctions {
         entry.grab_focus();
 
         const textIface = entry.get_text_iface();
-        const count = textIface.get_character_count();
+        // const count = textIface.get_character_count();
 
         // let chars = [];
         // for (let i = 0; i < count; i++) {
