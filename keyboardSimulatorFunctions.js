@@ -168,7 +168,7 @@ export class KeyboardSimulatorFunctions {
 
     SelectAllFsearchText() {
         const ATSPI_APP_NAME = 'io.github.cboxdoerfer.FSearch';
-        const KNOWN_PREFIXES = ['book-c ', 'notes-filtered '];
+        const KNOWN_PREFIXES = ['book-c ', 'notesfiltered '];
 
         if (!this._atspiInited) {
             Atspi.init();
@@ -223,13 +223,18 @@ export class KeyboardSimulatorFunctions {
         const textIface = entry.get_text_iface();
         const count = textIface.get_character_count();
 
-        let chars = [];
-        for (let i = 0; i < count; i++) {
-            const code = textIface.get_character_at_offset(i);
-            chars.push(String.fromCodePoint(code));
-        }
+        // let chars = [];
+        // for (let i = 0; i < count; i++) {
+        //     const code = textIface.get_character_at_offset(i);
+        //     chars.push(String.fromCodePoint(code));
+        // }
 
-        const fullText = chars.join('');
+        // const fullText = chars.join('');
+        // journal(`[SelectAllFsearchText] fullText: "${fullText}"`);
+
+        // We have to do like this because of Name Collision
+        // We are telling specifically which get_text() function to call
+        const fullText = Atspi.Text.prototype.get_text.call(textIface, 0, -1);
         journal(`[SelectAllFsearchText] fullText: "${fullText}"`);
 
         // // entry.get_editable_text_iface().set_text_contents("Hello");
@@ -245,8 +250,7 @@ export class KeyboardSimulatorFunctions {
 
         textIface.set_caret_offset(startOffset);
 
-        const result = textIface.add_selection(startOffset, -1);
-        journal(`[SelectAllFsearchText] select result: ${result}`);
+        textIface.add_selection(startOffset, -1);
     }
 
     destroy(){
