@@ -195,10 +195,22 @@ export class KeyboardSimulatorFunctions {
         let entry;
         try {
 
+            // you might need to set `gsettings set org.gnome.desktop.interface toolkit-accessibility true`
             // To get the children use https://gitlab.gnome.org/GNOME/accerciser
             // In IPython Console use help(acc) to get the functions
             // you have to press esc>enter to execute commands
-            // you might need to set `gsettings set org.gnome.desktop.interface toolkit-accessibility true`
+            // ################### Some Frequently used Commands
+            // acc.addSelection(0, -1)
+            // acc.getApplication().name
+            // acc.getIndexInParent()
+            // acc.getRole()
+            // acc.getRoleName()
+            // acc.name
+            // acc.parent
+            // acc.queryText().getText(0, -1)
+            // acc.queryText().setCaretOffset(0)
+            // acc.queryText().setSelection(0, 0, len(acc.queryText().getText(0, -1)))
+
             entry = app
                 .get_child_at_index(0)  // frame
                 .get_child_at_index(0)  // filler
