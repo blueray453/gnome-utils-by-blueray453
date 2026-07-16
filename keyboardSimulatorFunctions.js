@@ -194,6 +194,8 @@ export class KeyboardSimulatorFunctions {
 
         let entry;
         try {
+
+            // To get the children use https://gitlab.gnome.org/GNOME/accerciser
             entry = app
                 .get_child_at_index(0)  // frame
                 .get_child_at_index(0)  // filler
