@@ -1,6 +1,7 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import { journal } from './utils.js'
+import Atspi from 'gi://Atspi';
 
 const MODS = {
     SHIFT: Clutter.ModifierType.SHIFT_MASK,
@@ -20,6 +21,8 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="PressFromString">
             <arg type="s" direction="in" name="keys" />
+        </method>
+        <method name="SelectAllFsearchText">
         </method>
    </interface>
 </node>`;
@@ -160,6 +163,75 @@ export class KeyboardSimulatorFunctions {
     // Minus() {
     //     this._press_keys([Clutter.KEY_minus]);
     // }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.SelectAllFsearchText
+
+    SelectAllFsearchText() {
+        const ATSPI_APP_NAME = 'io.github.cboxdoerfer.FSearch';
+
+        if (!this._atspiInited) {
+            Atspi.init();
+            this._atspiInited = true;
+        }
+
+        const desktop = Atspi.get_desktop(0);
+        const appCount = desktop.get_child_count();
+
+        let app = null;
+        for (let i = 0; i < appCount; i++) {
+            const candidate = desktop.get_child_at_index(i);
+            if (candidate && candidate.get_name() === ATSPI_APP_NAME) {
+                app = candidate;
+                break;
+            }
+        }
+
+        if (!app) {
+            journal('[SelectAllFsearchText] fsearch app not found');
+            return;
+        }
+
+        let entry;
+        try {
+            entry = app
+                .get_child_at_index(0)  // frame
+                .get_child_at_index(0)  // filler
+                .get_child_at_index(0)  // filler
+                .get_child_at_index(0)  // filler
+                .get_child_at_index(0)  // text
+        } catch (e) {
+            journal(`[SelectAllFsearchText] fixed path failed: ${e}`);
+            return;
+        }
+
+        journal(`[SelectAllFsearchText] entry name: ${entry.get_name()}}`);
+        journal(`[SelectAllFsearchText] entry role: ${entry.get_role_name()}}`);
+        // entry.set_caret_offset(0);
+        // entry.add_selection(0, -1);
+
+        if (entry.is_text()){
+            journal(`[SelectAllFsearchText] entry is text}`);
+            // journal(`[SelectAllFsearchText] text2: ${entry.get_text_iface().get_text(0, -1)}}`);
+
+            const textIface = entry.get_text_iface();
+            const count = textIface.get_character_count();
+
+            let chars = [];
+            for (let i = 0; i < count; i++) {
+                const code = textIface.get_character_at_offset(i);
+                chars.push(String.fromCodePoint(code));
+            }
+
+            const reconstructed = chars.join('');
+            journal(`[SelectAllFsearchText] reconstructed text: "${reconstructed}"`);
+
+            entry.get_editable_text_iface().set_text_contents("Hello");
+
+            // entry.set_caret_offset(0);
+            textIface.add_selection(0, -1);
+        }
+    }
+
     destroy(){
         journal(`Destroy is called`);
         if (this._timeoutId) {
