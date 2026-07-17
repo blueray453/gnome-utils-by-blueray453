@@ -32,6 +32,23 @@ export class KeyboardSimulatorFunctions {
         journal(`KeyboardSimulatorFunctions const`);
     }
 
+    _type_string(text) {
+        const chars = Array.from(text);
+        journal(`[_type_string] typing "${text}" (${chars.length} chars)`);
+
+        for (const ch of chars) {
+            const codepoint = ch.codePointAt(0);
+            const keyval = Clutter.unicode_to_keysym(codepoint);
+            journal(`[_type_string] char='${ch}' codepoint=${codepoint} keyval=${keyval} (0x${keyval.toString(16)})`);
+
+            if (keyval === 0) {
+                continue;
+            }
+
+            this._press_keys([keyval]);
+        }
+    }
+
     // Generic function to emulate key press(es)
     _press_keys(keys) {
         const VirtualKeyboard = Clutter.get_default_backend()
