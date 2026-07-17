@@ -24,6 +24,8 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="SelectAllFsearchText">
         </method>
+        <method name="TestTypeString">
+        </method>
    </interface>
 </node>`;
 
@@ -273,6 +275,12 @@ export class KeyboardSimulatorFunctions {
 
         textIface.set_caret_offset(startOffset);
         textIface.add_selection(startOffset, -1);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.TestTypeString
+
+    TestTypeString() {
+        this._type_string('This is a test');
     }
 
     destroy(){
