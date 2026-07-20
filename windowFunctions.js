@@ -696,7 +696,9 @@ export class WindowFunctions {
         if (!covered)
             return false;
 
-        covered.activate(global.get_current_time());
+        let win_workspace = covered.get_workspace();
+        covered.maximize(3);
+        win_workspace.activate_with_focus(covered, 0);
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsExcludingGivenWMClass array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" | jq .
