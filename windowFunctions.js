@@ -66,6 +66,9 @@ export const MR_DBUS_IFACE = `
         <method name="GetWindows">
             <arg type="s" direction="out" name="win" />
         </method>
+        <method name="GetWindowCountCurrentWorkspace">
+            <arg type="s" direction="out" name="count" />
+        </method>
         <method name="GetWindowsCurrentWorkspace">
             <arg type="s" direction="out" name="win" />
         </method>
@@ -74,6 +77,8 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="GetWindowsCurrentWorkspaceOfFocusedWindowWMClass">
             <arg type="s" direction="out" name="win" />
+        </method>
+        <method name="ToggleWindowsCurrentWorkspace">
         </method>
         <method name="GetWindowsExcludingGivenWMClass">
             <arg type="as" direction="in" name="wm_classes" />
@@ -637,6 +642,12 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowCountCurrentWorkspace
+
+    GetWindowCountCurrentWorkspace() {
+        return JSON.stringify(this._get_normal_windows_current_workspace().length);
+    }
+
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspace | jq .
 
     GetWindowsCurrentWorkspace() {
@@ -670,6 +681,22 @@ export class WindowFunctions {
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ToggleWindowsCurrentWorkspace
+
+    ToggleWindowsCurrentWorkspace() {
+        let windows = this._get_normal_windows_current_workspace();
+
+        if (windows.length !== 2)
+            return false;
+
+        let covered = windows.find(w => this._is_covered(w));
+
+        if (!covered)
+            return false;
+
+        covered.activate(global.get_current_time());
     }
 
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsExcludingGivenWMClass array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" | jq .
