@@ -702,7 +702,7 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ToggleWindowsCurrentWorkspace
 
     ToggleWindowsCurrentWorkspace() {
-        let windows = this._get_normal_windows_current_workspace();
+        let windows = this._get_normal_windows_current_workspace_given_wm_class(FIREFOX);
 
         if (windows.length !== 2)
             return false;
