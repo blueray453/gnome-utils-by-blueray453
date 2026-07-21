@@ -378,36 +378,52 @@ export class WindowFunctions {
         global_object.value = state + 1;
     }
 
-    _is_covered(window) {
-        if (window.minimized) { return false; }
-        // Get windows on the current workspace in stacking order
-        let windows_by_stacking = Display.sort_windows_by_stacking(this._get_normal_windows_current_workspace());
+    _window_matches(window, predicate) {
+        if (window.minimized)
+            return false;
 
-        // // Find the target window
-        // let targetWin = windows_by_stacking.find(win => win.get_id() === window.get_id());
-        // if (!targetWin) return false;
-        journal(`${windows_by_stacking}`);
+        let windows = Display.sort_windows_by_stacking(
+            this._get_normal_windows_current_workspace()
+        );
+
+        let targetIndex = windows.indexOf(window);
+        if (targetIndex === -1)
+            return false;
+
         let targetRect = window.get_frame_rect();
-        let targetIndex = windows_by_stacking.indexOf(window);
-        journal(`${targetIndex}`);
 
-        // Check only windows above the target in stacking order
-        for (let i = targetIndex + 1; i < windows_by_stacking.length; i++) {
-            let topWin = windows_by_stacking[i];
+        // Check only windows above the target
+        for (let i = targetIndex + 1; i < windows.length; i++) {
+            let topWin = windows[i];
+
+            if (topWin.minimized)
+                continue;
+
             let topRect = topWin.get_frame_rect();
 
-            // Check if topWin fully covers window
-            if (
-                topRect.x <= targetRect.x &&
-                topRect.y <= targetRect.y &&
-                topRect.x + topRect.width >= targetRect.x + targetRect.width &&
-                topRect.y + topRect.height >= targetRect.y + targetRect.height
-            ) {
+            if (predicate(targetRect, topRect))
                 return true;
-            }
         }
 
-        return false; // no window fully covers it
+        return false;
+    }
+
+    _is_covered(window) {
+        return this._window_matches(window, (target, top) =>
+            top.x <= target.x &&
+            top.y <= target.y &&
+            top.x + top.width >= target.x + target.width &&
+            top.y + top.height >= target.y + target.height
+        );
+    }
+
+    _is_covered_partially(window) {
+        return this._window_matches(window, (target, top) =>
+            target.x < top.x + top.width &&
+            target.x + target.width > top.x &&
+            target.y < top.y + top.height &&
+            target.y + target.height > top.y
+        );
     }
 
     _get_app_given_meta_window = function (win) {
@@ -691,7 +707,7 @@ export class WindowFunctions {
         if (windows.length !== 2)
             return false;
 
-        let covered = windows.find(w => this._is_covered(w));
+        let covered = windows.find(w => this._is_covered_partially(w));
 
         if (!covered)
             return false;
