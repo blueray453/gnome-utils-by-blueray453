@@ -22,9 +22,9 @@ dbus-send --session --dest=org.gnome.Shell --print-reply /org/gnome/Shell/Extens
 
 Call a method example (replace with actual method names):
 ```bash
-gdbus call --session --dest org.gnome.Shell.Extensions.GnomeUtilsWindows \
-  --object-path /org/gnome/Shell/Extensions/GnomeUtilsWindows \
-  --method org.gnome.Shell.Extensions.GnomeUtilsWindows.MethodName
+dbus-send --session --dest=org.gnome.Shell --print-reply \
+  /org/gnome/Shell/Extensions/GnomeUtilsWindows \
+  org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows
 ```
 
 ### Via D-Bus (Python/Other Languages)
