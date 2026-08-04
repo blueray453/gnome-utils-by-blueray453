@@ -29,38 +29,6 @@ git clone https://github.com/blueray453/gnome-utils-by-blueray453.git ~/.local/s
 gnome-extensions enable gnome-utils-by-blueray453
 ```
 
-## Architecture
-
-### Core Modules
-
-- **extension.js**: Main extension class that handles D-Bus registration and lifecycle management
-- **windowFunctions.js**: Window manipulation and retrieval functions
-- **workspaceFunctions.js**: Workspace management and control
-- **keyboardSimulatorFunctions.js**: Keyboard event simulation
-- **taggedWindowFunctions.js**: Tagged window operations
-- **utils.js**: Utility functions and logging
-- **stylesheet.css**: Extension styling
-
-### D-Bus Interfaces
-
-The extension exposes four main D-Bus services:
-
-1. **KeyboardSimulatorFunctions**
-   - Path: `/org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator`
-   - Simulates keyboard input events
-
-2. **TaggedWindowFunctions**
-   - Path: `/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows`
-   - Manages window tagging and tagged window operations
-
-3. **WindowFunctions**
-   - Path: `/org/gnome/Shell/Extensions/GnomeUtilsWindows`
-   - Core window management operations (list, move, properties, etc.)
-
-4. **WorkspaceFunctions**
-   - Path: `/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces`
-   - Workspace navigation and management
-
 ## Usage
 
 ### Via D-Bus (Command Line)
