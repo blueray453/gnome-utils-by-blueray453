@@ -50,10 +50,6 @@ This is an educational project. Contributions are welcome for:
 - **Original Project**: [window-calls](https://github.com/ickyicky/window-calls)
 - This is a fork with additional features and improvements
 
-## Project Status
-
-⚠️ **Educational Project**: This repository is primarily for educational purposes and learning. While functional, please be aware that it may be deleted in the future. Exercise caution when forking this repository, as deleting a public repository breaks public forks.
-
 ## Disclaimer
 
 This extension modifies GNOME Shell behavior through D-Bus. Use with caution and ensure you understand what methods you're calling, especially when using keyboard simulation or window manipulation functions.
