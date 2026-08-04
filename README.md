@@ -17,7 +17,7 @@ A GNOME Shell extension that provides D-Bus interfaces for scripting and automat
 
 List all D-Bus methods:
 ```bash
-gdbus introspect --session --dest org.gnome.Shell.Extensions.GnomeUtilsWindows --object-path /org/gnome/Shell/Extensions/GnomeUtilsWindows
+dbus-send --session --dest=org.gnome.Shell --print-reply /org/gnome/Shell/Extensions/GnomeUtilsWindows org.freedesktop.DBus.Introspectable.Introspect
 ```
 
 Call a method example (replace with actual method names):
