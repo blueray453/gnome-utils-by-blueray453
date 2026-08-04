@@ -1,0 +1,243 @@
+#!/usr/bin/env gjs
+
+imports.gi.versions.Gio = '2.0';
+const {Gio, GLib} = imports.gi;
+const System = imports.system;
+
+const BUS_NAME = 'org.gnome.Shell';
+const INTROSPECTABLE_INTERFACE = 'org.freedesktop.DBus.Introspectable';
+
+const INTERFACES = {
+    windows:   { path: '/org/gnome/Shell/Extensions/GnomeUtilsWindows',        iface: 'org.gnome.Shell.Extensions.GnomeUtilsWindows' },
+    workspaces:{ path: '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces',     iface: 'org.gnome.Shell.Extensions.GnomeUtilsWorkspaces' },
+    tagged:    { path: '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows',  iface: 'org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows' },
+    keyboard:  { path: '/org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator', iface: 'org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator' },
+};
+
+let selectedInterface = null;
+
+function usage() {
+    const prog = System.programInvocationName || 'gnomeutils-call';
+    printerr(`Usage: ${prog} -i INTERFACE METHOD [PARAMETER...]`);
+    printerr('  -i, --interface NAME   Choose: windows, workspaces, tagged, keyboard (REQUIRED)');
+    printerr('  -h, --help             Show this');
+    printerr('Parameters are automatically converted to the expected D‑Bus type.');
+    printerr('Write strings as-is, arrays as comma-separated values.');
+    printerr('Numbers are uint32 (or int32 if negative). true/false are boolean.');
+    printerr('Void methods produce no output.');
+    System.exit(1);
+}
+
+// ----------------------------------------------------------------------
+// D-Bus introspection – get method signature
+// ----------------------------------------------------------------------
+function getMethodSignature(busName, objectPath, methodName) {
+    let introspectProxy;
+    try {
+        introspectProxy = Gio.DBusProxy.new_for_bus_sync(
+            Gio.BusType.SESSION,
+            Gio.DBusProxyFlags.NONE,
+            null,
+            busName,
+            objectPath,
+            INTROSPECTABLE_INTERFACE,
+            null
+        );
+    } catch (e) {
+        printerr(`Could not create introspection proxy: ${e.message}`);
+        System.exit(2);
+    }
+
+    let xml;
+    try {
+        const result = introspectProxy.call_sync(
+            'Introspect',
+            new GLib.Variant('()', []),
+            Gio.DBusCallFlags.NONE,
+            -1,
+            null
+        );
+        xml = result.deepUnpack()[0];
+    } catch (e) {
+        printerr(`Introspect call failed: ${e.message}`);
+        System.exit(3);
+    }
+
+    const methodRegex = new RegExp(`<method name="${methodName}"[^>]*>([\\s\\S]*?)</method>`);
+    const match = xml.match(methodRegex);
+    if (!match) {
+        printerr(`Method "${methodName}" not found in interface ${selectedInterface}`);
+        System.exit(4);
+    }
+    const methodBody = match[1];
+    const argTags = methodBody.match(/<arg\s+[^>]*>/g) || [];
+    const argTypes = [];
+    for (const tag of argTags) {
+        if (tag.includes('direction="in"')) {
+            const typeMatch = tag.match(/type="([^"]+)"/);
+            if (typeMatch) {
+                argTypes.push(typeMatch[1]);
+            }
+        }
+    }
+    return argTypes;
+}
+
+// ----------------------------------------------------------------------
+// Convert a raw argument string to a GVariant of a given type
+// ----------------------------------------------------------------------
+function convertArgument(raw, expectedType) {
+    const trimmed = raw.trim();
+
+    switch (expectedType) {
+        case 's':   // string
+            let str = trimmed;
+            if (str.startsWith('"') && str.endsWith('"')) str = str.slice(1, -1);
+            return GLib.Variant.new_string(str);
+
+        case 'u':   // unsigned int
+            return GLib.Variant.new_uint32(parseInt(trimmed, 10));
+        case 'i':   // signed int
+            return GLib.Variant.new_int32(parseInt(trimmed, 10));
+        case 'b':   // boolean
+            return GLib.Variant.new_boolean(trimmed === 'true' || trimmed === '1');
+
+        case 'as':  // array of strings
+            const items = trimmed.split(',').map(s => s.trim());
+            const vItems = items.map(s => GLib.Variant.new_string(s));
+            return GLib.Variant.new_array(GLib.VariantType.new('s'), vItems);
+
+        default:
+            printerr(`Unsupported D‑Bus type "${expectedType}" for argument`);
+            System.exit(5);
+    }
+}
+
+// ----------------------------------------------------------------------
+// Build a GVariant tuple from a list of GVariant objects and arg types
+// ----------------------------------------------------------------------
+function buildTuple(variants, argTypes) {
+    if (variants.length === 0) {
+        return new GLib.Variant('()', []);
+    }
+    // Build type string: e.g., ['s','u'] => '(su)'
+    const typeString = '(' + argTypes.join('') + ')';
+    const builder = new GLib.VariantBuilder(GLib.VariantType.new(typeString));
+    for (const v of variants) {
+        builder.add_value(v);
+    }
+    return builder.end();
+}
+
+function main() {
+    const args = ARGV.slice();
+    if (args.length === 0) usage();
+
+    let methodName = null;
+    const params = [];
+
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+        if (arg === '-h' || arg === '--help') {
+            usage();
+        } else if (arg === '-i' || arg === '--interface') {
+            i++;
+            if (i >= args.length) {
+                printerr('Missing interface name');
+                usage();
+            }
+            const name = args[i].toLowerCase();
+            if (!(name in INTERFACES)) {
+                printerr(`Unknown interface: "${name}". Valid: ${Object.keys(INTERFACES).join(', ')}`);
+                System.exit(1);
+            }
+            selectedInterface = name;
+        } else {
+            if (methodName === null) {
+                methodName = arg;
+            } else {
+                params.push(arg);
+            }
+        }
+    }
+
+    if (selectedInterface === null) {
+        printerr('ERROR: interface (-i) is required.');
+        usage();
+    }
+    if (methodName === null) {
+        printerr('ERROR: METHOD is required');
+        usage();
+    }
+
+    const ifaceInfo = INTERFACES[selectedInterface];
+    const objectPath = ifaceInfo.path;
+    const interfaceName = ifaceInfo.iface;
+
+    // ---- Get expected argument types via introspection ----
+    let argTypes;
+    try {
+        argTypes = getMethodSignature(BUS_NAME, objectPath, methodName);
+    } catch (e) {
+        printerr(`Introspection failed: ${e.message}`);
+        System.exit(2);
+    }
+
+    // Check parameter count
+    if (params.length !== argTypes.length) {
+        printerr(`Expected ${argTypes.length} arguments, but got ${params.length}`);
+        System.exit(4);
+    }
+
+    // ---- Convert each parameter to GVariant of the correct type ----
+    const variants = params.map((p, i) => convertArgument(p, argTypes[i]));
+
+    // ---- Build the tuple using the builder ----
+    const tupleParams = buildTuple(variants, argTypes);
+
+    // ---- Create a proxy for the target interface and call the method ----
+    let proxy;
+    try {
+        proxy = Gio.DBusProxy.new_for_bus_sync(
+            Gio.BusType.SESSION,
+            Gio.DBusProxyFlags.NONE,
+            null,
+            BUS_NAME,
+            objectPath,
+            interfaceName,
+            null
+        );
+    } catch (e) {
+        printerr(`Could not connect to GnomeUtils (${selectedInterface}): ${e.message}`);
+        printerr('Is the extension enabled?');
+        System.exit(2);
+    }
+
+    try {
+        const result = proxy.call_sync(
+            methodName,
+            tupleParams,
+            Gio.DBusCallFlags.NONE,
+            -1,
+            null
+        );
+
+        const unpacked = result.deepUnpack();
+        if (unpacked.length === 0) {
+            // void – no output
+        } else {
+            const outValue = unpacked[0];
+            if (typeof outValue === 'string') {
+                print(outValue);
+            } else {
+                print(String(outValue));
+            }
+        }
+        System.exit(0);
+    } catch (e) {
+        printerr(`Method call failed: ${e.message}`);
+        System.exit(5);
+    }
+}
+
+main();
