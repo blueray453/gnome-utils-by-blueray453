@@ -48,14 +48,14 @@ export class WorkspaceFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetCurrentWorkspace
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Workspaces io.github.blueray453.GnomeUtils.Workspaces.GetCurrentWorkspace
 
     GetCurrentWorkspace() {
         return JSON.stringify(WorkspaceManager.get_active_workspace().index());
 
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetWorkspaceIndexByName string:"Codium"
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Workspaces io.github.blueray453.GnomeUtils.Workspaces.GetWorkspaceIndexByName string:"Codium"
 
     GetWorkspaceIndexByName(workspaceName) {
 
@@ -73,9 +73,9 @@ export class WorkspaceFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetWorkspaces | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Workspaces io.github.blueray453.GnomeUtils.Workspaces.GetWorkspaces | jq .
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GetWorkspaces | jq -r '.workspace_names[].name'
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Workspaces io.github.blueray453.GnomeUtils.Workspaces.GetWorkspaces | jq -r '.workspace_names[].name'
 
     GetWorkspaces() {
 
@@ -122,7 +122,7 @@ export class WorkspaceFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.GoToGivenWorkspace uint32:4
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Workspaces io.github.blueray453.GnomeUtils.Workspaces.GoToGivenWorkspace uint32:4
 
     GoToGivenWorkspace(workspaceNum) {
         let current_workspace = WorkspaceManager.get_active_workspace();
@@ -134,7 +134,7 @@ export class WorkspaceFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveFocusedWindowToGivenWorkspace uint32:4
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Workspaces io.github.blueray453.GnomeUtils.Workspaces.MoveFocusedWindowToGivenWorkspace uint32:4
 
     MoveFocusedWindowToGivenWorkspace(workspaceNum) {
         let win = Display.get_focus_window();
@@ -147,7 +147,7 @@ export class WorkspaceFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.MoveWindowToWorkspace uint32:44129093 uint32:0
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Workspaces io.github.blueray453.GnomeUtils.Workspaces.MoveWindowToWorkspace uint32:44129093 uint32:0
 
     MoveWindowToWorkspace(win_id, workspaceNum) {
         let win = Display.list_all_windows().find(w => w.get_id() == win_id);
@@ -159,7 +159,7 @@ export class WorkspaceFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWorkspaces org.gnome.Shell.Extensions.GnomeUtilsWorkspaces.ToggleWorkspaces
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Workspaces io.github.blueray453.GnomeUtils.Workspaces.ToggleWorkspaces
 
     ToggleWorkspaces() {
         WorkspaceManager.get_workspace_by_index(lastWorkspace).activate(global.get_current_time());

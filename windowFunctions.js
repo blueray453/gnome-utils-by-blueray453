@@ -525,7 +525,7 @@ export class WindowFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.AlignWindowsOfFocusedWindowWMClass | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.AlignWindowsOfFocusedWindowWMClass | jq .
 
     AlignWindowsOfFocusedWindowWMClass() {
         let windows_array = this._get_normal_windows_current_workspace_of_focused_window_wm_class();
@@ -539,7 +539,7 @@ export class WindowFunctions {
         this._align_windows(windows_array, windows_per_container, align_windows_state_all_windows);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
 
     CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
 
@@ -559,27 +559,27 @@ export class WindowFunctions {
         })
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppFocusedWindow | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppFocusedWindow | jq .
 
     GetAppFocusedWindow() {
         let app = WindowTracker.get_focus_app();
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppGivenAppID string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenAppID string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
 
     GetAppGivenAppID(app_id) {
         return JSON.stringify(this._get_properties_brief_given_app_id(app_id));
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppGivenPID uint32:3931313482 | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenPID uint32:3931313482 | jq .
 
     GetAppGivenPID(pid) {
         let app = WindowTracker.get_app_from_pid(pid);
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppGivenWindowID uint32:44129093 | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenWindowID uint32:44129093 | jq .
 
     GetAppGivenWindowID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -587,14 +587,14 @@ export class WindowFunctions {
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppGivenWMClass string:"firefox-esr" | jq
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenWMClass string:"firefox-esr" | jq
 
     GetAppGivenWMClass(wmclass) {
         let app = AppSystem.lookup_desktop_wmclass(wmclass);
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppsRunning | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppsRunning | jq .
 
     GetAppsRunning() {
         let apps = AppSystem.get_running();
@@ -613,7 +613,7 @@ export class WindowFunctions {
         return JSON.stringify(results);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetAppsRunningGivenWMClass string:"firefox-esr" | xargs
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppsRunningGivenWMClass string:"firefox-esr" | xargs
 
     GetAppsRunningGivenWMClass(wm_class) {
         // let app = AppSystem.lookup_desktop_wmclass(wm_class);
@@ -628,7 +628,7 @@ export class WindowFunctions {
         // return JSON.stringify(wins.length);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowFocused | jq -r '.[].id'
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowFocused | jq -r '.[].id'
 
     GetWindowFocused() {
         let win = Display.get_focus_window();
@@ -637,7 +637,7 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowGivenWindowID uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowGivenWindowID uint32:44129093
 
     GetWindowGivenWindowID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -645,9 +645,9 @@ export class WindowFunctions {
         return JSON.stringify(this._get_properties_brief_given_meta_window(win, true));
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq .
+    //  dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindows | jq .
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindows | jq -r '.[].id'
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindows | jq -r '.[].id'
 
     GetWindows() {
         let wins = this._get_normal_windows();
@@ -658,13 +658,13 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowCountCurrentWorkspace
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowCountCurrentWorkspace
 
     GetWindowCountCurrentWorkspace() {
         return JSON.stringify(this._get_normal_windows_current_workspace().length);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspace | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspace | jq .
 
     GetWindowsCurrentWorkspace() {
         let wins = this._get_normal_windows_current_workspace();
@@ -675,7 +675,7 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceCurrentMonitor | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspaceCurrentMonitor | jq .
 
     GetWindowsCurrentWorkspaceCurrentMonitor() {
         let wins = this._get_normal_windows_current_workspace_current_monitor();
@@ -686,9 +686,9 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq .
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq -r '.[].id'
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq -r '.[].id'
 
     GetWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
         let wins = this._get_normal_windows_current_workspace_of_focused_window_wm_class();
@@ -699,7 +699,7 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ToggleWindowsCurrentWorkspace
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.ToggleWindowsCurrentWorkspace
 
     ToggleWindowsCurrentWorkspace() {
         // let windows = this._get_normal_windows_current_workspace();
@@ -721,7 +721,7 @@ export class WindowFunctions {
         win_workspace.activate_with_focus(covered, 0);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsExcludingGivenWMClass array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsExcludingGivenWMClass array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" | jq .
 
     GetWindowsExcludingGivenWMClass(wm_classes) {
         let wins = this._get_normal_windows_excluding_given_wm_classes(wm_classes);
@@ -732,7 +732,7 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsForRofi | jq .
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsForRofi | jq .
 
     GetWindowsForRofi() {
         let wins = this._get_normal_windows();
@@ -765,7 +765,7 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.GetWindowsGivenWMClass string:"firefox-esr" | jq -r '.[].id'
+    //  dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsGivenWMClass string:"firefox-esr" | jq -r '.[].id'
 
     GetWindowsGivenWMClass(wm_class) {
         let wins = this._get_normal_windows_given_wm_class(wm_class);
@@ -776,7 +776,7 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.ToggleLookingGlass
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.ToggleLookingGlass
 
     ToggleLookingGlass(){
         if (Main.lookingGlass === null){
@@ -785,14 +785,14 @@ export class WindowFunctions {
         Main.lookingGlass.toggle();
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.MinimizeOtherWindowsOfFocusedWindowWMClass
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.MinimizeOtherWindowsOfFocusedWindowWMClass
 
     MinimizeOtherWindowsOfFocusedWindowWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
         wins.map(w => w.minimize());
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowActivateGivenWinID uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowActivateGivenWinID uint32:44129093
 
     WindowActivateGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -803,7 +803,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowCloseGivenWinID uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowCloseGivenWinID uint32:44129093
 
     WindowCloseGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -814,7 +814,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowFullScreenGivenWinID uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowFullScreenGivenWinID uint32:44129093
 
     WindowFullScreenGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -826,7 +826,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMaximizeGivenWinID uint32:3931313482
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMaximizeGivenWinID uint32:3931313482
 
     WindowMaximizeGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -841,7 +841,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMinimizeGivenWinID uint32:3931313482
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMinimizeGivenWinID uint32:3931313482
 
     WindowMinimizeGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -850,7 +850,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveGivenWinID uint32:44129093 uint32:100 uint32:200
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveGivenWinID uint32:44129093 uint32:100 uint32:200
 
     WindowMoveGivenWinID(win_id, x, y) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -861,7 +861,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveResizeGivenWinID uint32:44129093 uint32:0 uint32:0 uint32:0 uint32:0
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveResizeGivenWinID uint32:44129093 uint32:0 uint32:0 uint32:0 uint32:0
 
     WindowMoveResizeGivenWinID(win_id, x, y, width, height) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -873,7 +873,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToCurrentWorkspace uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToCurrentWorkspace uint32:44129093
 
     WindowMoveToCurrentWorkspace(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -885,8 +885,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell.Extensions.GnomeUtils /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToExcludingGivenWMClasses array:string:"firefox-esr","Alacritty" uint32:7
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToExcludingGivenWMClasses array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" uint32:7
+    //  dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToExcludingGivenWMClasses array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" uint32:7
 
     WindowMoveToExcludingGivenWMClasses(wm_classes, workspace_num) {
         let wins = this._get_normal_windows_excluding_given_wm_classes(wm_classes);
@@ -897,7 +896,7 @@ export class WindowFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToGivenWorkspaceGivenWinID uint32:44129093 uint32:0
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToGivenWorkspaceGivenWinID uint32:44129093 uint32:0
 
     WindowMoveToGivenWorkspaceGivenWinID(win_id, workspace_num) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -908,7 +907,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowRaiseGivenWinID uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowRaiseGivenWinID uint32:44129093
 
     WindowRaiseGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -918,7 +917,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowResizeGivenWinID uint32:44129093 uint32:800 uint32:600
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowResizeGivenWinID uint32:44129093 uint32:800 uint32:600
 
     WindowResizeGivenWinID(win_id, width, height) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -928,7 +927,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsActivateGivenWMClass string:"firefox-esr"
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsActivateGivenWMClass string:"firefox-esr"
 
     WindowsActivateGivenWMClass(wm_class) {
         let wins = this._get_normal_windows_given_wm_class(wm_class);
@@ -940,7 +939,7 @@ export class WindowFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsCloseDuplicateNemo
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsCloseDuplicateNemo
 
     WindowsCloseDuplicateNemo() {
         let wins = this._get_normal_windows_current_workspace_given_wm_class(NEMO);
@@ -960,13 +959,13 @@ export class WindowFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsMoveSideBySide uint32:win_id_1 uint32:win_id_2
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsMoveSideBySide uint32:win_id_1 uint32:win_id_2
 
     WindowsMoveSideBySide(win_id_1, win_id_2) {
         this._move_windows_side_by_side(win_id_1, win_id_2);
     }
 
-    //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowsMoveToGivenWorkspaceGivenWMClass string:"firefox-esr" uint32:0
+    //  dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsMoveToGivenWorkspaceGivenWMClass string:"firefox-esr" uint32:0
 
     // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "Nemo"
 
@@ -974,7 +973,7 @@ export class WindowFunctions {
         this._move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowUnmaximizeGivenWinID uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowUnmaximizeGivenWinID uint32:44129093
 
     WindowUnmaximizeGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
@@ -986,7 +985,7 @@ export class WindowFunctions {
         }
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowUnminimizeGivenWinID uint32:44129093
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowUnminimizeGivenWinID uint32:44129093
 
     WindowUnminimizeGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);

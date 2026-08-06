@@ -12,7 +12,7 @@ const MODS = {
 
 export const MR_DBUS_IFACE = `
 <node>
-   <interface name="io.github.blueray453.GnomeUtils.KeyboardSimulator">
+   <interface name="io.com.blueray453.GnomeUtils.KeyboardSimulator">
         <method name="EmitMetaO">
         </method>
         <method name="Equal">
@@ -127,7 +127,7 @@ export class KeyboardSimulatorFunctions {
         });
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.PressFromString string:"Control_L,Shift_L,Alt_L,Super_L,o"
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/KeyboardSimulator io.github.blueray453.GnomeUtils.KeyboardSimulator.PressFromString string:"Control_L,Shift_L,Alt_L,Super_L,o"
 
     // Accept a string input: 'minus' or 'Control_L,Shift_L,o'
     PressFromString(input) {
@@ -138,7 +138,7 @@ export class KeyboardSimulatorFunctions {
         // this._press_keys(keys);
     }
 
-    // // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.EmitMetaO
+    // // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/KeyboardSimulator io.github.blueray453.GnomeUtils.KeyboardSimulator.EmitMetaO
 
     // EmitMetaO() {
     //     this._press_keys([
@@ -171,19 +171,19 @@ export class KeyboardSimulatorFunctions {
     //     VirtualKeyboard.notify_keyval(eventTime, Clutter.KEY_Control_L, Clutter.KeyState.RELEASED);
     // }
 
-    // // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.Equal
+    // // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/KeyboardSimulator io.github.blueray453.GnomeUtils.KeyboardSimulator.Equal
 
     // Equal() {
     //     this._press_keys([Clutter.KEY_equal]);
     // }
 
-    // // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.Minus
+    // // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/KeyboardSimulator io.github.blueray453.GnomeUtils.KeyboardSimulator.Minus
 
     // Minus() {
     //     this._press_keys([Clutter.KEY_minus]);
     // }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.SelectAllFsearchText
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/KeyboardSimulator io.github.blueray453.GnomeUtils.KeyboardSimulator.SelectAllFsearchText
 
     SelectAllFsearchText() {
         const ATSPI_APP_NAME = 'io.github.cboxdoerfer.FSearch';
@@ -277,7 +277,7 @@ export class KeyboardSimulatorFunctions {
         textIface.add_selection(startOffset, -1);
     }
 
-    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator.TestTypeString
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/KeyboardSimulator io.github.blueray453.GnomeUtils.KeyboardSimulator.TestTypeString
 
     TestTypeString() {
         this._type_string('This is a test');
