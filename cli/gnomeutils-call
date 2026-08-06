@@ -10,10 +10,10 @@ const SPEC_CACHE_FILE = GLib.build_filenamev([
 
 // Map CLI shorthand to actual D-Bus interface names
 const INTERFACE_MAP = {
-    windows: 'org.gnome.Shell.Extensions.GnomeUtilsWindows',
-    workspaces: 'org.gnome.Shell.Extensions.GnomeUtilsWorkspaces',
-    tagged: 'org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows',
-    keyboard: 'org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator',
+    windows:    'io.github.blueray453.GnomeUtils.Windows',
+    workspaces: 'io.github.blueray453.GnomeUtils.Workspaces',
+    tagged:     'io.github.blueray453.GnomeUtils.TaggedWindows',
+    keyboard:   'io.github.blueray453.GnomeUtils.KeyboardSimulator',
 };
 
 let selectedInterfaceKey = null;

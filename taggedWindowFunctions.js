@@ -12,7 +12,7 @@ let windowData = new Map();
 
 export const MR_DBUS_IFACE = `
 <node>
-   <interface name="org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows">
+   <interface name="io.github.blueray453.GnomeUtils.TaggedWindows">
       <method name="ActivatePinnedWindows">
       </method>
       <method name="GetAppDetailsMarkedWindows">

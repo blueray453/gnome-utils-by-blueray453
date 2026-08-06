@@ -12,7 +12,7 @@ const MODS = {
 
 export const MR_DBUS_IFACE = `
 <node>
-   <interface name="org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator">
+   <interface name="io.github.blueray453.GnomeUtils.KeyboardSimulator">
         <method name="EmitMetaO">
         </method>
         <method name="Equal">

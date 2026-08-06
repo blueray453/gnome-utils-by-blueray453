@@ -19,42 +19,46 @@ import * as workspaceFunctions from './workspaceFunctions.js';
 
 import { setLogging, setLogFn, journal } from './utils.js';
 
-// Dedicated Bus Name for this extension
-const BUS_NAME = 'org.gnome.Shell.Extensions.GnomeUtils';
+const BUS_NAME = 'io.github.blueray453.GnomeUtils';
+// Converts "com.blueray453.GnomeUtils" -> "/com/blueray453/GnomeUtils"
+const BUS_PATH = '/' + BUS_NAME.split('.').join('/');
+
 const SPEC_CACHE_DIR = GLib.build_filenamev([GLib.get_home_dir(), '.cache', 'gnome-dbus-spec']);
 const SPEC_CACHE_FILE = 'gnome-utils.json';
 
 // Centralized interface configuration
-const INTERFACES = [
+const BASE_INTERFACES = [
     {
         instanceName: '_dbus_keyboard_simulator',
         module: keyboardSimulatorFunctions,
         className: 'KeyboardSimulatorFunctions',
-        path: '/org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator',
-        ifaceName: 'org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator'
+        shortName: 'KeyboardSimulator',
     },
     {
         instanceName: '_dbus_tagged_windows',
         module: taggedWindowFunctions,
         className: 'TaggedWindowFunctions',
-        path: '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows',
-        ifaceName: 'org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows'
+        shortName: 'TaggedWindows',
     },
     {
         instanceName: '_dbus_windows',
         module: windowFunctions,
         className: 'WindowFunctions',
-        path: '/org/gnome/Shell/Extensions/GnomeUtilsWindows',
-        ifaceName: 'org.gnome.Shell.Extensions.GnomeUtilsWindows'
+        shortName: 'Windows',
     },
     {
         instanceName: '_dbus_workspaces',
         module: workspaceFunctions,
         className: 'WorkspaceFunctions',
-        path: '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces',
-        ifaceName: 'org.gnome.Shell.Extensions.GnomeUtilsWorkspaces'
+        shortName: 'Workspaces',
     }
 ];
+
+const INTERFACES = BASE_INTERFACES.map(iface => ({
+    ...iface,
+    path: `${BUS_PATH}/${iface.shortName}`,
+    ifaceName: `${BUS_NAME}.${iface.shortName}`
+}));
 
 export default class GnomeUtils extends Extension {
     enable() {

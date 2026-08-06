@@ -25,7 +25,7 @@ let align_windows_state_all_windows = { value: 0 };
 
 export const MR_DBUS_IFACE = `
 <node>
-    <interface name="org.gnome.Shell.Extensions.GnomeUtilsWindows">
+    <interface name="io.github.blueray453.GnomeUtils.Windows">
         <method name="AlignWindowsOfFocusedWindowWMClass">
         </method>
         <method name="CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass">

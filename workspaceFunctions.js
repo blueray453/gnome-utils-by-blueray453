@@ -7,7 +7,7 @@ let lastWorkspace = 1;
 
 export const MR_DBUS_IFACE = `
 <node>
-   <interface name="org.gnome.Shell.Extensions.GnomeUtilsWorkspaces">
+   <interface name="io.github.blueray453.GnomeUtils.Workspaces">
       <method name="GetCurrentWorkspace">
          <arg type="s" direction="out" name="workspace" />
       </method>
