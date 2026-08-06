@@ -885,6 +885,7 @@ export class WindowFunctions {
         }
     }
 
+    // dbus-send --print-reply=literal --session --dest=org.gnome.Shell.Extensions.GnomeUtils /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToExcludingGivenWMClasses array:string:"firefox-esr","Alacritty" uint32:7
     //  dbus-send --print-reply=literal --session --dest=org.gnome.Shell /org/gnome/Shell/Extensions/GnomeUtilsWindows org.gnome.Shell.Extensions.GnomeUtilsWindows.WindowMoveToExcludingGivenWMClasses array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" uint32:7
 
     WindowMoveToExcludingGivenWMClasses(wm_classes, workspace_num) {

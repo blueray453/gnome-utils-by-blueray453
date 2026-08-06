@@ -5,90 +5,61 @@
  * the Free Software Foundation, either version 2 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
-
-/* exported init */
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-
-// const ExtensionUtils = imports.misc.extensionUtils;
-// const Me = ExtensionUtils.getCurrentExtension();
 
 import * as keyboardSimulatorFunctions from './keyboardSimulatorFunctions.js';
 import * as taggedWindowFunctions from './taggedWindowFunctions.js';
 import * as windowFunctions from './windowFunctions.js';
 import * as workspaceFunctions from './workspaceFunctions.js';
 
-import { setLogging, setLogFn, journal } from './utils.js'
+import { setLogging, setLogFn, journal } from './utils.js';
 
-// const taggedWindowFunctions = Me.imports.taggedWindowFunctions;
-// const windowFunctions = Me.imports.windowFunctions;
-// const workspaceFunctions = Me.imports.workspaceFunctions;
+// Dedicated Bus Name for this extension
+const BUS_NAME = 'org.gnome.Shell.Extensions.GnomeUtils';
+const SPEC_CACHE_DIR = GLib.build_filenamev([GLib.get_home_dir(), '.cache', 'gnome-dbus-spec']);
+const SPEC_CACHE_FILE = 'gnome-utils.json';
+
+// Centralized interface configuration
+const INTERFACES = [
+    {
+        instanceName: '_dbus_keyboard_simulator',
+        module: keyboardSimulatorFunctions,
+        className: 'KeyboardSimulatorFunctions',
+        path: '/org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator',
+        ifaceName: 'org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator'
+    },
+    {
+        instanceName: '_dbus_tagged_windows',
+        module: taggedWindowFunctions,
+        className: 'TaggedWindowFunctions',
+        path: '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows',
+        ifaceName: 'org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows'
+    },
+    {
+        instanceName: '_dbus_windows',
+        module: windowFunctions,
+        className: 'WindowFunctions',
+        path: '/org/gnome/Shell/Extensions/GnomeUtilsWindows',
+        ifaceName: 'org.gnome.Shell.Extensions.GnomeUtilsWindows'
+    },
+    {
+        instanceName: '_dbus_workspaces',
+        module: workspaceFunctions,
+        className: 'WorkspaceFunctions',
+        path: '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces',
+        ifaceName: 'org.gnome.Shell.Extensions.GnomeUtilsWorkspaces'
+    }
+];
 
 export default class GnomeUtils extends Extension {
-
-    // _registerDbusInterface(instanceName, module, className, path) {
-    //     this[instanceName] = Gio.DBusExportedObject.wrapJSObject(
-    //         module.MR_DBUS_IFACE,
-    //         new module[className]()
-    //     );
-    //     this[instanceName].export(Gio.DBus.session, path);
-    // }
-
-    // _unregisterDbusInterface(instanceName) {
-    //     this[instanceName]?.flush();
-    //     this[instanceName]?.unexport();
-    //     delete this[instanceName];
-    // }
-
-    _registerDbusInterface(instanceName, module, className, path) {
-        // store original instance
-        const instance = new module[className]();
-        this[`_${instanceName}_instance`] = instance;
-
-        // wrap for DBus
-        this[instanceName] = Gio.DBusExportedObject.wrapJSObject(
-            module.MR_DBUS_IFACE,
-            instance
-        );
-        this[instanceName].export(Gio.DBus.session, path);
-    }
-
-    _unregisterDbusInterface(instanceName) {
-        // destroy original instance if exists
-        const originalInstance = this[`_${instanceName}_instance`];
-        if (originalInstance?.destroy) {
-            originalInstance.destroy();
-        }
-        delete this[`_${instanceName}_instance`];
-
-        // unexport DBus object
-        this[instanceName]?.flush();
-        this[instanceName]?.unexport();
-        delete this[instanceName];
-    }
-
     enable() {
-
         setLogFn((msg, error = false) => {
-            let level;
-            if (error) {
-                level = GLib.LogLevelFlags.LEVEL_CRITICAL;
-            } else {
-                level = GLib.LogLevelFlags.LEVEL_MESSAGE;
-            }
-
+            let level = error ? GLib.LogLevelFlags.LEVEL_CRITICAL : GLib.LogLevelFlags.LEVEL_MESSAGE;
             GLib.log_structured(
                 'gnome-utils-by-blueray453',
                 level,
@@ -100,43 +71,119 @@ export default class GnomeUtils extends Extension {
             );
         });
 
-
         setLogging(true);
-
-        // journalctl -f -o cat SYSLOG_IDENTIFIER=gnome-utils-by-blueray453
         journal(`Enabled`);
 
-        // console.log(`enabling ${Me.metadata.name}`);
-        this._registerDbusInterface('_dbus_keyboard_simulator', keyboardSimulatorFunctions, 'KeyboardSimulatorFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator');
-        this._registerDbusInterface('_dbus_tagged_windows', taggedWindowFunctions, 'TaggedWindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows');
-        this._registerDbusInterface('_dbus_windows', windowFunctions, 'WindowFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWindows');
-        this._registerDbusInterface('_dbus_workspaces', workspaceFunctions, 'WorkspaceFunctions', '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces');
+        // Request ownership of the dedicated bus name
+        this._ownerId = Gio.bus_own_name(
+            Gio.BusType.SESSION,
+            BUS_NAME,
+            Gio.BusNameOwnerFlags.NONE,
+            (connection) => {
+                // Bus acquired: Export all interfaces on this connection
+                for (const iface of INTERFACES) {
+                    try {
+                        const instance = new iface.module[iface.className]();
+                        this[`_${iface.instanceName}_instance`] = instance;
 
-        // Register keybindings
-        // this._keyBinding = global.display.connect('key-press-event', this._onKeyPress.bind(this));
+                        const exported = Gio.DBusExportedObject.wrapJSObject(iface.module.MR_DBUS_IFACE, instance);
+                        this[iface.instanceName] = exported;
+                        exported.export(connection, iface.path);
+
+                        journal(`Exported ${iface.ifaceName} on ${iface.path}`);
+                    } catch (e) {
+                        journal(`Failed to export ${iface.ifaceName}: ${e.message}`, true);
+                    }
+                }
+            },
+            (connection, name) => {
+                // Name acquired: Safe to write the cache
+                journal(`${name}: name acquired`);
+                this._writeSpecCache();
+            },
+            (connection, name) => {
+                // Name lost: Clean up exports
+                journal(`${name}: name lost`, true);
+                this._unexportAll();
+            }
+        );
     }
 
     disable() {
-        // console.log(`disabling ${Me.metadata.name}`);
-        this._unregisterDbusInterface('_dbus_keyboard_simulator');
-        this._unregisterDbusInterface('_dbus_tagged_windows');
-        this._unregisterDbusInterface('_dbus_windows');
-        this._unregisterDbusInterface('_dbus_workspaces');
+        journal(`Disabled`);
 
-        // Disconnect the keybinding
-        // global.display.disconnect(this._keyBinding);
+        // Release the bus name
+        if (this._ownerId) {
+            Gio.bus_unown_name(this._ownerId);
+            this._ownerId = null;
+        }
+
+        this._unexportAll();
+        this._removeSpecCache();
     }
 
-    // _onKeyPress(display, event) {
-    //     // Check if the key combination is Ctrl + N (assuming lowercase 'n')
-    //     if (event.get_key_symbol() === Clutter.KEY_Super_N && event.get_state() === Clutter.ModifierType.CONTROL_MASK) {
-    //         // Call the method to move all Nemo windows to the current workspace
-    //         windowFunctions.MoveAllNemoWindowsToCurrentWorkspace();
-    //     }
-    // }
-}
+    _unexportAll() {
+        for (const iface of INTERFACES) {
+            // Destroy the underlying class instance
+            const originalInstance = this[`_${iface.instanceName}_instance`];
+            if (originalInstance?.destroy) {
+                try {
+                    originalInstance.destroy();
+                } catch (e) {
+                    journal(`Error destroying ${iface.instanceName}: ${e.message}`, true);
+                }
+            }
+            delete this[`_${iface.instanceName}_instance`];
 
-// function init(meta) {
-//     console.log(`initializing ${meta.metadata.name}`);
-//     return new Extension();
-// }
+            // Unexport the DBus object
+            const exported = this[iface.instanceName];
+            if (exported) {
+                try {
+                    exported.flush();
+                    exported.unexport();
+                } catch (e) {
+                    // Ignore "not exported" errors during cleanup
+                }
+                delete this[iface.instanceName];
+            }
+        }
+    }
+
+    _writeSpecCache() {
+        try {
+            GLib.mkdir_with_parents(SPEC_CACHE_DIR, 0o755);
+
+            const interfaces = {};
+            for (const iface of INTERFACES) {
+                interfaces[iface.ifaceName] = {
+                    object_path: iface.path,
+                    xml: iface.module.MR_DBUS_IFACE,
+                };
+            }
+
+            const spec = {
+                bus_name: BUS_NAME,
+                interfaces,
+            };
+
+            const filePath = GLib.build_filenamev([SPEC_CACHE_DIR, SPEC_CACHE_FILE]);
+            GLib.file_set_contents(filePath, JSON.stringify(spec, null, 2));
+            journal(`Wrote spec cache to ${filePath}`);
+        } catch (e) {
+            journal(`Failed to write spec cache: ${e.message}`, true);
+        }
+    }
+
+    _removeSpecCache() {
+        try {
+            const filePath = GLib.build_filenamev([SPEC_CACHE_DIR, SPEC_CACHE_FILE]);
+            const file = Gio.File.new_for_path(filePath);
+            if (file.query_exists(null)) {
+                file.delete(null);
+                journal(`Removed spec cache`);
+            }
+        } catch (e) {
+            journal(`Failed to remove spec cache: ${e.message}`, true);
+        }
+    }
+}

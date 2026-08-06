@@ -4,133 +4,67 @@ imports.gi.versions.Gio = '2.0';
 const { Gio, GLib } = imports.gi;
 const System = imports.system;
 
-const BUS_NAME = 'org.gnome.Shell';
-const INTROSPECTABLE_INTERFACE = 'org.freedesktop.DBus.Introspectable';
+const SPEC_CACHE_FILE = GLib.build_filenamev([
+    GLib.get_home_dir(), '.cache', 'gnome-dbus-spec', 'gnome-utils.json'
+]);
 
-const INTERFACES = {
-    windows: { path: '/org/gnome/Shell/Extensions/GnomeUtilsWindows', iface: 'org.gnome.Shell.Extensions.GnomeUtilsWindows' },
-    workspaces: { path: '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces', iface: 'org.gnome.Shell.Extensions.GnomeUtilsWorkspaces' },
-    tagged: { path: '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows', iface: 'org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows' },
-    keyboard: { path: '/org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator', iface: 'org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator' },
+// Map CLI shorthand to actual D-Bus interface names
+const INTERFACE_MAP = {
+    windows: 'org.gnome.Shell.Extensions.GnomeUtilsWindows',
+    workspaces: 'org.gnome.Shell.Extensions.GnomeUtilsWorkspaces',
+    tagged: 'org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows',
+    keyboard: 'org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator',
 };
 
-let selectedInterface = null;
+let selectedInterfaceKey = null;
 
 function usage() {
     const prog = System.programInvocationName || 'gnomeutils-call';
     printerr(`Usage: ${prog} -i INTERFACE METHOD [PARAMETER...]`);
     printerr('  -i, --interface NAME   Choose: windows, workspaces, tagged, keyboard (REQUIRED)');
     printerr('  -h, --help             Show this');
-    printerr('Parameters are automatically converted to JS primitives before D-Bus packing.');
-    printerr('Write strings as-is, arrays as comma-separated values.');
-    printerr('Void methods produce no output.');
     System.exit(1);
 }
 
-// ----------------------------------------------------------------------
-// Extract the specific <interface> block from the full introspection XML
-// ----------------------------------------------------------------------
-function extractInterfaceXml(fullXml, interfaceName) {
-    // Match the specific interface block using Regex
-    const regex = new RegExp(`<interface\\s+name="${interfaceName}"[^>]*>[\\s\\S]*?</interface>`);
-    const match = fullXml.match(regex);
-    if (!match) {
-        throw new Error(`Interface "${interfaceName}" not found in introspection XML`);
-    }
-    // makeProxyWrapper requires a valid <node> wrapper around the interface
-    return `<node>\n${match[0]}\n</node>`;
-}
-
-// ----------------------------------------------------------------------
-// Fetch XML via Introspect and create a Proxy Class
-// ----------------------------------------------------------------------
-function getProxyAndXml(busName, objectPath, interfaceName) {
-    let introProxy;
+function loadSpec() {
+    const file = Gio.File.new_for_path(SPEC_CACHE_FILE);
+    if (!file.query_exists(null)) return null;
     try {
-        introProxy = Gio.DBusProxy.new_for_bus_sync(
-            Gio.BusType.SESSION,
-            Gio.DBusProxyFlags.NONE,
-            null,
-            busName,
-            objectPath,
-            INTROSPECTABLE_INTERFACE,
-            null
-        );
+        const [ok, contents] = file.load_contents(null);
+        if (!ok) return null;
+        return JSON.parse(new TextDecoder().decode(contents));
     } catch (e) {
-        printerr(`Could not create introspection proxy: ${e.message}`);
-        System.exit(2);
-    }
-
-    let fullXml;
-    try {
-        const result = introProxy.call_sync(
-            'Introspect',
-            null,
-            Gio.DBusCallFlags.NONE,
-            -1,
-            null
-        );
-        fullXml = result.deepUnpack()[0];
-    } catch (e) {
-        printerr(`Introspect call failed: ${e.message}`);
-        System.exit(3);
-    }
-
-    try {
-        // Extract ONLY the target interface XML to avoid binding to DBus.Properties
-        const ifaceXml = extractInterfaceXml(fullXml, interfaceName);
-
-        // This is the magic function that generates the proxy class
-        const ProxyClass = Gio.DBusProxy.makeProxyWrapper(ifaceXml);
-        const proxy = new ProxyClass(Gio.DBus.session, busName, objectPath);
-        return { proxy, xml: fullXml }; // Return full XML for signature parsing
-    } catch (e) {
-        printerr(`Failed to create proxy wrapper: ${e.message}`);
-        System.exit(3);
+        return null;
     }
 }
 
-// ----------------------------------------------------------------------
-// Extract method signature from XML (needed to parse CLI args correctly)
-// ----------------------------------------------------------------------
+// Robust signature parsing using GLib's native XML parser (No Regex!)
 function getMethodSignature(xml, methodName) {
-    const methodRegex = new RegExp(`<method name="${methodName}"[^>]*>([\\s\\S]*?)</method>`);
-    const match = xml.match(methodRegex);
-    if (!match) return null;
-
-    const methodBody = match[1];
-    const argTags = methodBody.match(/<arg\s+[^>]*>/g) || [];
-    const argTypes = [];
-    for (const tag of argTags) {
-        if (tag.includes('direction="in"')) {
-            const typeMatch = tag.match(/type="([^"]+)"/);
-            if (typeMatch) argTypes.push(typeMatch[1]);
-        }
+    let nodeInfo;
+    try {
+        nodeInfo = Gio.DBusNodeInfo.new_for_xml(xml);
+    } catch (e) {
+        return null;
     }
-    return argTypes;
+
+    if (!nodeInfo.interfaces || nodeInfo.interfaces.length === 0) return null;
+    const ifaceInfo = nodeInfo.interfaces[0];
+
+    const methodInfo = ifaceInfo.methods.find(m => m.name === methodName);
+    if (!methodInfo) return null;
+
+    return methodInfo.in_args.map(arg => arg.signature);
 }
 
-// ----------------------------------------------------------------------
-// Convert CLI string argument to JS primitive based on D-Bus type
-// ----------------------------------------------------------------------
 function convertToJS(raw, expectedType) {
     const trimmed = raw.trim();
-
     switch (expectedType) {
-        case 's':   // string
-            return trimmed.startsWith('"') && trimmed.endsWith('"') ? trimmed.slice(1, -1) : trimmed;
-        case 'u':   // unsigned int
-        case 'i':   // signed int
-        case 'd':   // double
-        case 'x':   // int64
-        case 't':   // uint64
-            return Number(trimmed);
-        case 'b':   // boolean
-            return trimmed === 'true' || trimmed === '1';
-        case 'as':  // array of strings
-            return trimmed.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+        case 's': return trimmed.startsWith('"') && trimmed.endsWith('"') ? trimmed.slice(1, -1) : trimmed;
+        case 'u': case 'i': case 'd': case 'x': case 't': return Number(trimmed);
+        case 'b': return trimmed === 'true' || trimmed === '1';
+        case 'as': return trimmed.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
         default:
-            printerr(`Unsupported D-Bus type "${expectedType}" for argument`);
+            printerr(`Unsupported D-Bus type "${expectedType}"`);
             System.exit(5);
     }
 }
@@ -148,58 +82,56 @@ function main() {
             usage();
         } else if (arg === '-i' || arg === '--interface') {
             i++;
-            if (i >= args.length) {
-                printerr('Missing interface name');
-                usage();
-            }
+            if (i >= args.length) { printerr('Missing interface name'); usage(); }
             const name = args[i].toLowerCase();
-            if (!(name in INTERFACES)) {
-                printerr(`Unknown interface: "${name}". Valid: ${Object.keys(INTERFACES).join(', ')}`);
+            if (!(name in INTERFACE_MAP)) {
+                printerr(`Unknown interface: "${name}". Valid: ${Object.keys(INTERFACE_MAP).join(', ')}`);
                 System.exit(1);
             }
-            selectedInterface = name;
+            selectedInterfaceKey = name;
         } else {
-            if (methodName === null) {
-                methodName = arg;
-            } else {
-                params.push(arg);
-            }
+            if (methodName === null) methodName = arg;
+            else params.push(arg);
         }
     }
 
-    if (selectedInterface === null) {
-        printerr('ERROR: interface (-i) is required.');
-        usage();
-    }
-    if (methodName === null) {
-        printerr('ERROR: METHOD is required');
-        usage();
-    }
+    if (!selectedInterfaceKey) { printerr('ERROR: interface (-i) is required.'); usage(); }
+    if (!methodName) { printerr('ERROR: METHOD is required'); usage(); }
 
-    const ifaceInfo = INTERFACES[selectedInterface];
-    const objectPath = ifaceInfo.path;
-    const interfaceName = ifaceInfo.iface;
-
-    // ---- 1. Get Proxy and XML ----
-    let proxy, xml;
-    try {
-        const res = getProxyAndXml(BUS_NAME, objectPath, interfaceName);
-        proxy = res.proxy;
-        xml = res.xml;
-    } catch (e) {
-        printerr(`Connection failed: ${e.message}`);
-        printerr('Is the extension enabled?');
+    // 1. Load Cache
+    const spec = loadSpec();
+    if (!spec) {
+        printerr('gnomeutils-call: gnome-utils extension is not enabled');
         System.exit(2);
     }
 
-    // ---- 2. Check method and get signature ----
+    // 2. Locate Interface in Cache
+    const ifaceName = INTERFACE_MAP[selectedInterfaceKey];
+    const ifaceData = spec.interfaces[ifaceName];
+    if (!ifaceData || !ifaceData.xml || !ifaceData.object_path) {
+        printerr(`gnomeutils-call: interface "${ifaceName}" missing from cache`);
+        System.exit(2);
+    }
+
     const syncMethodName = methodName + 'Sync';
+
+    // 3. Build Proxy
+    let proxy;
+    try {
+        const ProxyClass = Gio.DBusProxy.makeProxyWrapper(ifaceData.xml);
+        proxy = new ProxyClass(Gio.DBus.session, spec.bus_name, ifaceData.object_path);
+    } catch (e) {
+        printerr(`gnomeutils-call: could not build proxy: ${e.message}`);
+        System.exit(2);
+    }
+
     if (typeof proxy[syncMethodName] !== 'function') {
-        printerr(`Method "${methodName}" not found in interface ${selectedInterface}`);
+        printerr(`Method "${methodName}" not found in interface ${selectedInterfaceKey}`);
         System.exit(4);
     }
 
-    let argTypes = getMethodSignature(xml, methodName);
+    // 4. Parse Signature & Arguments
+    let argTypes = getMethodSignature(ifaceData.xml, methodName);
     if (!argTypes) {
         printerr(`Could not parse signature for "${methodName}"`);
         System.exit(4);
@@ -210,25 +142,18 @@ function main() {
         System.exit(4);
     }
 
-    // ---- 3. Convert CLI args to JS primitives ----
     let jsArgs = params.map((p, i) => convertToJS(p, argTypes[i]));
 
-    // ---- 4. Call the method ----
+    // 5. Execute Call
     try {
-        // We call the generated Sync method directly with JS primitives!
         let result = proxy[syncMethodName](...jsArgs);
-
-        // makeProxyWrapper returns an array of OUT arguments.
         if (result && result.length > 0) {
             let outValue = result[0];
-            if (typeof outValue === 'string') {
-                print(outValue);
-            } else {
-                print(String(outValue));
-            }
+            print(typeof outValue === 'string' ? outValue : String(outValue));
         }
         System.exit(0);
     } catch (e) {
+        if (e instanceof Gio.DBusError) Gio.DBusError.strip_remote_error(e);
         printerr(`Method call failed: ${e.message}`);
         System.exit(5);
     }
