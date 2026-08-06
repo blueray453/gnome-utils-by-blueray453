@@ -1,17 +1,17 @@
 #!/usr/bin/env gjs
 
 imports.gi.versions.Gio = '2.0';
-const {Gio, GLib} = imports.gi;
+const { Gio, GLib } = imports.gi;
 const System = imports.system;
 
 const BUS_NAME = 'org.gnome.Shell';
 const INTROSPECTABLE_INTERFACE = 'org.freedesktop.DBus.Introspectable';
 
 const INTERFACES = {
-    windows:   { path: '/org/gnome/Shell/Extensions/GnomeUtilsWindows',        iface: 'org.gnome.Shell.Extensions.GnomeUtilsWindows' },
-    workspaces:{ path: '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces',     iface: 'org.gnome.Shell.Extensions.GnomeUtilsWorkspaces' },
-    tagged:    { path: '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows',  iface: 'org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows' },
-    keyboard:  { path: '/org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator', iface: 'org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator' },
+    windows: { path: '/org/gnome/Shell/Extensions/GnomeUtilsWindows', iface: 'org.gnome.Shell.Extensions.GnomeUtilsWindows' },
+    workspaces: { path: '/org/gnome/Shell/Extensions/GnomeUtilsWorkspaces', iface: 'org.gnome.Shell.Extensions.GnomeUtilsWorkspaces' },
+    tagged: { path: '/org/gnome/Shell/Extensions/GnomeUtilsTaggedWindows', iface: 'org.gnome.Shell.Extensions.GnomeUtilsTaggedWindows' },
+    keyboard: { path: '/org/gnome/Shell/Extensions/GnomeUtilsKeyboardSimulator', iface: 'org.gnome.Shell.Extensions.GnomeUtilsKeyboardSimulator' },
 };
 
 let selectedInterface = null;
@@ -21,20 +21,33 @@ function usage() {
     printerr(`Usage: ${prog} -i INTERFACE METHOD [PARAMETER...]`);
     printerr('  -i, --interface NAME   Choose: windows, workspaces, tagged, keyboard (REQUIRED)');
     printerr('  -h, --help             Show this');
-    printerr('Parameters are automatically converted to the expected D‑Bus type.');
+    printerr('Parameters are automatically converted to JS primitives before D-Bus packing.');
     printerr('Write strings as-is, arrays as comma-separated values.');
-    printerr('Numbers are uint32 (or int32 if negative). true/false are boolean.');
     printerr('Void methods produce no output.');
     System.exit(1);
 }
 
 // ----------------------------------------------------------------------
-// D-Bus introspection – get method signature
+// Extract the specific <interface> block from the full introspection XML
 // ----------------------------------------------------------------------
-function getMethodSignature(busName, objectPath, methodName) {
-    let introspectProxy;
+function extractInterfaceXml(fullXml, interfaceName) {
+    // Match the specific interface block using Regex
+    const regex = new RegExp(`<interface\\s+name="${interfaceName}"[^>]*>[\\s\\S]*?</interface>`);
+    const match = fullXml.match(regex);
+    if (!match) {
+        throw new Error(`Interface "${interfaceName}" not found in introspection XML`);
+    }
+    // makeProxyWrapper requires a valid <node> wrapper around the interface
+    return `<node>\n${match[0]}\n</node>`;
+}
+
+// ----------------------------------------------------------------------
+// Fetch XML via Introspect and create a Proxy Class
+// ----------------------------------------------------------------------
+function getProxyAndXml(busName, objectPath, interfaceName) {
+    let introProxy;
     try {
-        introspectProxy = Gio.DBusProxy.new_for_bus_sync(
+        introProxy = Gio.DBusProxy.new_for_bus_sync(
             Gio.BusType.SESSION,
             Gio.DBusProxyFlags.NONE,
             null,
@@ -48,85 +61,78 @@ function getMethodSignature(busName, objectPath, methodName) {
         System.exit(2);
     }
 
-    let xml;
+    let fullXml;
     try {
-        const result = introspectProxy.call_sync(
+        const result = introProxy.call_sync(
             'Introspect',
-            new GLib.Variant('()', []),
+            null,
             Gio.DBusCallFlags.NONE,
             -1,
             null
         );
-        xml = result.deepUnpack()[0];
+        fullXml = result.deepUnpack()[0];
     } catch (e) {
         printerr(`Introspect call failed: ${e.message}`);
         System.exit(3);
     }
 
+    try {
+        // Extract ONLY the target interface XML to avoid binding to DBus.Properties
+        const ifaceXml = extractInterfaceXml(fullXml, interfaceName);
+
+        // This is the magic function that generates the proxy class
+        const ProxyClass = Gio.DBusProxy.makeProxyWrapper(ifaceXml);
+        const proxy = new ProxyClass(Gio.DBus.session, busName, objectPath);
+        return { proxy, xml: fullXml }; // Return full XML for signature parsing
+    } catch (e) {
+        printerr(`Failed to create proxy wrapper: ${e.message}`);
+        System.exit(3);
+    }
+}
+
+// ----------------------------------------------------------------------
+// Extract method signature from XML (needed to parse CLI args correctly)
+// ----------------------------------------------------------------------
+function getMethodSignature(xml, methodName) {
     const methodRegex = new RegExp(`<method name="${methodName}"[^>]*>([\\s\\S]*?)</method>`);
     const match = xml.match(methodRegex);
-    if (!match) {
-        printerr(`Method "${methodName}" not found in interface ${selectedInterface}`);
-        System.exit(4);
-    }
+    if (!match) return null;
+
     const methodBody = match[1];
     const argTags = methodBody.match(/<arg\s+[^>]*>/g) || [];
     const argTypes = [];
     for (const tag of argTags) {
         if (tag.includes('direction="in"')) {
             const typeMatch = tag.match(/type="([^"]+)"/);
-            if (typeMatch) {
-                argTypes.push(typeMatch[1]);
-            }
+            if (typeMatch) argTypes.push(typeMatch[1]);
         }
     }
     return argTypes;
 }
 
 // ----------------------------------------------------------------------
-// Convert a raw argument string to a GVariant of a given type
+// Convert CLI string argument to JS primitive based on D-Bus type
 // ----------------------------------------------------------------------
-function convertArgument(raw, expectedType) {
+function convertToJS(raw, expectedType) {
     const trimmed = raw.trim();
 
     switch (expectedType) {
         case 's':   // string
-            let str = trimmed;
-            if (str.startsWith('"') && str.endsWith('"')) str = str.slice(1, -1);
-            return GLib.Variant.new_string(str);
-
+            return trimmed.startsWith('"') && trimmed.endsWith('"') ? trimmed.slice(1, -1) : trimmed;
         case 'u':   // unsigned int
-            return GLib.Variant.new_uint32(parseInt(trimmed, 10));
         case 'i':   // signed int
-            return GLib.Variant.new_int32(parseInt(trimmed, 10));
+        case 'd':   // double
+        case 'x':   // int64
+        case 't':   // uint64
+            return Number(trimmed);
         case 'b':   // boolean
-            return GLib.Variant.new_boolean(trimmed === 'true' || trimmed === '1');
-
+            return trimmed === 'true' || trimmed === '1';
         case 'as':  // array of strings
-            const items = trimmed.split(',').map(s => s.trim());
-            const vItems = items.map(s => GLib.Variant.new_string(s));
-            return GLib.Variant.new_array(GLib.VariantType.new('s'), vItems);
-
+            return trimmed.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
         default:
-            printerr(`Unsupported D‑Bus type "${expectedType}" for argument`);
+            printerr(`Unsupported D-Bus type "${expectedType}" for argument`);
             System.exit(5);
     }
-}
-
-// ----------------------------------------------------------------------
-// Build a GVariant tuple from a list of GVariant objects and arg types
-// ----------------------------------------------------------------------
-function buildTuple(variants, argTypes) {
-    if (variants.length === 0) {
-        return new GLib.Variant('()', []);
-    }
-    // Build type string: e.g., ['s','u'] => '(su)'
-    const typeString = '(' + argTypes.join('') + ')';
-    const builder = new GLib.VariantBuilder(GLib.VariantType.new(typeString));
-    for (const v of variants) {
-        builder.add_value(v);
-    }
-    return builder.end();
 }
 
 function main() {
@@ -174,59 +180,47 @@ function main() {
     const objectPath = ifaceInfo.path;
     const interfaceName = ifaceInfo.iface;
 
-    // ---- Get expected argument types via introspection ----
-    let argTypes;
+    // ---- 1. Get Proxy and XML ----
+    let proxy, xml;
     try {
-        argTypes = getMethodSignature(BUS_NAME, objectPath, methodName);
+        const res = getProxyAndXml(BUS_NAME, objectPath, interfaceName);
+        proxy = res.proxy;
+        xml = res.xml;
     } catch (e) {
-        printerr(`Introspection failed: ${e.message}`);
+        printerr(`Connection failed: ${e.message}`);
+        printerr('Is the extension enabled?');
         System.exit(2);
     }
 
-    // Check parameter count
+    // ---- 2. Check method and get signature ----
+    const syncMethodName = methodName + 'Sync';
+    if (typeof proxy[syncMethodName] !== 'function') {
+        printerr(`Method "${methodName}" not found in interface ${selectedInterface}`);
+        System.exit(4);
+    }
+
+    let argTypes = getMethodSignature(xml, methodName);
+    if (!argTypes) {
+        printerr(`Could not parse signature for "${methodName}"`);
+        System.exit(4);
+    }
+
     if (params.length !== argTypes.length) {
         printerr(`Expected ${argTypes.length} arguments, but got ${params.length}`);
         System.exit(4);
     }
 
-    // ---- Convert each parameter to GVariant of the correct type ----
-    const variants = params.map((p, i) => convertArgument(p, argTypes[i]));
+    // ---- 3. Convert CLI args to JS primitives ----
+    let jsArgs = params.map((p, i) => convertToJS(p, argTypes[i]));
 
-    // ---- Build the tuple using the builder ----
-    const tupleParams = buildTuple(variants, argTypes);
-
-    // ---- Create a proxy for the target interface and call the method ----
-    let proxy;
+    // ---- 4. Call the method ----
     try {
-        proxy = Gio.DBusProxy.new_for_bus_sync(
-            Gio.BusType.SESSION,
-            Gio.DBusProxyFlags.NONE,
-            null,
-            BUS_NAME,
-            objectPath,
-            interfaceName,
-            null
-        );
-    } catch (e) {
-        printerr(`Could not connect to GnomeUtils (${selectedInterface}): ${e.message}`);
-        printerr('Is the extension enabled?');
-        System.exit(2);
-    }
+        // We call the generated Sync method directly with JS primitives!
+        let result = proxy[syncMethodName](...jsArgs);
 
-    try {
-        const result = proxy.call_sync(
-            methodName,
-            tupleParams,
-            Gio.DBusCallFlags.NONE,
-            -1,
-            null
-        );
-
-        const unpacked = result.deepUnpack();
-        if (unpacked.length === 0) {
-            // void – no output
-        } else {
-            const outValue = unpacked[0];
+        // makeProxyWrapper returns an array of OUT arguments.
+        if (result && result.length > 0) {
+            let outValue = result[0];
             if (typeof outValue === 'string') {
                 print(outValue);
             } else {
