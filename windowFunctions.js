@@ -707,9 +707,14 @@ export class WindowFunctions {
 
         // journal(`Window Count ${windows.length}`);
 
-
         if (windows.length !== 2)
             return false;
+
+        const minimizedWindow = windows.find(window => window.minimized);
+
+        if (minimizedWindow) {
+            minimizedWindow.unminimize();
+        }
 
         let covered = windows.find(w => this._is_covered_partially(w));
 
