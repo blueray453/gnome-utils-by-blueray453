@@ -165,6 +165,145 @@ export const MR_DBUS_IFACE = `
     </interface>
 </node>`;
 
+class SharedEdgePair {
+    constructor(windowA, windowB, areaLeft, areaRight, minWidth = 150) {
+        this.windowA = windowA;
+        this.windowB = windowB;
+        this._areaLeft = areaLeft;
+        this._areaRight = areaRight;
+        this._minWidth = minWidth;
+        this._destroyed = false;
+        this._processing = false;
+        this._signals = [];
+        this._expected = { A: null, B: null };
+        this._tolerance = 2; // px slack for frame-rect rounding
+
+        let rectA = windowA.get_frame_rect();
+        this._sharedEdgeX = rectA.x + rectA.width;
+
+        // Fixed invariants that define "still a valid tiled pair".
+        // Only the shared edge is allowed to move; everything else
+        // (outer edge, top, height) must stay put.
+        this._workAreaY = rectA.y;
+        this._workAreaHeight = rectA.height;
+    }
+
+    enable() {
+        if (this._destroyed) return;
+
+        const onAChanged = () => this._onGeometryChanged('A');
+        const onBChanged = () => this._onGeometryChanged('B');
+        const onBreak = () => this.destroy();
+
+        this._signals.push([this.windowA, this.windowA.connect('size-changed', onAChanged)]);
+        this._signals.push([this.windowA, this.windowA.connect('position-changed', onAChanged)]);
+        this._signals.push([this.windowA, this.windowA.connect('unmanaging', onBreak)]);
+        this._signals.push([this.windowA, this.windowA.connect('notify::maximized-horizontally', onBreak)]);
+        this._signals.push([this.windowA, this.windowA.connect('notify::maximized-vertically', onBreak)]);
+        this._signals.push([this.windowA, this.windowA.connect('notify::minimized', onBreak)]);
+
+        this._signals.push([this.windowB, this.windowB.connect('size-changed', onBChanged)]);
+        this._signals.push([this.windowB, this.windowB.connect('position-changed', onBChanged)]);
+        this._signals.push([this.windowB, this.windowB.connect('unmanaging', onBreak)]);
+        this._signals.push([this.windowB, this.windowB.connect('notify::maximized-horizontally', onBreak)]);
+        this._signals.push([this.windowB, this.windowB.connect('notify::maximized-vertically', onBreak)]);
+        this._signals.push([this.windowB, this.windowB.connect('notify::minimized', onBreak)]);
+    }
+
+    _rectsEqual(r1, r2) {
+        return r1 && r2 && r1.x === r2.x && r1.y === r2.y &&
+            r1.width === r2.width && r1.height === r2.height;
+    }
+
+    _near(a, b) {
+        return Math.abs(a - b) <= this._tolerance;
+    }
+
+    // Returns false if the geometry no longer describes a valid
+    // side-by-side tiled pair (window was dragged off, resized
+    // vertically, resized past its outer edge, maximized, etc.)
+    _stillFormsValidTile(rectA, rectB) {
+        if (this.windowA.maximized_horizontally || this.windowA.maximized_vertically) return false;
+        if (this.windowB.maximized_horizontally || this.windowB.maximized_vertically) return false;
+        if (this.windowA.minimized || this.windowB.minimized) return false;
+
+        // Outer left edge of A must stay pinned to the tiled area.
+        if (!this._near(rectA.x, this._areaLeft)) return false;
+        // Outer right edge of B must stay pinned to the tiled area.
+        if (!this._near(rectB.x + rectB.width, this._areaRight)) return false;
+        // Both windows must keep their original vertical span - a
+        // user resizing/moving vertically has left the tile layout.
+        if (!this._near(rectA.y, this._workAreaY) || !this._near(rectB.y, this._workAreaY)) return false;
+        if (!this._near(rectA.height, this._workAreaHeight) || !this._near(rectB.height, this._workAreaHeight)) return false;
+
+        // NOTE: intentionally no "A.right === B.left" touching check here.
+        // The moment a user drags the shared edge, that's exactly the
+        // condition that becomes momentarily false - checking it here
+        // would tear the pair down on every legitimate resize before
+        // the other window ever gets synced. Touching is *restored* by
+        // the resize we're about to perform in _onGeometryChanged, not
+        // a precondition for performing it.
+
+        return true;
+    }
+
+    _onGeometryChanged(which) {
+        if (this._destroyed || this._processing) return;
+
+        let rectA = this.windowA.get_frame_rect();
+        let rectB = this.windowB.get_frame_rect();
+
+        // Ignore our own synthetic resize of the other window.
+        if (which === 'A' && this._rectsEqual(rectA, this._expected.A)) return;
+        if (which === 'B' && this._rectsEqual(rectB, this._expected.B)) return;
+
+        if (!this._stillFormsValidTile(rectA, rectB)) {
+            journal(`SharedEdgePair: pair no longer tiled, stopping shared-edge tracking`);
+            this.destroy();
+            return;
+        }
+
+        let newEdge = which === 'A' ? (rectA.x + rectA.width) : rectB.x;
+
+        let lowerBound = this._areaLeft + this._minWidth;
+        let upperBound = this._areaRight - this._minWidth;
+        newEdge = Math.max(lowerBound, Math.min(upperBound, newEdge));
+
+        if (newEdge === this._sharedEdgeX) return;
+        this._sharedEdgeX = newEdge;
+
+        this._processing = true;
+        try {
+            if (which === 'A') {
+                let newBRect = {
+                    x: newEdge, y: rectB.y,
+                    width: this._areaRight - newEdge, height: rectB.height,
+                };
+                this._expected.B = newBRect;
+                this.windowB.move_resize_frame(1, newBRect.x, newBRect.y, newBRect.width, newBRect.height);
+            } else {
+                let newARect = {
+                    x: this._areaLeft, y: rectA.y,
+                    width: newEdge - this._areaLeft, height: rectA.height,
+                };
+                this._expected.A = newARect;
+                this.windowA.move_resize_frame(1, newARect.x, newARect.y, newARect.width, newARect.height);
+            }
+        } finally {
+            this._processing = false;
+        }
+    }
+
+    destroy() {
+        if (this._destroyed) return;
+        this._destroyed = true;
+        this._signals.forEach(([win, id]) => {
+            try { win.disconnect(id); } catch (e) { /* already gone */ }
+        });
+        this._signals = [];
+    }
+}
+
 export class WindowFunctions {
 
     /* Get Properties */
@@ -460,25 +599,19 @@ export class WindowFunctions {
     //     }
     // }
 
-    _move_resize_window = function (meta_window, x_coordinate, y_coordinate, width, height) {
+    _move_resize_window = function (meta_window, x_coordinate, y_coordinate, width, height, onComplete = null) {
 
         this._make_window_movable_and_resizable(meta_window);
-
-        // let metaWindowActor = meta_window.get_compositor_private();
-
-        // let id = metaWindowActor.connect('first-frame', _ => {
-        //     meta_window.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
-        //     metaWindowActor.disconnect(id);
-        // });
 
         let windowReadyId = 0;
 
         windowReadyId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            // stuff
             meta_window.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
             journal(`Alhamdulillah, moved meta_window`);
-            // before returning GLib.SOURCE_REMOVE, zero out the id
-            windowReadyId = 0
+            windowReadyId = 0;
+            if (onComplete) {
+                onComplete();
+            }
             return GLib.SOURCE_REMOVE;
         });
 
@@ -486,12 +619,6 @@ export class WindowFunctions {
             if (windowReadyId)
                 GLib.Source.remove(windowReadyId);
         });
-
-        // GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-        //     win.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
-        //     return GLib.SOURCE_REMOVE;
-        // });
-
     }
 
     _move_windows_side_by_side = function (win_id_1, win_id_2) {
@@ -502,18 +629,43 @@ export class WindowFunctions {
         if (win1 !== null && win2 !== null) {
             let work_area = win1.get_work_area_current_monitor();
 
-            //check if both are in current workspace
-            //check if both are in same monitor
-
             let work_area_width = work_area.width;
             let work_area_height = work_area.height;
 
             let window_height = work_area_height;
             let window_width = work_area_width / 2;
 
-            this._move_resize_window(win1, 0, 0, window_width, window_height);
-            this._move_resize_window(win2, window_width, 0, window_width, window_height);
+            let readyCount = { value: 0 };
+            const onTileComplete = () => {
+                readyCount.value++;
+                if (readyCount.value === 2) {
+                    // Both windows finished their async idle_add resize -
+                    // safe to start tracking shared-edge resizes now.
+                    this._enable_shared_edge_pair(win1, win2, 0, work_area_width);
+                }
+            };
+
+            this._move_resize_window(win1, 0, 0, window_width, window_height, onTileComplete);
+            this._move_resize_window(win2, window_width, 0, window_width, window_height, onTileComplete);
         }
+    }
+
+    _enable_shared_edge_pair = function (windowA, windowB, areaLeft, areaRight) {
+        if (this._sharedEdgePairs === undefined) {
+            this._sharedEdgePairs = [];
+        }
+
+        // Drop any existing pair(s) touching either window so pairs never overlap.
+        this._sharedEdgePairs = this._sharedEdgePairs.filter(pair => {
+            let touches = pair.windowA === windowA || pair.windowB === windowB ||
+                pair.windowA === windowB || pair.windowB === windowA;
+            if (touches) pair.destroy();
+            return !touches;
+        });
+
+        let pair = new SharedEdgePair(windowA, windowB, areaLeft, areaRight);
+        pair.enable();
+        this._sharedEdgePairs.push(pair);
     }
 
     _move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num) {
@@ -1033,6 +1185,13 @@ export class WindowFunctions {
             if (win.minimized) {
                 win.unminimize();
             }
+        }
+    }
+
+    destroy() {
+        if (this._sharedEdgePairs) {
+            this._sharedEdgePairs.forEach(pair => pair.destroy());
+            this._sharedEdgePairs = [];
         }
     }
 }
