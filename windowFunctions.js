@@ -702,18 +702,25 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.ToggleWindowsCurrentWorkspace
 
     ToggleWindowsCurrentWorkspace() {
-        // let windows = this._get_normal_windows_current_workspace();
-        let windows = this._get_normal_windows_current_workspace_given_wm_class(FIREFOX);
-
-        // journal(`Window Count ${windows.length}`);
+        let windows =
+            this._get_normal_windows_current_workspace_given_wm_class(FIREFOX);
 
         if (windows.length !== 2)
             return false;
 
-        const minimizedWindow = windows.find(window => window.minimized);
+        let minimizedWindow = windows.find(w => w.minimized);
 
         if (minimizedWindow) {
+            // Restore the minimized window.
             minimizedWindow.unminimize();
+
+            // The window we want to toggle to is known already.
+            let workspace = minimizedWindow.get_workspace();
+
+            minimizedWindow.maximize(3);
+            workspace.activate_with_focus(minimizedWindow, 0);
+
+            return true;
         }
 
         let covered = windows.find(w => this._is_covered_partially(w));
@@ -721,9 +728,12 @@ export class WindowFunctions {
         if (!covered)
             return false;
 
-        let win_workspace = covered.get_workspace();
-        covered.maximize(3);
-        win_workspace.activate_with_focus(covered, 0);
+        let workspace = covered.get_workspace();
+
+        // covered.maximize(3);
+        workspace.activate_with_focus(covered, 0);
+
+        return true;
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsExcludingGivenWMClass array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" | jq .
