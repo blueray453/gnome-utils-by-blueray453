@@ -21,8 +21,8 @@ export class KeybindingFunctions {
         this._keyboard = new keyboardSimulatorFunctions.KeyboardSimulatorFunctions();
     }
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Keybinding io.github.blueray453.GnomeUtils.Keybinding.SwitchToWorkspace uint32:2
     SwitchToWorkspace(workspaceNum) {
+        // ---------- Configuration ----------
         const config = {
             "0": {
                 apps: ["Alacritty"],
@@ -80,8 +80,16 @@ export class KeybindingFunctions {
                 extra: [],
                 toggle_if_current: false
             }
+            // Workspace 7 is handled separately below – no config entry needed
         };
 
+        // ---------- Special case: workspace 7 (rearrange only) ----------
+        if (workspaceNum === 7) {
+            this._rearrangeToWorkspaces(config);
+            return;
+        }
+
+        // ---------- Normal workspace switching (0‑6) ----------
         const wsConfig = config[String(workspaceNum)];
         if (!wsConfig) {
             journal(`No config for workspace ${workspaceNum}`, true);
@@ -95,11 +103,10 @@ export class KeybindingFunctions {
         const currentWorkspace = WorkspaceManager.get_active_workspace();
         const currentIndex = currentWorkspace.index();
 
-        // 2. If toggle_if_current and we are already on this workspace, toggle windows
+        // 2. Toggle or switch
         if (toggle_if_current && currentIndex === workspaceNum) {
             this._windows.ToggleWindowsCurrentWorkspace();
         } else {
-            // Otherwise switch and move windows
             this._goToWorkspace(workspaceNum);
             for (const wmClass of apps) {
                 this._windows.WindowsMoveToGivenWorkspaceGivenWMClass(wmClass, workspaceNum);
@@ -130,10 +137,10 @@ export class KeybindingFunctions {
             }
         }
 
-        // 4. Activate pinned windows – now called for ALL workspaces
+        // 4. Activate pinned windows (all workspaces)
         this._tagged.ActivatePinnedWindows();
 
-        // 5. Extra workspace‑specific actions
+        // 5. Extra actions
         for (const action of extra) {
             switch (action) {
                 case 'maximize_if_single':
@@ -149,6 +156,46 @@ export class KeybindingFunctions {
                     journal(`Unknown extra action: ${action}`, true);
             }
         }
+    }
+
+    // ---------- Helper: rearrange windows according to the config ----------
+    _rearrangeToWorkspaces(config) {
+        // Build a map from WM_CLASS -> workspace number
+        const wmClassToWorkspace = {};
+        for (const [ws, data] of Object.entries(config)) {
+            const wsNum = parseInt(ws);
+            for (const wmClass of data.apps) {
+                wmClassToWorkspace[wmClass] = wsNum;
+            }
+        }
+
+        // Step 1: Move each known app window to its configured workspace
+        for (const [wmClass, ws] of Object.entries(wmClassToWorkspace)) {
+            this._windows.WindowsMoveToGivenWorkspaceGivenWMClass(wmClass, ws);
+        }
+
+        // Step 2: Move all other windows (not in the map) to workspace 7
+        const allKnownWmClasses = Object.keys(wmClassToWorkspace);
+        // Get all windows excluding the known ones
+        const otherWindows = this._windows.GetWindowsExcludingGivenWMClass(allKnownWmClasses);
+        // Parse JSON result (it returns a JSON string)
+        let windowsArray = [];
+        try {
+            windowsArray = JSON.parse(otherWindows);
+        } catch (e) {
+            journal(`Failed to parse window list: ${e}`, true);
+            return;
+        }
+
+        // Move each of these windows to workspace 7
+        for (const win of windowsArray) {
+            const winId = win.id;
+            if (winId !== undefined) {
+                this._windows.WindowMoveToGivenWorkspaceGivenWinID(winId, 7);
+            }
+        }
+
+        journal(`Rearranged windows: moved known apps to their workspaces, others to workspace 7`);
     }
 
     _goToWorkspace(workspaceNum) {
