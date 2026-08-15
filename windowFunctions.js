@@ -473,26 +473,17 @@ export class WindowFunctions {
 
     _align_windows = function (windows_array, windows_per_container, global_object) {
 
-        // remove windows from windows_array that do not have a minimize() method
-        // This is just to check these are valid windows
-        // windows_array = windows_array.filter(win => typeof win.minimize === 'function');
-
         let number_of_windows = windows_array.length;
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
 
         let state = global_object.value;
-
-        // console.log(`state : ${state}`);
 
         if (state >= number_of_states) {
             state = 0;
         }
 
         let current_workspace = WorkspaceManager.get_active_workspace();
-        // let monitor = this._get_current_monitor();
-        // let work_area = current_workspace.get_work_area_for_monitor(monitor);
         let work_area = current_workspace.get_work_area_all_monitors();
-        // let work_area = windows_array[0].get_work_area_current_monitor();
         let work_area_width = work_area.width;
         let work_area_height = work_area.height;
 
@@ -508,10 +499,22 @@ export class WindowFunctions {
         // minimize all the windows
         windows_array.forEach(win => win?.minimize());
 
+        let group = [];
+        let readyCount = { value: 0 };
+
         for (let i = state * windows_per_container, j = 0; i < windows_array.length && j < windows_per_container; i++, j++) {
             let win = windows_array[i];
 
-            this._move_resize_window(win, all_x[j], 0, window_width, window_height);
+            group.push(win);
+
+            this._move_resize_window(win, all_x[j], 0, window_width, window_height, () => {
+                readyCount.value++;
+                if (readyCount.value === group.length) {
+                    // All windows in this page have finished their async
+                    // placement - safe to start shared-edge tracking now.
+                    this._enable_alignment_shared_edges(group, work_area_width);
+                }
+            });
 
             win.activate(0);
         }
@@ -666,6 +669,27 @@ export class WindowFunctions {
         let pair = new SharedEdgePair(windowA, windowB, areaLeft, areaRight);
         pair.enable();
         this._sharedEdgePairs.push(pair);
+    }
+
+    _enable_alignment_shared_edges = function (group, work_area_width) {
+        if (group.length < 2) return;
+
+        let n = group.length;
+        let window_width = work_area_width / n;
+
+        for (let j = 0; j < n - 1; j++) {
+            let winA = group[j];
+            let winB = group[j + 1];
+
+            if (!winA || !winB) continue;
+
+            // The pair only owns the boundary between these two windows;
+            // its "area" is just their combined span, not the whole page.
+            let areaLeft = j * window_width;
+            let areaRight = (j + 2) * window_width;
+
+            this._enable_shared_edge_pair(winA, winB, areaLeft, areaRight);
+        }
     }
 
     _move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num) {
