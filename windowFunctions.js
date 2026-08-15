@@ -704,7 +704,7 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.MaximizeWindowIfSingleOnCurrentWorkspace
 
     MaximizeWindowIfSingleOnCurrentWorkspace() {
-        let windows = this._get_normal_windows_current_workspace_given_wm_class(FIREFOX);
+        let windows = this._get_normal_windows_current_workspace();
 
         if (windows.length !== 1)
             return false;
@@ -728,7 +728,7 @@ export class WindowFunctions {
 
     ToggleWindowsCurrentWorkspace() {
         let windows =
-            this._get_normal_windows_current_workspace_given_wm_class(FIREFOX);
+            this._get_normal_windows_current_workspace();
 
         if (windows.length !== 2)
             return false;
