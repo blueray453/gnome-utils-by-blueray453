@@ -165,6 +165,16 @@ export const MR_DBUS_IFACE = `
     </interface>
 </node>`;
 
+/**
+ * Manages a shared-edge relationship between two or more side-by-side
+ * tiled Meta.Windows. Resizing the boundary between any two adjacent
+ * windows in the chain automatically resizes the neighbor across that
+ * boundary, keeping the whole row filled.
+ *
+ * A chain owns every window passed to it exclusively - each window is
+ * registered with exactly one chain at a time, so a synthetic resize
+ * can never be misread as a user action by an unrelated tracker.
+ */
 class SharedEdgeChain {
     constructor(windows, areaLeft, areaRight, minWidth = 150, onEdgeChanged = null) {
         this.windows = windows; // ordered array, length >= 2
@@ -176,6 +186,7 @@ class SharedEdgeChain {
         this._processing = false;
         this._signals = [];
         this._expected = new Array(windows.length).fill(null);
+        this._tolerance = 2;
 
         let rect0 = windows[0].get_frame_rect();
         this._workAreaY = rect0.y;
@@ -190,9 +201,11 @@ class SharedEdgeChain {
 
     enable() {
         if (this._destroyed) return;
+
         this.windows.forEach((win, idx) => {
             const onChanged = () => this._onGeometryChanged(idx);
             const onBreak = () => this.destroy();
+
             this._signals.push([win, win.connect('size-changed', onChanged)]);
             this._signals.push([win, win.connect('position-changed', onChanged)]);
             this._signals.push([win, win.connect('unmanaging', onBreak)]);
@@ -207,21 +220,35 @@ class SharedEdgeChain {
             r1.width === r2.width && r1.height === r2.height;
     }
 
-    _near(a, b) { return Math.abs(a - b) <= 2; }
+    _near(a, b) {
+        return Math.abs(a - b) <= this._tolerance;
+    }
 
+    // A chain is only "shared-edge live" while: no window is maximized
+    // or minimized, the outer left/right edges of the whole row are
+    // still pinned to the tiled area, and every window keeps its
+    // original vertical span. (Deliberately no "still touching" check
+    // between adjacent windows - that is momentarily false during
+    // every legitimate resize and gets restored by the resize itself.)
     _stillValid() {
-        for (let win of this.windows) {
-            if (win.maximized_horizontally || win.maximized_vertically || win.minimized) return false;
+        for (const win of this.windows) {
+            if (win.maximized_horizontally || win.maximized_vertically || win.minimized)
+                return false;
         }
+
         let n = this.windows.length;
         let firstRect = this.windows[0].get_frame_rect();
         let lastRect = this.windows[n - 1].get_frame_rect();
+
         if (!this._near(firstRect.x, this._areaLeft)) return false;
         if (!this._near(lastRect.x + lastRect.width, this._areaRight)) return false;
-        for (let win of this.windows) {
+
+        for (const win of this.windows) {
             let r = win.get_frame_rect();
-            if (!this._near(r.y, this._workAreaY) || !this._near(r.height, this._workAreaHeight)) return false;
+            if (!this._near(r.y, this._workAreaY)) return false;
+            if (!this._near(r.height, this._workAreaHeight)) return false;
         }
+
         return true;
     }
 
@@ -234,6 +261,7 @@ class SharedEdgeChain {
         if (this._rectsEqual(rect, this._expected[idx])) return;
 
         if (!this._stillValid()) {
+            journal(`SharedEdgeChain: chain no longer tiled, stopping shared-edge tracking`);
             this.destroy();
             return;
         }
@@ -255,7 +283,10 @@ class SharedEdgeChain {
 
                 let leftWin = this.windows[idx - 1];
                 let leftRect = leftWin.get_frame_rect();
-                let newLeftWinRect = { x: leftRect.x, y: leftRect.y, width: clamped - leftRect.x, height: leftRect.height };
+                let newLeftWinRect = {
+                    x: leftRect.x, y: leftRect.y,
+                    width: clamped - leftRect.x, height: leftRect.height,
+                };
                 this._expected[idx - 1] = newLeftWinRect;
                 leftWin.move_resize_frame(1, newLeftWinRect.x, newLeftWinRect.y, newLeftWinRect.width, newLeftWinRect.height);
 
@@ -276,7 +307,10 @@ class SharedEdgeChain {
 
                 let rightWin = this.windows[idx + 1];
                 let rightRect = rightWin.get_frame_rect();
-                let newRightWinRect = { x: clamped, y: rightRect.y, width: (rightRect.x + rightRect.width) - clamped, height: rightRect.height };
+                let newRightWinRect = {
+                    x: clamped, y: rightRect.y,
+                    width: (rightRect.x + rightRect.width) - clamped, height: rightRect.height,
+                };
                 this._expected[idx + 1] = newRightWinRect;
                 rightWin.move_resize_frame(1, newRightWinRect.x, newRightWinRect.y, newRightWinRect.width, newRightWinRect.height);
 
@@ -296,7 +330,9 @@ class SharedEdgeChain {
     destroy() {
         if (this._destroyed) return;
         this._destroyed = true;
-        this._signals.forEach(([win, id]) => { try { win.disconnect(id); } catch (e) { } });
+        this._signals.forEach(([win, id]) => {
+            try { win.disconnect(id); } catch (e) { /* already gone */ }
+        });
         this._signals = [];
     }
 }
@@ -305,19 +341,16 @@ export class WindowFunctions {
 
     /* Get Properties */
 
-    _get_properties_brief_given_app_id = function (app_id) {
+    _get_properties_brief_given_app_id(app_id) {
         let shell_apps = AppSystem.lookup_app(app_id);
         let desktop_apps = shell_apps.get_app_info();
 
         // NOTE: GioUnix.DesktopAppInfo inherited Gio.AppInfo
         // get_display_name is a function of AppInfo which is DesktopAppInfo inherited
 
-        // console.log(" app windows : " + shell_apps.get_windows());
-
         let windows_array = [];
 
         shell_apps.get_windows().forEach(function (w) {
-            // console.log("window id : " + w.get_id());
             windows_array.push(w.get_id());
         })
 
@@ -342,13 +375,7 @@ export class WindowFunctions {
         }
     }
 
-    _get_properties_brief_given_meta_window = function (win, show_is_covered = false) {
-        // let is_sticky = !win.is_skip_taskbar() && win.is_on_all_workspaces();
-        // let tileMatchId = win.get_tile_match() ? win.get_tile_match().get_id() : null;
-
-        // let app = this._get_app_given_meta_window(win);
-        // let icon = app.get_icon().to_string();
-
+    _get_properties_brief_given_meta_window(win, show_is_covered = false) {
         let workspace_id = win.get_workspace().index();
 
         let obj = {
@@ -382,20 +409,7 @@ export class WindowFunctions {
        filter returns all the elements of the array that satisfy the condition specified in the callback function.
     */
 
-    // Meta.Display
-    // get_current_monitor()
-    // get_n_monitors()
-    // Meta.Workspace
-    // get_work_area_all_monitors()
-    // get_work_area_for_monitor(which_monitor)
-    // Meta.Window
-    // get_work_area_all_monitors()
-    // get_work_area_for_monitor(which_monitor)
-    // get_work_area_current_monitor()
-
     _get_normal_windows() {
-        // let wins = Display.get_tab_list(Meta.TabList.NORMAL, null).sort((a, b) => a.get_id() - b.get_id());
-
         let wins = Display.list_all_windows()
             .filter(win =>
                 win.get_window_type() === Meta.WindowType.NORMAL ||
@@ -403,30 +417,20 @@ export class WindowFunctions {
             )
             .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence()); // ascending order
 
-        // let wins = global.get_window_actors()
-        //     .map(actor => actor.meta_window)
-        //     .filter(win =>
-        //         win.get_window_type() === Meta.WindowType.NORMAL ||
-        //         win.get_window_type() === Meta.WindowType.DIALOG
-        //     )
-        //     .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence()); // ascending order
-
         return wins;
     }
 
-    _get_normal_windows_current_workspace = function () {
+    _get_normal_windows_current_workspace() {
         let current_workspace = WorkspaceManager.get_active_workspace();
-
-        // let wins = Display.get_tab_list(Meta.TabList.NORMAL, current_workspace).sort((a, b) => a.get_id() - b.get_id());
 
         let wins = this._get_normal_windows().filter(win =>
             win.is_on_all_workspaces() || win.get_workspace() === current_workspace
-            );
+        );
 
         return wins;
     }
 
-    _get_normal_windows_current_workspace_current_monitor = function () {
+    _get_normal_windows_current_workspace_current_monitor() {
         // Get the current monitor (in focus)
         let current_monitor = Display.get_current_monitor();
 
@@ -436,14 +440,14 @@ export class WindowFunctions {
         return wins;
     }
 
-    _get_normal_windows_current_workspace_of_focused_window_wm_class = function () {
+    _get_normal_windows_current_workspace_of_focused_window_wm_class() {
         let win = Display.get_focus_window();
         let win_wm_class = win.get_wm_class();
 
         return this._get_normal_windows_current_workspace_given_wm_class(win_wm_class);
     }
 
-    _get_normal_windows_current_workspace_given_wm_class = function (wm_class) {
+    _get_normal_windows_current_workspace_given_wm_class(wm_class) {
         return this._get_normal_windows_current_workspace().filter(w => w.get_wm_class() == wm_class);
     }
 
@@ -451,29 +455,29 @@ export class WindowFunctions {
         return this._get_normal_windows().filter(w => !wm_classes.includes(w.get_wm_class()))
     }
 
-    _get_normal_window_given_window_id = function (win_id) {
+    _get_normal_window_given_window_id(win_id) {
         // find does not need filtered window. As it return one result. However keeping it for readability
         let win = this._get_normal_windows().find(w => w?.get_id() == win_id);
         return win ?? null;
     }
 
-    _get_normal_windows_given_wm_class = function (wm_class) {
+    _get_normal_windows_given_wm_class(wm_class) {
         return this._get_normal_windows().filter(w => w.get_wm_class() == wm_class);
     }
 
-    _get_other_normal_windows_current_workspace_of_focused_window_wm_class = function () {
+    _get_other_normal_windows_current_workspace_of_focused_window_wm_class() {
         let win = Display.get_focus_window();
         return this._get_normal_windows_current_workspace_given_wm_class(win.get_wm_class()).filter(w => win != w);
     }
 
     /* Utility Functions */
 
-    _align_windows = function (windows_array, windows_per_container, global_object) {
-
+    _align_windows(windows_array, windows_per_container, global_object) {
         let number_of_windows = windows_array.length;
         let number_of_states = Math.ceil(number_of_windows / windows_per_container);
 
         let state = global_object.value;
+
         if (state >= number_of_states) {
             state = 0;
         }
@@ -483,6 +487,7 @@ export class WindowFunctions {
         let work_area_width = work_area.width;
         let window_height = work_area.height;
 
+        // minimize all the windows
         windows_array.forEach(win => win?.minimize());
 
         let group = [];
@@ -540,6 +545,8 @@ export class WindowFunctions {
             this._move_resize_window(win, x, 0, right - x, window_height, () => {
                 readyCount.value++;
                 if (readyCount.value === n) {
+                    // All windows in this page finished their async
+                    // placement - safe to start shared-edge tracking now.
                     this._enable_alignment_shared_edges(group, work_area_width);
                 }
             });
@@ -598,13 +605,12 @@ export class WindowFunctions {
         );
     }
 
-    _get_app_given_meta_window = function (win) {
+    _get_app_given_meta_window(win) {
         let app = WindowTracker.get_window_app(win);
         return app;
     }
 
-    _make_window_movable_and_resizable = function (window) {
-
+    _make_window_movable_and_resizable(window) {
         if (window.fullscreen) {
             window.unmake_fullscreen();
         }
@@ -618,20 +624,7 @@ export class WindowFunctions {
         }
     }
 
-    // _log_object_details = function (string, obj) {
-    //     console.log(`${string}`);
-    //     console.log(`=====`);
-    //     console.log(`Type: ${typeof obj}`);
-    //     console.log(`Constructor name: ${obj.constructor.name}`);
-    //     let proto = Object.getPrototypeOf(obj);
-    //     while (proto) {
-    //         console.log(`Prototype: ${proto.constructor.name}`);
-    //         proto = Object.getPrototypeOf(proto);
-    //     }
-    // }
-
-    _move_resize_window = function (meta_window, x_coordinate, y_coordinate, width, height, onComplete = null) {
-
+    _move_resize_window(meta_window, x_coordinate, y_coordinate, width, height, onComplete = null) {
         this._make_window_movable_and_resizable(meta_window);
 
         let windowReadyId = 0;
@@ -652,8 +645,7 @@ export class WindowFunctions {
         });
     }
 
-    _move_windows_side_by_side = function (win_id_1, win_id_2) {
-
+    _move_windows_side_by_side(win_id_1, win_id_2) {
         let win1 = this._get_normal_window_given_window_id(win_id_1);
         let win2 = this._get_normal_window_given_window_id(win_id_2);
 
@@ -681,10 +673,29 @@ export class WindowFunctions {
         }
     }
 
-    _enable_shared_edge_chain = function (windows, areaLeft, areaRight, onEdgeChanged = null) {
+    _move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num) {
+        let wins = this._get_normal_windows_given_wm_class(wm_class);
+
+        wins.forEach(win => {
+            const currentIndex = win.get_workspace().index?.() ?? workspace_num;
+            if (currentIndex !== workspace_num) {
+                win.change_workspace_by_index(workspace_num, false);
+            }
+        });
+    }
+
+    /* Shared-edge tiling */
+
+    _edge_ratio_key(winA, winB) {
+        return `${winA.get_id()}:${winB.get_id()}`;
+    }
+
+    _enable_shared_edge_chain(windows, areaLeft, areaRight, onEdgeChanged = null) {
         if (windows.length < 2) return;
         if (this._sharedEdgeChains === undefined) this._sharedEdgeChains = [];
 
+        // A window can only belong to one chain at a time - destroy
+        // any existing chain that overlaps with these windows first.
         let windowSet = new Set(windows);
         this._sharedEdgeChains = this._sharedEdgeChains.filter(chain => {
             let overlaps = chain.windows.some(w => windowSet.has(w));
@@ -697,11 +708,7 @@ export class WindowFunctions {
         this._sharedEdgeChains.push(chain);
     }
 
-    _edge_ratio_key = function (winA, winB) {
-        return `${winA.get_id()}:${winB.get_id()}`;
-    }
-
-    _enable_alignment_shared_edges = function (group, work_area_width) {
+    _enable_alignment_shared_edges(group, work_area_width) {
         let windows = group.filter(w => w);
         if (windows.length < 2) return;
 
@@ -713,15 +720,11 @@ export class WindowFunctions {
         });
     }
 
-    _move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num) {
-        let wins = this._get_normal_windows_given_wm_class(wm_class);
-
-        wins.forEach(win => {
-            const currentIndex = win.get_workspace().index?.() ?? workspace_num;
-            if (currentIndex !== workspace_num) {
-                win.change_workspace_by_index(workspace_num, false);
-            }
-        });
+    destroy() {
+        if (this._sharedEdgeChains) {
+            this._sharedEdgeChains.forEach(chain => chain.destroy());
+            this._sharedEdgeChains = [];
+        }
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.AlignWindowsOfFocusedWindowWMClass | jq .
@@ -733,7 +736,7 @@ export class WindowFunctions {
             windows_array = this._get_normal_windows_current_workspace_given_wm_class(NEMO);
         }
 
-        let windows_per_container = 2;
+        let windows_per_container = 3;
 
         this._align_windows(windows_array, windows_per_container, align_windows_state_all_windows);
     }
@@ -741,15 +744,9 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
 
     CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-
         let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
 
         wins.forEach(function (w) {
-
-            // if (markedWindows.includes(w.get_id())) {
-            //     return; // Skip this window if it's in the donotdelwindows array
-            // }
-
             if (w.get_wm_class_instance() == 'file_progress') {
                 return; // Skip this window if it's a 'file_progress' instance
             }
@@ -815,16 +812,8 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppsRunningGivenWMClass string:"firefox-esr" | xargs
 
     GetAppsRunningGivenWMClass(wm_class) {
-        // let app = AppSystem.lookup_desktop_wmclass(wm_class);
-        // if (!app) {
-        //     return JSON.stringify(0); // app not found → 0 windows
-        // }
-        // else{
-        //     return JSON.stringify(app.get_n_windows());  // returns integer
-        // }
         let wins = this._get_normal_windows_given_wm_class(wm_class);
         return JSON.stringify(wins.length > 0);
-        // return JSON.stringify(wins.length);
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowFocused | jq -r '.[].id'
@@ -846,12 +835,9 @@ export class WindowFunctions {
 
     //  dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindows | jq .
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindows | jq -r '.[].id'
-
     GetWindows() {
         let wins = this._get_normal_windows();
 
-        // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
@@ -868,7 +854,6 @@ export class WindowFunctions {
     GetWindowsCurrentWorkspace() {
         let wins = this._get_normal_windows_current_workspace();
 
-        // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win, true));
 
         return JSON.stringify(winPropertiesArr);
@@ -879,20 +864,16 @@ export class WindowFunctions {
     GetWindowsCurrentWorkspaceCurrentMonitor() {
         let wins = this._get_normal_windows_current_workspace_current_monitor();
 
-        // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win, true));
 
         return JSON.stringify(winPropertiesArr);
     }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq .
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq -r '.[].id'
 
     GetWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
         let wins = this._get_normal_windows_current_workspace_of_focused_window_wm_class();
 
-        // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
@@ -909,10 +890,8 @@ export class WindowFunctions {
         let minimizedWindow = windows.find(w => w.minimized);
 
         if (minimizedWindow) {
-            // Restore the minimized window.
             minimizedWindow.unminimize();
 
-            // The window we want to toggle to is known already.
             let workspace = minimizedWindow.get_workspace();
 
             minimizedWindow.maximize(3);
@@ -933,10 +912,8 @@ export class WindowFunctions {
         let minimizedWindow = windows.find(w => w.minimized);
 
         if (minimizedWindow) {
-            // Restore the minimized window.
             minimizedWindow.unminimize();
 
-            // The window we want to toggle to is known already.
             let workspace = minimizedWindow.get_workspace();
 
             minimizedWindow.maximize(3);
@@ -952,7 +929,6 @@ export class WindowFunctions {
 
         let workspace = covered.get_workspace();
 
-        // covered.maximize(3);
         workspace.activate_with_focus(covered, 0);
 
         return true;
@@ -963,7 +939,6 @@ export class WindowFunctions {
     GetWindowsExcludingGivenWMClass(wm_classes) {
         let wins = this._get_normal_windows_excluding_given_wm_classes(wm_classes);
 
-        // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
@@ -986,17 +961,15 @@ export class WindowFunctions {
             let orderA = classOrder[winA.wm_class] || Number.MAX_SAFE_INTEGER;
             let orderB = classOrder[winB.wm_class] || Number.MAX_SAFE_INTEGER;
 
-            // If both windows belong to the same class, sort
             if (orderA === orderB) {
                 let userTimeA = winA.get_stable_sequence();
                 let userTimeB = winB.get_stable_sequence();
-                return userTimeB - userTimeA; // Sort in descending order of user time
+                return userTimeB - userTimeA;
             }
 
             return orderA - orderB;
         });
 
-        // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
@@ -1007,7 +980,6 @@ export class WindowFunctions {
     GetWindowsGivenWMClass(wm_class) {
         let wins = this._get_normal_windows_given_wm_class(wm_class);
 
-        // Map each window to its properties
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
@@ -1015,8 +987,8 @@ export class WindowFunctions {
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.ToggleLookingGlass
 
-    ToggleLookingGlass(){
-        if (Main.lookingGlass === null){
+    ToggleLookingGlass() {
+        if (Main.lookingGlass === null) {
             Main.createLookingGlass();
         }
         Main.lookingGlass.toggle();
@@ -1035,7 +1007,6 @@ export class WindowFunctions {
         let win = this._get_normal_window_given_window_id(win_id);
         if (win !== null) {
             let win_workspace = win.get_workspace();
-            // Here global.get_current_time() instead of 0 will also work
             win_workspace.activate_with_focus(win, 0);
         }
     }
@@ -1044,7 +1015,6 @@ export class WindowFunctions {
 
     WindowCloseGivenWinID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
-        // win.get_compositor_private().destroy();
 
         if (win !== null) {
             win.delete(0);
@@ -1118,7 +1088,6 @@ export class WindowFunctions {
         if (win !== null) {
             let current_workspace = WorkspaceManager.get_active_workspace();
             win.change_workspace(current_workspace);
-            // current_workspace.activate_with_focus(win, 0);
         }
     }
 
@@ -1140,7 +1109,6 @@ export class WindowFunctions {
 
         if (win !== null) {
             win.change_workspace_by_index(workspace_num, false);
-            // current_workspace.activate_with_focus(win, 0);
         }
     }
 
@@ -1171,7 +1139,6 @@ export class WindowFunctions {
 
         wins.forEach(win => {
             let win_workspace = win.get_workspace();
-            // Here global.get_current_time() instead of 0 will also work
             win_workspace.activate_with_focus(win, 0);
         });
     }
@@ -1204,8 +1171,6 @@ export class WindowFunctions {
 
     //  dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsMoveToGivenWorkspaceGivenWMClass string:"firefox-esr" uint32:0
 
-    // "Alacritty" "firefox-esr" "io.github.cboxdoerfer.FSearch" "Nemo"
-
     WindowsMoveToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
         this._move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num);
     }
@@ -1230,13 +1195,6 @@ export class WindowFunctions {
             if (win.minimized) {
                 win.unminimize();
             }
-        }
-    }
-
-    destroy() {
-        if (this._sharedEdgePairs) {
-            this._sharedEdgePairs.forEach(pair => pair.destroy());
-            this._sharedEdgePairs = [];
         }
     }
 }
