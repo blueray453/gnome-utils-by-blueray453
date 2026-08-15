@@ -165,46 +165,41 @@ export const MR_DBUS_IFACE = `
     </interface>
 </node>`;
 
-class SharedEdgePair {
-    constructor(windowA, windowB, areaLeft, areaRight, minWidth = 150, onEdgeChanged = null) {
-        this.windowA = windowA;
-        this.windowB = windowB;
+class SharedEdgeChain {
+    constructor(windows, areaLeft, areaRight, minWidth = 150, onEdgeChanged = null) {
+        this.windows = windows; // ordered array, length >= 2
         this._areaLeft = areaLeft;
         this._areaRight = areaRight;
         this._minWidth = minWidth;
-        this._onEdgeChanged = onEdgeChanged;
+        this._onEdgeChanged = onEdgeChanged; // (boundaryIdx, newEdgeX) => void
         this._destroyed = false;
         this._processing = false;
         this._signals = [];
-        this._expected = { A: null, B: null };
-        this._tolerance = 2;
+        this._expected = new Array(windows.length).fill(null);
 
-        let rectA = windowA.get_frame_rect();
-        this._sharedEdgeX = rectA.x + rectA.width;
-        this._workAreaY = rectA.y;
-        this._workAreaHeight = rectA.height;
+        let rect0 = windows[0].get_frame_rect();
+        this._workAreaY = rect0.y;
+        this._workAreaHeight = rect0.height;
+
+        this._edges = [];
+        for (let i = 0; i < windows.length - 1; i++) {
+            let r = windows[i].get_frame_rect();
+            this._edges.push(r.x + r.width);
+        }
     }
 
     enable() {
         if (this._destroyed) return;
-
-        const onAChanged = () => this._onGeometryChanged('A');
-        const onBChanged = () => this._onGeometryChanged('B');
-        const onBreak = () => this.destroy();
-
-        this._signals.push([this.windowA, this.windowA.connect('size-changed', onAChanged)]);
-        this._signals.push([this.windowA, this.windowA.connect('position-changed', onAChanged)]);
-        this._signals.push([this.windowA, this.windowA.connect('unmanaging', onBreak)]);
-        this._signals.push([this.windowA, this.windowA.connect('notify::maximized-horizontally', onBreak)]);
-        this._signals.push([this.windowA, this.windowA.connect('notify::maximized-vertically', onBreak)]);
-        this._signals.push([this.windowA, this.windowA.connect('notify::minimized', onBreak)]);
-
-        this._signals.push([this.windowB, this.windowB.connect('size-changed', onBChanged)]);
-        this._signals.push([this.windowB, this.windowB.connect('position-changed', onBChanged)]);
-        this._signals.push([this.windowB, this.windowB.connect('unmanaging', onBreak)]);
-        this._signals.push([this.windowB, this.windowB.connect('notify::maximized-horizontally', onBreak)]);
-        this._signals.push([this.windowB, this.windowB.connect('notify::maximized-vertically', onBreak)]);
-        this._signals.push([this.windowB, this.windowB.connect('notify::minimized', onBreak)]);
+        this.windows.forEach((win, idx) => {
+            const onChanged = () => this._onGeometryChanged(idx);
+            const onBreak = () => this.destroy();
+            this._signals.push([win, win.connect('size-changed', onChanged)]);
+            this._signals.push([win, win.connect('position-changed', onChanged)]);
+            this._signals.push([win, win.connect('unmanaging', onBreak)]);
+            this._signals.push([win, win.connect('notify::maximized-horizontally', onBreak)]);
+            this._signals.push([win, win.connect('notify::maximized-vertically', onBreak)]);
+            this._signals.push([win, win.connect('notify::minimized', onBreak)]);
+        });
     }
 
     _rectsEqual(r1, r2) {
@@ -212,76 +207,86 @@ class SharedEdgePair {
             r1.width === r2.width && r1.height === r2.height;
     }
 
-    _near(a, b) {
-        return Math.abs(a - b) <= this._tolerance;
-    }
+    _near(a, b) { return Math.abs(a - b) <= 2; }
 
-    // Returns false if the geometry no longer describes a valid
-    // side-by-side tiled pair (window was dragged off, resized
-    // vertically, resized past its outer edge, maximized, etc.)
-    _stillFormsValidTile(rectA, rectB) {
-        if (this.windowA.maximized_horizontally || this.windowA.maximized_vertically) return false;
-        if (this.windowB.maximized_horizontally || this.windowB.maximized_vertically) return false;
-        if (this.windowA.minimized || this.windowB.minimized) return false;
-
-        // Outer left edge of A must stay pinned to the tiled area.
-        if (!this._near(rectA.x, this._areaLeft)) return false;
-        // Outer right edge of B must stay pinned to the tiled area.
-        if (!this._near(rectB.x + rectB.width, this._areaRight)) return false;
-        // Both windows must keep their original vertical span - a
-        // user resizing/moving vertically has left the tile layout.
-        if (!this._near(rectA.y, this._workAreaY) || !this._near(rectB.y, this._workAreaY)) return false;
-        if (!this._near(rectA.height, this._workAreaHeight) || !this._near(rectB.height, this._workAreaHeight)) return false;
-
-        // NOTE: intentionally no "A.right === B.left" touching check here.
-        // The moment a user drags the shared edge, that's exactly the
-        // condition that becomes momentarily false - checking it here
-        // would tear the pair down on every legitimate resize before
-        // the other window ever gets synced. Touching is *restored* by
-        // the resize we're about to perform in _onGeometryChanged, not
-        // a precondition for performing it.
-
+    _stillValid() {
+        for (let win of this.windows) {
+            if (win.maximized_horizontally || win.maximized_vertically || win.minimized) return false;
+        }
+        let n = this.windows.length;
+        let firstRect = this.windows[0].get_frame_rect();
+        let lastRect = this.windows[n - 1].get_frame_rect();
+        if (!this._near(firstRect.x, this._areaLeft)) return false;
+        if (!this._near(lastRect.x + lastRect.width, this._areaRight)) return false;
+        for (let win of this.windows) {
+            let r = win.get_frame_rect();
+            if (!this._near(r.y, this._workAreaY) || !this._near(r.height, this._workAreaHeight)) return false;
+        }
         return true;
     }
 
-    _onGeometryChanged(which) {
+    _onGeometryChanged(idx) {
         if (this._destroyed || this._processing) return;
 
-        let rectA = this.windowA.get_frame_rect();
-        let rectB = this.windowB.get_frame_rect();
+        let rect = this.windows[idx].get_frame_rect();
 
-        if (which === 'A' && this._rectsEqual(rectA, this._expected.A)) return;
-        if (which === 'B' && this._rectsEqual(rectB, this._expected.B)) return;
+        // Ignore our own synthetic change to this window.
+        if (this._rectsEqual(rect, this._expected[idx])) return;
 
-        if (!this._stillFormsValidTile(rectA, rectB)) {
+        if (!this._stillValid()) {
             this.destroy();
             return;
         }
 
-        let newEdge = which === 'A' ? (rectA.x + rectA.width) : rectB.x;
+        let n = this.windows.length;
+        let leftEdgePrev = idx === 0 ? this._areaLeft : this._edges[idx - 1];
+        let rightEdgePrev = idx === n - 1 ? this._areaRight : this._edges[idx];
 
-        let lowerBound = this._areaLeft + this._minWidth;
-        let upperBound = this._areaRight - this._minWidth;
-        newEdge = Math.max(lowerBound, Math.min(upperBound, newEdge));
-
-        if (newEdge === this._sharedEdgeX) return;
-        this._sharedEdgeX = newEdge;
-
-        // Report the new boundary so callers can persist it.
-        if (this._onEdgeChanged) {
-            this._onEdgeChanged(newEdge);
-        }
+        let newLeft = rect.x;
+        let newRight = rect.x + rect.width;
 
         this._processing = true;
         try {
-            if (which === 'A') {
-                let newBRect = { x: newEdge, y: rectB.y, width: this._areaRight - newEdge, height: rectB.height };
-                this._expected.B = newBRect;
-                this.windowB.move_resize_frame(1, newBRect.x, newBRect.y, newBRect.width, newBRect.height);
-            } else {
-                let newARect = { x: this._areaLeft, y: rectA.y, width: newEdge - this._areaLeft, height: rectA.height };
-                this._expected.A = newARect;
-                this.windowA.move_resize_frame(1, newARect.x, newARect.y, newARect.width, newARect.height);
+            // This window's left boundary moved -> resize its left neighbor.
+            if (idx > 0 && !this._near(newLeft, leftEdgePrev)) {
+                let lowerBound = (idx - 1 === 0 ? this._areaLeft : this._edges[idx - 2]) + this._minWidth;
+                let clamped = Math.max(lowerBound, Math.min(rightEdgePrev - this._minWidth, newLeft));
+                this._edges[idx - 1] = clamped;
+
+                let leftWin = this.windows[idx - 1];
+                let leftRect = leftWin.get_frame_rect();
+                let newLeftWinRect = { x: leftRect.x, y: leftRect.y, width: clamped - leftRect.x, height: leftRect.height };
+                this._expected[idx - 1] = newLeftWinRect;
+                leftWin.move_resize_frame(1, newLeftWinRect.x, newLeftWinRect.y, newLeftWinRect.width, newLeftWinRect.height);
+
+                if (clamped !== newLeft) {
+                    let selfRect = { x: clamped, y: rect.y, width: rightEdgePrev - clamped, height: rect.height };
+                    this._expected[idx] = selfRect;
+                    this.windows[idx].move_resize_frame(1, selfRect.x, selfRect.y, selfRect.width, selfRect.height);
+                }
+
+                if (this._onEdgeChanged) this._onEdgeChanged(idx - 1, clamped);
+            }
+
+            // This window's right boundary moved -> resize its right neighbor.
+            if (idx < n - 1 && !this._near(newRight, rightEdgePrev)) {
+                let upperBound = (idx + 1 === n - 1 ? this._areaRight : this._edges[idx + 1]) - this._minWidth;
+                let clamped = Math.max(leftEdgePrev + this._minWidth, Math.min(upperBound, newRight));
+                this._edges[idx] = clamped;
+
+                let rightWin = this.windows[idx + 1];
+                let rightRect = rightWin.get_frame_rect();
+                let newRightWinRect = { x: clamped, y: rightRect.y, width: (rightRect.x + rightRect.width) - clamped, height: rightRect.height };
+                this._expected[idx + 1] = newRightWinRect;
+                rightWin.move_resize_frame(1, newRightWinRect.x, newRightWinRect.y, newRightWinRect.width, newRightWinRect.height);
+
+                if (clamped !== newRight) {
+                    let selfRect = { x: rect.x, y: rect.y, width: clamped - rect.x, height: rect.height };
+                    this._expected[idx] = selfRect;
+                    this.windows[idx].move_resize_frame(1, selfRect.x, selfRect.y, selfRect.width, selfRect.height);
+                }
+
+                if (this._onEdgeChanged) this._onEdgeChanged(idx, clamped);
             }
         } finally {
             this._processing = false;
@@ -291,9 +296,7 @@ class SharedEdgePair {
     destroy() {
         if (this._destroyed) return;
         this._destroyed = true;
-        this._signals.forEach(([win, id]) => {
-            try { win.disconnect(id); } catch (e) { /* already gone */ }
-        });
+        this._signals.forEach(([win, id]) => { try { win.disconnect(id); } catch (e) { } });
         this._signals = [];
     }
 }
@@ -669,7 +672,7 @@ export class WindowFunctions {
                 if (readyCount.value === 2) {
                     // Both windows finished their async idle_add resize -
                     // safe to start tracking shared-edge resizes now.
-                    this._enable_shared_edge_pair(win1, win2, 0, work_area_width);
+                    this._enable_shared_edge_chain([win1, win2], 0, work_area_width);
                 }
             };
 
@@ -678,21 +681,20 @@ export class WindowFunctions {
         }
     }
 
-    _enable_shared_edge_pair = function (windowA, windowB, areaLeft, areaRight, onEdgeChanged = null) {
-        if (this._sharedEdgePairs === undefined) {
-            this._sharedEdgePairs = [];
-        }
+    _enable_shared_edge_chain = function (windows, areaLeft, areaRight, onEdgeChanged = null) {
+        if (windows.length < 2) return;
+        if (this._sharedEdgeChains === undefined) this._sharedEdgeChains = [];
 
-        this._sharedEdgePairs = this._sharedEdgePairs.filter(pair => {
-            let touches = pair.windowA === windowA || pair.windowB === windowB ||
-                pair.windowA === windowB || pair.windowB === windowA;
-            if (touches) pair.destroy();
-            return !touches;
+        let windowSet = new Set(windows);
+        this._sharedEdgeChains = this._sharedEdgeChains.filter(chain => {
+            let overlaps = chain.windows.some(w => windowSet.has(w));
+            if (overlaps) chain.destroy();
+            return !overlaps;
         });
 
-        let pair = new SharedEdgePair(windowA, windowB, areaLeft, areaRight, 150, onEdgeChanged);
-        pair.enable();
-        this._sharedEdgePairs.push(pair);
+        let chain = new SharedEdgeChain(windows, areaLeft, areaRight, 150, onEdgeChanged);
+        chain.enable();
+        this._sharedEdgeChains.push(chain);
     }
 
     _edge_ratio_key = function (winA, winB) {
@@ -700,31 +702,15 @@ export class WindowFunctions {
     }
 
     _enable_alignment_shared_edges = function (group, work_area_width) {
-        if (group.length < 2) return;
+        let windows = group.filter(w => w);
+        if (windows.length < 2) return;
 
-        if (this._alignmentEdgeRatios === undefined) {
-            this._alignmentEdgeRatios = new Map();
-        }
+        if (this._alignmentEdgeRatios === undefined) this._alignmentEdgeRatios = new Map();
 
-        for (let j = 0; j < group.length - 1; j++) {
-            let winA = group[j];
-            let winB = group[j + 1];
-            if (!winA || !winB) continue;
-
-            let rectA = winA.get_frame_rect();
-            let rectB = winB.get_frame_rect();
-
-            // Pair's own span is this pair's actual current footprint,
-            // whatever widths they ended up at (persisted or default).
-            let areaLeft = rectA.x;
-            let areaRight = rectB.x + rectB.width;
-
-            let key = this._edge_ratio_key(winA, winB);
-
-            this._enable_shared_edge_pair(winA, winB, areaLeft, areaRight, (newEdgeX) => {
-                this._alignmentEdgeRatios.set(key, newEdgeX / work_area_width);
-            });
-        }
+        this._enable_shared_edge_chain(windows, 0, work_area_width, (idx, newEdgeX) => {
+            let key = this._edge_ratio_key(windows[idx], windows[idx + 1]);
+            this._alignmentEdgeRatios.set(key, newEdgeX / work_area_width);
+        });
     }
 
     _move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num) {
