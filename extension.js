@@ -16,6 +16,7 @@ import * as keyboardSimulatorFunctions from './keyboardSimulatorFunctions.js';
 import * as taggedWindowFunctions from './taggedWindowFunctions.js';
 import * as windowFunctions from './windowFunctions.js';
 import * as workspaceFunctions from './workspaceFunctions.js';
+import * as keybindingFunctions from './keybindingFunctions.js';
 
 import { setLogging, setLogFn, journal } from './utils.js';
 
@@ -51,6 +52,12 @@ const BASE_INTERFACES = [
         module: workspaceFunctions,
         className: 'WorkspaceFunctions',
         shortName: 'Workspaces',
+    },
+    {
+        instanceName: '_dbus_keybinding',
+        module: keybindingFunctions,
+        className: 'KeybindingFunctions',
+        shortName: 'Keybinding',
     }
 ];
 
