@@ -78,6 +78,8 @@ export const MR_DBUS_IFACE = `
         <method name="GetWindowsCurrentWorkspaceOfFocusedWindowWMClass">
             <arg type="s" direction="out" name="win" />
         </method>
+        <method name="MaximizeWindowIfSingleOnCurrentWorkspace">
+        </method>
         <method name="ToggleWindowsCurrentWorkspace">
         </method>
         <method name="GetWindowsExcludingGivenWMClass">
@@ -697,6 +699,29 @@ export class WindowFunctions {
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
+    }
+
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.MaximizeWindowIfSingleOnCurrentWorkspace
+
+    MaximizeWindowIfSingleOnCurrentWorkspace() {
+        let windows = this._get_normal_windows_current_workspace_given_wm_class(FIREFOX);
+
+        if (windows.length !== 1)
+            return false;
+
+        let minimizedWindow = windows.find(w => w.minimized);
+
+        if (minimizedWindow) {
+            // Restore the minimized window.
+            minimizedWindow.unminimize();
+
+            // The window we want to toggle to is known already.
+            let workspace = minimizedWindow.get_workspace();
+
+            minimizedWindow.maximize(3);
+
+            workspace.activate_with_focus(minimizedWindow, 0);
+        }
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.ToggleWindowsCurrentWorkspace
