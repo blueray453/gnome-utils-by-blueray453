@@ -14,6 +14,7 @@ const INTERFACE_MAP = {
     workspaces: 'io.github.blueray453.GnomeUtils.Workspaces',
     tagged:     'io.github.blueray453.GnomeUtils.TaggedWindows',
     keyboard:   'io.github.blueray453.GnomeUtils.KeyboardSimulator',
+    keybinding: 'io.github.blueray453.GnomeUtils.Keybinding',
 };
 
 let selectedInterfaceKey = null;
@@ -21,7 +22,7 @@ let selectedInterfaceKey = null;
 function usage() {
     const prog = System.programInvocationName || 'gnomeutils-call';
     printerr(`Usage: ${prog} -i INTERFACE METHOD [PARAMETER...]`);
-    printerr('  -i, --interface NAME   Choose: windows, workspaces, tagged, keyboard (REQUIRED)');
+    printerr('  -i, --interface NAME   Choose: windows, workspaces, tagged, keyboard, keybinding (REQUIRED)');
     printerr('  -h, --help             Show this');
     System.exit(1);
 }
