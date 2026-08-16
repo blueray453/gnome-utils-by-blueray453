@@ -736,7 +736,7 @@ export class WindowFunctions {
             windows_array = this._get_normal_windows_current_workspace_given_wm_class(NEMO);
         }
 
-        let windows_per_container = 3;
+        let windows_per_container = 2;
 
         this._align_windows(windows_array, windows_per_container, align_windows_state_all_windows);
     }
