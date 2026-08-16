@@ -137,10 +137,13 @@ export class KeybindingFunctions {
             }
         }
 
-        // 4. Activate pinned windows (all workspaces)
+        // 4. Maximize/focus single window on the current workspace
+        this._windows.MaximizeWindowIfSingleOnCurrentWorkspace();
+
+        // 5. Activate pinned windows (all workspaces)
         this._tagged.ActivatePinnedWindows();
 
-        // 5. Extra actions
+        // 6. Extra actions
         for (const action of extra) {
             switch (action) {
                 case 'maximize_if_single':
