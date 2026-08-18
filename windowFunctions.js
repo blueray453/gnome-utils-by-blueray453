@@ -613,16 +613,20 @@ export class WindowFunctions {
     }
 
     _make_window_movable_and_resizable(window) {
-        if (window.fullscreen) {
-            window.unmake_fullscreen();
+        // w.get_maximized() === Meta.MaximizeFlags.BOTH, checks if window is fullscreen
+
+        const maxState = window.get_maximized();
+
+        if (maxState & Meta.MaximizeFlags.BOTH) {
+            window.unmaximize(Meta.MaximizeFlags.BOTH);
         }
 
-        if (window.maximized_horizontally) {
-            window.unmaximize(1);
+        if (maxState & Meta.MaximizeFlags.HORIZONTAL) {
+            window.unmaximize(Meta.MaximizeFlags.HORIZONTAL);
         }
 
-        if (window.maximized_vertically) {
-            window.unmaximize(2);
+        if (maxState & Meta.MaximizeFlags.VERTICAL) {
+            window.unmaximize(Meta.MaximizeFlags.VERTICAL);
         }
     }
 
@@ -762,7 +766,7 @@ export class WindowFunctions {
     FocusFullscreenWindowOnCurrentWorkspace() {
         let wins = this._get_normal_windows_current_workspace();
         let win = wins.find(w =>
-            (w.fullscreen || (w.maximized_horizontally && w.maximized_vertically)) &&
+            (w.get_maximized() === Meta.MaximizeFlags.BOTH) &&
             !w.minimized &&
             !this._is_covered(w)
         );
