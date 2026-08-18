@@ -159,6 +159,9 @@ export class KeybindingFunctions {
                     journal(`Unknown extra action: ${action}`, true);
             }
         }
+
+        // 7. Focus any uncovered fullscreen window on this workspace
+        this._windows.FocusFullscreenWindowOnCurrentWorkspace();
     }
 
     // ---------- Helper: rearrange windows according to the config ----------

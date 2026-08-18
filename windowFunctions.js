@@ -30,6 +30,8 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass">
         </method>
+        <method name="FocusFullscreenWindowOnCurrentWorkspace">
+        </method>
         <method name="GetAppFocusedWindow">
             <arg type="s" direction="out" name="app" />
         </method>
@@ -753,6 +755,24 @@ export class WindowFunctions {
 
             w.delete(0);
         })
+    }
+
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.FocusFullscreenWindowOnCurrentWorkspace
+
+    FocusFullscreenWindowOnCurrentWorkspace() {
+        let wins = this._get_normal_windows_current_workspace();
+        let win = wins.find(w =>
+            (w.fullscreen || (w.maximized_horizontally && w.maximized_vertically)) &&
+            !w.minimized &&
+            !this._is_covered(w)
+        );
+        if (!win) {
+            journal(`FocusFullscreenWindowOnCurrentWorkspace: no uncovered fullscreen window found`);
+            return;
+        }
+        journal(`FocusFullscreenWindowOnCurrentWorkspace: found an uncovered fullscreen window`);
+        let workspace = win.get_workspace();   // ✅ use 'win'
+        workspace.activate_with_focus(win, 0); // ✅ use 'win'
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppFocusedWindow | jq .
