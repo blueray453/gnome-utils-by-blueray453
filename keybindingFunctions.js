@@ -123,7 +123,7 @@ export class KeybindingFunctions {
             }
         }
 
-        if (!anyRunning) {
+        if (!anyRunning && workspaceNum !== 5) {
             let cmd;
             if (primary_launch && launch[primary_launch]) {
                 cmd = launch[primary_launch];
