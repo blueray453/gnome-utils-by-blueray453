@@ -2,7 +2,9 @@ import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import { journal } from './utils.js'
+import { createLogger } from './logger.js';
+
+const journal = createLogger(import.meta.url);
 
 const AppSystem = global.get_app_system();
 const Display = global.get_display();

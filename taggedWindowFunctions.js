@@ -3,6 +3,10 @@ import Meta from 'gi://Meta';
 
 import * as windowFunctions from './windowFunctions.js';
 
+import { createLogger } from './logger.js';
+
+const journal = createLogger(import.meta.url);
+
 const Display = global.get_display();
 const WindowManager = global.get_window_manager();
 const WindowTracker = global.get_window_tracker();

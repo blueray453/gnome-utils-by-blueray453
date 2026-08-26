@@ -18,7 +18,12 @@ import * as windowFunctions from './windowFunctions.js';
 import * as workspaceFunctions from './workspaceFunctions.js';
 import * as keybindingFunctions from './keybindingFunctions.js';
 
-import { setLogging, setLogFn, journal } from './utils.js';
+import {
+    initLogging,
+    createLogger,
+} from './logger.js';
+
+const journal = createLogger(import.meta.url);
 
 const BUS_NAME = 'io.github.blueray453.GnomeUtils';
 // Converts "com.blueray453.GnomeUtils" -> "/com/blueray453/GnomeUtils"
@@ -69,20 +74,7 @@ const INTERFACES = BASE_INTERFACES.map(iface => ({
 
 export default class GnomeUtils extends Extension {
     enable() {
-        setLogFn((msg, error = false) => {
-            let level = error ? GLib.LogLevelFlags.LEVEL_CRITICAL : GLib.LogLevelFlags.LEVEL_MESSAGE;
-            GLib.log_structured(
-                'gnome-utils-by-blueray453',
-                level,
-                {
-                    MESSAGE: `${msg}`,
-                    SYSLOG_IDENTIFIER: 'gnome-utils-by-blueray453',
-                    CODE_FILE: GLib.filename_from_uri(import.meta.url)[0]
-                }
-            );
-        });
-
-        setLogging(true);
+        initLogging(this.uuid, 'both', false);
         journal(`Enabled`);
 
         // Request ownership of the dedicated bus name

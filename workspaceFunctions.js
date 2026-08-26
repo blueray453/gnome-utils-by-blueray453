@@ -1,5 +1,9 @@
 import Meta from 'gi://Meta';
 
+import { createLogger } from './logger.js';
+
+const journal = createLogger(import.meta.url);
+
 const Display = global.get_display();
 const WorkspaceManager = global.get_workspace_manager();
 

@@ -1,7 +1,10 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
-import { journal } from './utils.js'
 import Atspi from 'gi://Atspi';
+
+import { createLogger } from './logger.js';
+
+const journal = createLogger(import.meta.url);
 
 const MODS = {
     SHIFT: Clutter.ModifierType.SHIFT_MASK,

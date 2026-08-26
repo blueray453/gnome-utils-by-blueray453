@@ -1,9 +1,12 @@
 // keybindingFunctions.js
 import GLib from 'gi://GLib';
-import { journal } from './utils.js';
 import * as windowFunctions from './windowFunctions.js';
 import * as taggedWindowFunctions from './taggedWindowFunctions.js';
 import * as keyboardSimulatorFunctions from './keyboardSimulatorFunctions.js';
+
+import { createLogger } from './logger.js';
+
+const journal = createLogger(import.meta.url);
 
 export const MR_DBUS_IFACE = `
 <node>
