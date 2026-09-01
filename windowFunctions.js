@@ -1173,6 +1173,15 @@ export class WindowFunctions {
 
     WindowsCloseDuplicateNemo() {
         let wins = this._get_normal_windows_current_workspace_given_wm_class(NEMO);
+
+        wins.forEach(function (w) {
+            if (w.get_wm_class_instance() == 'file_progress') {
+                return; // Skip this window if it's a 'file_progress' instance
+            }
+
+            w.delete(0);
+        })
+
         let seen = {};
         wins.forEach(win => {
             let key = win.get_title();
