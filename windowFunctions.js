@@ -17,6 +17,8 @@ const FIREFOX = "firefox-esr";
 const NEMO = "Nemo";
 const ALACRITTY = "Alacritty";
 
+const FILE_PROGRESS_INSTANCE = 'file_progress';
+
 // privamive global variables can not be passed by reference that is why using objects. Array also work.
 
 let align_windows_state_all_windows = { value: 0 };
@@ -609,6 +611,14 @@ export class WindowFunctions {
         );
     }
 
+    _is_file_progress_window(win) {
+        return win.get_wm_class_instance() === FILE_PROGRESS_INSTANCE;
+    }
+
+    _exclude_file_progress_windows(wins) {
+        return wins.filter(w => !this._is_file_progress_window(w));
+    }
+
     _get_app_given_meta_window(win) {
         let app = WindowTracker.get_window_app(win);
         return app;
@@ -754,13 +764,7 @@ export class WindowFunctions {
     CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
         let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
 
-        wins.forEach(function (w) {
-            if (w.get_wm_class_instance() == 'file_progress') {
-                return; // Skip this window if it's a 'file_progress' instance
-            }
-
-            w.delete(0);
-        })
+        this._exclude_file_progress_windows(wins).forEach(w => w.delete(0));
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.FocusFullscreenWindowOnCurrentWorkspace
@@ -1172,14 +1176,12 @@ export class WindowFunctions {
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsCloseDuplicateNemo
 
     WindowsCloseDuplicateNemo() {
-        let wins = this._get_normal_windows_current_workspace_given_wm_class(NEMO);
+        let wins = this._exclude_file_progress_windows(
+            this._get_normal_windows_current_workspace_given_wm_class(NEMO)
+        );
 
         let seen = {};
         wins.forEach(win => {
-            if (win.get_wm_class_instance() == 'file_progress') {
-                return; // Never touch progress dialogs
-            }
-
             let key = win.get_title();
             if (!seen[key]) {
                 seen[key] = win;
