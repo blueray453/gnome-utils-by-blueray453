@@ -59,7 +59,7 @@ export class KeybindingFunctions {
                     "Epiphany": "epiphany",
                     "Tor Browser": "tor-browser"
                 },
-                extra: ["maximize_if_single"],
+                extra: [],   // maximize_if_single removed - now applies to all workspaces via step 4
                 toggle_if_current: true,
                 primary_launch: "firefox-esr"
             },
@@ -116,17 +116,15 @@ export class KeybindingFunctions {
             }
         }
 
-        // 3. Launch apps if none are running
-        let anyRunning = false;
-        for (const wmClass of apps) {
-            const isRunning = this._windows.GetAppsRunningGivenWMClass(wmClass);
-            if (isRunning === 'true') {
-                anyRunning = true;
-                break;
-            }
+        // 3. Launch apps only if the workspace has NO windows at all (any wm_class)
+        let windowCount = 0;
+        try {
+            windowCount = JSON.parse(this._windows.GetWindowCountCurrentWorkspace());
+        } catch (e) {
+            journal(`Failed to parse window count for workspace ${workspaceNum}: ${e}`, true);
         }
 
-        if (!anyRunning && workspaceNum !== 5) {
+        if (windowCount === 0 && workspaceNum !== 5 && workspaceNum !== 6) {
             let cmd;
             if (primary_launch && launch[primary_launch]) {
                 cmd = launch[primary_launch];
@@ -140,7 +138,7 @@ export class KeybindingFunctions {
             }
         }
 
-        // 4. Maximize/focus single window on the current workspace
+        // 4. Maximize/focus single window on the current workspace (applies to all workspaces)
         this._windows.MaximizeWindowIfSingleOnCurrentWorkspace();
 
         // 5. Activate pinned windows (all workspaces)
@@ -149,9 +147,6 @@ export class KeybindingFunctions {
         // 6. Extra actions
         for (const action of extra) {
             switch (action) {
-                case 'maximize_if_single':
-                    this._windows.MaximizeWindowIfSingleOnCurrentWorkspace();
-                    break;
                 case 'select_all_fsearch':
                     this._keyboard.SelectAllFsearchText();
                     break;
