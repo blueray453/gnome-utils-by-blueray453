@@ -89,6 +89,7 @@ export class KeybindingFunctions {
         // ---------- Special case: workspace 7 (rearrange only) ----------
         if (workspaceNum === 7) {
             this._rearrangeToWorkspaces(config);
+            this._goToWorkspace(workspaceNum);
             return;
         }
 
