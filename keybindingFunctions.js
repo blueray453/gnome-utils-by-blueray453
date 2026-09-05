@@ -151,12 +151,6 @@ export class KeybindingFunctions {
                     journal(`Unknown extra action: ${action}`, true);
             }
         }
-
-        // 5. Maximize/focus single window on the current workspace (applies to all workspaces)
-        this._windows.MaximizeWindowIfSingleOnCurrentWorkspace();
-
-        // 6. Focus any uncovered fullscreen window on this workspace
-        this._windows.FocusFullscreenWindowOnCurrentWorkspace();
     }
 
     // ---------- Helper: rearrange windows according to the config ----------

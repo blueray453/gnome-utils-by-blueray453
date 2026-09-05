@@ -34,8 +34,6 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass">
         </method>
-        <method name="FocusFullscreenWindowOnCurrentWorkspace">
-        </method>
         <method name="GetAppFocusedWindow">
             <arg type="s" direction="out" name="app" />
         </method>
@@ -83,8 +81,6 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="GetWindowsCurrentWorkspaceOfFocusedWindowWMClass">
             <arg type="s" direction="out" name="win" />
-        </method>
-        <method name="MaximizeWindowIfSingleOnCurrentWorkspace">
         </method>
         <method name="ToggleWindowsCurrentWorkspace">
         </method>
@@ -767,24 +763,6 @@ export class WindowFunctions {
         this._exclude_file_progress_windows(wins).forEach(w => w.delete(0));
     }
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.FocusFullscreenWindowOnCurrentWorkspace
-
-    FocusFullscreenWindowOnCurrentWorkspace() {
-        let wins = this._get_normal_windows_current_workspace();
-        let win = wins.find(w =>
-            (w.get_maximized() === Meta.MaximizeFlags.BOTH) &&
-            !w.minimized &&
-            !this._is_covered(w)
-        );
-        if (!win) {
-            journal(`FocusFullscreenWindowOnCurrentWorkspace: no uncovered fullscreen window found`);
-            return;
-        }
-        journal(`FocusFullscreenWindowOnCurrentWorkspace: found an uncovered fullscreen window`);
-        let workspace = win.get_workspace();   // ✅ use 'win'
-        workspace.activate_with_focus(win, 0); // ✅ use 'win'
-    }
-
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppFocusedWindow | jq .
 
     GetAppFocusedWindow() {
@@ -907,26 +885,6 @@ export class WindowFunctions {
         let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
 
         return JSON.stringify(winPropertiesArr);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.MaximizeWindowIfSingleOnCurrentWorkspace
-
-    MaximizeWindowIfSingleOnCurrentWorkspace() {
-        let windows = this._get_normal_windows_current_workspace();
-
-        if (windows.length !== 1)
-            return false;
-
-        let minimizedWindow = windows[0];
-
-        if (minimizedWindow)
-            minimizedWindow.unminimize();
-
-        let workspace = minimizedWindow.get_workspace();
-
-        minimizedWindow.maximize(3);
-
-        workspace.activate_with_focus(minimizedWindow, 0);
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.ToggleWindowsCurrentWorkspace
