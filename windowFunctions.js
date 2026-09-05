@@ -559,52 +559,141 @@ export class WindowFunctions {
         global_object.value = state + 1;
     }
 
-    _window_matches(window, predicate) {
-        if (window.minimized)
-            return false;
+    _is_covered_fully(window) {
+        if (window.minimized) return false;
 
         let windows = Display.sort_windows_by_stacking(
             this._get_normal_windows_current_workspace()
         );
 
         let targetIndex = windows.indexOf(window);
-        if (targetIndex === -1)
-            return false;
+        if (targetIndex === -1) return false;
 
         let targetRect = window.get_frame_rect();
+        let monitor = window.get_monitor();
+        let workArea = WorkspaceManager.get_active_workspace().get_work_area_for_monitor(monitor);
 
-        // Check only windows above the target
+        // Clip target rect to monitor
+        let clippedTarget = {
+            x: Math.max(targetRect.x, workArea.x),
+            y: Math.max(targetRect.y, workArea.y),
+            width: 0,
+            height: 0
+        };
+        let targetRight = Math.min(targetRect.x + targetRect.width, workArea.x + workArea.width);
+        let targetBottom = Math.min(targetRect.y + targetRect.height, workArea.y + workArea.height);
+        clippedTarget.width = targetRight - clippedTarget.x;
+        clippedTarget.height = targetBottom - clippedTarget.y;
+
+        if (clippedTarget.width <= 0 || clippedTarget.height <= 0) return false;
+
+        let unionRect = null;
+
         for (let i = targetIndex + 1; i < windows.length; i++) {
             let topWin = windows[i];
-
-            if (topWin.minimized)
-                continue;
+            if (topWin.minimized) continue;
 
             let topRect = topWin.get_frame_rect();
 
-            if (predicate(targetRect, topRect))
+            // Clip top rect to monitor
+            let clippedTop = {
+                x: Math.max(topRect.x, workArea.x),
+                y: Math.max(topRect.y, workArea.y),
+                width: 0,
+                height: 0
+            };
+            let topRight = Math.min(topRect.x + topRect.width, workArea.x + workArea.width);
+            let topBottom = Math.min(topRect.y + topRect.height, workArea.y + workArea.height);
+            clippedTop.width = topRight - clippedTop.x;
+            clippedTop.height = topBottom - clippedTop.y;
+
+            if (clippedTop.width <= 0 || clippedTop.height <= 0) continue;
+
+            // Expand union
+            if (unionRect === null) {
+                unionRect = { ...clippedTop };
+            } else {
+                let x1 = Math.min(unionRect.x, clippedTop.x);
+                let y1 = Math.min(unionRect.y, clippedTop.y);
+                let x2 = Math.max(unionRect.x + unionRect.width, clippedTop.x + clippedTop.width);
+                let y2 = Math.max(unionRect.y + unionRect.height, clippedTop.y + clippedTop.height);
+                unionRect = { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
+            }
+
+            // Check if the union now fully covers the clipped target
+            if (unionRect.x <= clippedTarget.x &&
+                unionRect.y <= clippedTarget.y &&
+                unionRect.x + unionRect.width >= clippedTarget.x + clippedTarget.width &&
+                unionRect.y + unionRect.height >= clippedTarget.y + clippedTarget.height) {
                 return true;
+            }
         }
 
         return false;
     }
 
-    _is_covered_fully(window) {
-        return this._window_matches(window, (target, top) =>
-            top.x <= target.x &&
-            top.y <= target.y &&
-            top.x + top.width >= target.x + target.width &&
-            top.y + top.height >= target.y + target.height
-        );
-    }
-
     _is_covered_fully_or_partially(window) {
-        return this._window_matches(window, (target, top) =>
-            target.x < top.x + top.width &&
-            target.x + target.width > top.x &&
-            target.y < top.y + top.height &&
-            target.y + target.height > top.y
+        if (window.minimized) return false;
+
+        let windows = Display.sort_windows_by_stacking(
+            this._get_normal_windows_current_workspace()
         );
+
+        let targetIndex = windows.indexOf(window);
+        if (targetIndex === -1) return false;
+
+        let targetRect = window.get_frame_rect();
+
+        // Get the work area of the monitor where the target window resides
+        let monitor = window.get_monitor();
+        let workArea = WorkspaceManager.get_active_workspace().get_work_area_for_monitor(monitor);
+
+        // Clip target rect to the visible work area
+        let clippedTarget = {
+            x: Math.max(targetRect.x, workArea.x),
+            y: Math.max(targetRect.y, workArea.y),
+            width: 0,
+            height: 0
+        };
+        let targetRight = Math.min(targetRect.x + targetRect.width, workArea.x + workArea.width);
+        let targetBottom = Math.min(targetRect.y + targetRect.height, workArea.y + workArea.height);
+        clippedTarget.width = targetRight - clippedTarget.x;
+        clippedTarget.height = targetBottom - clippedTarget.y;
+
+        // If the target is completely outside the monitor, it's not relevant
+        if (clippedTarget.width <= 0 || clippedTarget.height <= 0) return false;
+
+        for (let i = targetIndex + 1; i < windows.length; i++) {
+            let topWin = windows[i];
+            if (topWin.minimized) continue;
+
+            let topRect = topWin.get_frame_rect();
+
+            // Clip the top window to the same work area
+            let clippedTop = {
+                x: Math.max(topRect.x, workArea.x),
+                y: Math.max(topRect.y, workArea.y),
+                width: 0,
+                height: 0
+            };
+            let topRight = Math.min(topRect.x + topRect.width, workArea.x + workArea.width);
+            let topBottom = Math.min(topRect.y + topRect.height, workArea.y + workArea.height);
+            clippedTop.width = topRight - clippedTop.x;
+            clippedTop.height = topBottom - clippedTop.y;
+
+            // Skip if the top window is completely off-screen
+            if (clippedTop.width <= 0 || clippedTop.height <= 0) continue;
+
+            // Check overlap only on the visible portions
+            if (clippedTarget.x < clippedTop.x + clippedTop.width &&
+                clippedTarget.x + clippedTarget.width > clippedTop.x &&
+                clippedTarget.y < clippedTop.y + clippedTop.height &&
+                clippedTarget.y + clippedTarget.height > clippedTop.y) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     _is_file_progress_window(win) {
