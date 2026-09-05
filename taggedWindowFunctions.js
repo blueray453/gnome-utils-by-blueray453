@@ -146,6 +146,16 @@ export class TaggedWindowFunctions {
     // ========= Utility functions ================ //
 
     _set_data(actor, key, value) {
+        // ASSERTION: isMarked/isPinned must only ever change through _set_flag(),
+        // because _set_flag is what keeps the border (add/remove) and the
+        // windowData teardown in sync with the flag. If this fires, someone
+        // added a new call site that mutates a flag directly via _set_data,
+        // which means the border can now silently go stale or a window can be
+        // left in windowData after both flags are cleared. Fix the call site
+        // to go through _set_flag instead of silencing this warning.
+        if ((key === 'isMarked' || key === 'isPinned') && !this._settingFlag)
+            journal(`_set_data('${key}') called outside _set_flag — border may be stale`);
+
         const info = windowData.get(actor) || {};
         info[key] = value;
         windowData.set(actor, info);
