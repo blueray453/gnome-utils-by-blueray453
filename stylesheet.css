@@ -14,7 +14,7 @@
     border-width: 5px;
 }
 
-.both_marked_pinned_border {
+.marked-border.pinned-border {
     border-style: solid;
     border-color: #cb4b16; /* Solarized blue */
     border-radius: 5px;
