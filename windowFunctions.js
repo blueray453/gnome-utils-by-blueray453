@@ -917,17 +917,16 @@ export class WindowFunctions {
         if (windows.length !== 1)
             return false;
 
-        let minimizedWindow = windows.find(w => w.minimized);
+        let minimizedWindow = windows[0];
 
-        if (minimizedWindow) {
+        if (minimizedWindow)
             minimizedWindow.unminimize();
 
-            let workspace = minimizedWindow.get_workspace();
+        let workspace = minimizedWindow.get_workspace();
 
-            minimizedWindow.maximize(3);
+        minimizedWindow.maximize(3);
 
-            workspace.activate_with_focus(minimizedWindow, 0);
-        }
+        workspace.activate_with_focus(minimizedWindow, 0);
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.ToggleWindowsCurrentWorkspace

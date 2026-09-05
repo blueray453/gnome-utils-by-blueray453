@@ -20,7 +20,6 @@ export const MR_DBUS_IFACE = `
 export class KeybindingFunctions {
     constructor() {
         this._windows = new windowFunctions.WindowFunctions();
-        this._tagged = new taggedWindowFunctions.TaggedWindowFunctions();
         this._keyboard = new keyboardSimulatorFunctions.KeyboardSimulatorFunctions();
     }
 
@@ -139,13 +138,7 @@ export class KeybindingFunctions {
             }
         }
 
-        // 4. Maximize/focus single window on the current workspace (applies to all workspaces)
-        this._windows.MaximizeWindowIfSingleOnCurrentWorkspace();
-
-        // 5. Activate pinned windows (all workspaces)
-        this._tagged.ActivatePinnedWindows();
-
-        // 6. Extra actions
+        // 4. Extra actions
         for (const action of extra) {
             switch (action) {
                 case 'select_all_fsearch':
@@ -159,7 +152,10 @@ export class KeybindingFunctions {
             }
         }
 
-        // 7. Focus any uncovered fullscreen window on this workspace
+        // 5. Maximize/focus single window on the current workspace (applies to all workspaces)
+        this._windows.MaximizeWindowIfSingleOnCurrentWorkspace();
+
+        // 6. Focus any uncovered fullscreen window on this workspace
         this._windows.FocusFullscreenWindowOnCurrentWorkspace();
     }
 

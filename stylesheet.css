@@ -1,23 +1,16 @@
-.marked-border {
+/* Solarized Dark: base02 #073642, blue #268bd2, green #859900 */
+
+.tag-border {
     border-style: solid;
-    border-color: #859900; /* Solarized Dark's orange */
-    border-radius: 5px;
-    box-shadow: inset 0 0 0 1px rgba(200, 200, 200, 0);
     border-width: 5px;
+    border-radius: 5px;
+    box-shadow: inset 0 0 0 1px rgba(238, 232, 213, 0); /* base2, fully transparent */
+}
+
+.marked-border {
+    border-color: #859900; /* Solarized Dark green */
 }
 
 .pinned-border {
-    border-style: solid;
-    border-color: #268bd2; /* Solarized blue */
-    border-radius: 5px;
-    box-shadow: inset 0 0 0 1px rgba(200, 200, 200, 0);
-    border-width: 5px;
-}
-
-.marked-border.pinned-border {
-    border-style: solid;
-    border-color: #cb4b16; /* Solarized blue */
-    border-radius: 5px;
-    box-shadow: inset 0 0 0 1px rgba(200, 200, 200, 0);
-    border-width: 5px;
+    border-color: #268bd2; /* Solarized Dark blue */
 }

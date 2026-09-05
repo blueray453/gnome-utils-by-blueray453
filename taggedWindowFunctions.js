@@ -1,5 +1,6 @@
 import St from 'gi://St';
 import Meta from 'gi://Meta';
+import Clutter from 'gi://Clutter';
 
 import * as windowFunctions from './windowFunctions.js';
 
@@ -16,30 +17,42 @@ const WorkspaceManager = global.get_workspace_manager();
 //     win,                              // the MetaWindow, cached so we never
 //                                        // have to re-derive it from a
 //                                        // possibly-dying actor
-//     isMarked, isPinned,
-//     border,                           // single St.Bin, class computed from flags
+//     tag,                              // one of TAGS' keys, or null
+//     border,                           // single St.Bin, class computed from tag
 //     positionChangedId, sizeChangedId,
 //     workspaceChangedId, unmanagedId,
 // }
 let windowData = new Map();
 
-// -----------------------------------------------------------------------------
-// Border style
-// -----------------------------------------------------------------------------
-// Adding a new flag means adding one line here, not a new combinatorial
-// St.Bin for every possible flag combination.
-// -----------------------------------------------------------------------------
-const FLAG_CLASSES = [
-    ['isMarked', 'marked'],
-    ['isPinned', 'pinned'],
-];
+const BORDER_FADE_MS = 150;
 
-function borderStyleClass(info) {
-    return FLAG_CLASSES
-        .filter(([key]) => info[key])
-        .map(([, cls]) => `${cls}-border`)
-        .join(' ');
-}
+// -----------------------------------------------------------------------------
+// Tags
+// -----------------------------------------------------------------------------
+// A window has AT MOST ONE tag at a time (or none). Setting a new tag always
+// replaces whatever tag was there before, so e.g. marking a pinned window
+// un-pins it first — no special-casing needed anywhere else in the file.
+//
+// To add a new tag: add one entry here and (if it should be reachable over
+// dbus) one method + one line in MR_DBUS_IFACE. The border, workspace-follow
+// behavior, and close-exemption are all driven off this table.
+// -----------------------------------------------------------------------------
+const TAGS = {
+    pinned: {
+        cssClass: 'pinned-border',
+        followsWorkspace: true,   // window is dragged along to whatever workspace is active
+        exemptFromClose: true,    // skipped by CloseOtherNotMarkedWindows...
+        onApply(win) { win.make_above(); },
+        onRemove(win) { win.unmake_above(); },
+    },
+    marked: {
+        cssClass: 'marked-border',
+        followsWorkspace: false,  // stays put; border just hides/shows as workspaces change
+        exemptFromClose: true,
+        onApply(win) { },
+        onRemove(win) { },
+    },
+};
 
 export const MR_DBUS_IFACE = `
 <node>
@@ -67,29 +80,24 @@ export const MR_DBUS_IFACE = `
 export class TaggedWindowFunctions {
 
     constructor() {
-        // FIX: the marked&&pinned branch and the pinned-only branch were
-        // byte-identical in the original. Pinned always wins regardless of
-        // marked, so there's only one branch to take per window.
         this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => {
             const currentWorkspace = WorkspaceManager.get_active_workspace();
 
             windowData.forEach((info, actor) => {
                 const win = info.win;
-                if (!win)
+                if (!win || !info.tag)
                     return;
 
-                if (info.isPinned) {
+                if (TAGS[info.tag].followsWorkspace) {
                     if (win.get_workspace() !== currentWorkspace) {
                         win.change_workspace(currentWorkspace);
                         win.get_workspace().activate_with_focus(win, 0);
                         this._add_border(actor);
                     }
-                } else if (info.isMarked) {
-                    if (win.get_workspace() !== currentWorkspace) {
-                        this._remove_border(actor);
-                    } else {
-                        this._add_border(actor);
-                    }
+                } else if (win.get_workspace() !== currentWorkspace) {
+                    this._remove_border(actor);
+                } else {
+                    this._add_border(actor);
                 }
             });
         });
@@ -116,9 +124,6 @@ export class TaggedWindowFunctions {
         this.windowFunctions = new windowFunctions.WindowFunctions();
     }
 
-    // FIX: original only disconnected the four global Shell signals and
-    // left every per-window signal connection, every border actor, and the
-    // whole registry behind. Now every tracked window is torn down too.
     destroy() {
         if (this._workspaceChangedId) {
             WorkspaceManager.disconnect(this._workspaceChangedId);
@@ -146,15 +151,13 @@ export class TaggedWindowFunctions {
     // ========= Utility functions ================ //
 
     _set_data(actor, key, value) {
-        // ASSERTION: isMarked/isPinned must only ever change through _set_flag(),
-        // because _set_flag is what keeps the border (add/remove) and the
-        // windowData teardown in sync with the flag. If this fires, someone
-        // added a new call site that mutates a flag directly via _set_data,
-        // which means the border can now silently go stale or a window can be
-        // left in windowData after both flags are cleared. Fix the call site
-        // to go through _set_flag instead of silencing this warning.
-        if ((key === 'isMarked' || key === 'isPinned') && !this._settingFlag)
-            journal(`_set_data('${key}') called outside _set_flag — border may be stale`);
+        // ASSERTION: 'tag' must only ever change through _set_tag(), because
+        // _set_tag is what keeps the border, onApply/onRemove hooks, and
+        // windowData teardown in sync with it. If this fires, someone added
+        // a call site that mutates the tag directly, and the border can now
+        // silently go stale. Fix the call site to go through _set_tag.
+        if (key === 'tag' && !this._settingTag)
+            journal.warn(`_set_data('tag') called outside _set_tag — border may be stale`);
 
         const info = windowData.get(actor) || {};
         info[key] = value;
@@ -167,41 +170,34 @@ export class TaggedWindowFunctions {
     }
 
     _is_marked(actor) {
-        return this._get_data(actor, 'isMarked') === true;
+        return this._get_data(actor, 'tag') === 'marked';
     }
 
     _is_pinned(actor) {
-        return this._get_data(actor, 'isPinned') === true;
-    }
-
-    _is_neither_marked_pinned(actor) {
-        return !this._is_marked(actor) && !this._is_pinned(actor);
+        return this._get_data(actor, 'tag') === 'pinned';
     }
 
     // ========= Border functions ================ //
-    // FIX: one St.Bin per window instead of three pre-allocated ones
-    // (border_marked, border_pinned, border_marked_pinned). The CSS class
-    // is computed from whichever flags are active, so a third flag later
-    // needs one new entry in FLAG_CLASSES, not a new combinatorial border.
 
     _get_border(actor) {
         const info = windowData.get(actor);
-        if (!info)
+        if (!info || !info.tag)
             return null;
 
-        if (!info.isMarked && !info.isPinned)
-            return null;
-
-        const styleClass = borderStyleClass(info);
+        const styleClass = `tag-border ${TAGS[info.tag].cssClass}`;
 
         if (!info.border)
-            info.border = new St.Bin({ style_class: styleClass });
+            info.border = new St.Bin({ style_class: styleClass, opacity: 0 });
         else if (info.border.style_class !== styleClass)
             info.border.style_class = styleClass;
 
         return info.border;
     }
 
+    // FIX: fades the border in whenever it's freshly (re)parented — covers
+    // both "window just got a tag" and "window reappeared on this
+    // workspace". A border that's just being repositioned/resized on an
+    // already-visible window skips the fade and only moves.
     _add_border(actor) {
         const border = this._get_border(actor);
         if (!border)
@@ -211,11 +207,21 @@ export class TaggedWindowFunctions {
         if (!parent)
             return;
 
-        if (border.get_parent() !== parent) {
+        const isNewlyParented = border.get_parent() !== parent;
+
+        if (isNewlyParented) {
             if (border.get_parent())
                 border.get_parent().remove_child(border);
 
+            border.remove_all_transitions();
+            border.opacity = 0;
             parent.add_child(border);
+
+            border.ease({
+                opacity: 255,
+                duration: BORDER_FADE_MS,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            });
         }
 
         const win = actor.get_meta_window();
@@ -227,27 +233,42 @@ export class TaggedWindowFunctions {
         border.set_size(rect.width, rect.height);
     }
 
-    // FIX: removal reads info.border directly rather than going through
-    // _get_border(), which returns null once both flags are already
-    // cleared — the original code path this replaces would have lost the
-    // reference right when it needed it to remove the border from its parent.
-    _remove_border(actor) {
+    // FIX: fades the border out, then detaches it from its parent once the
+    // fade completes. `animate: false` skips straight to detaching, which
+    // _teardown_actor uses since the border is about to be destroyed anyway
+    // — animating something you're about to destroy just risks the
+    // onComplete callback firing on a dead actor.
+    _remove_border(actor, { animate = true } = {}) {
         const info = windowData.get(actor);
         const border = info?.border;
 
-        if (border?.get_parent())
+        if (!border?.get_parent())
+            return;
+
+        border.remove_all_transitions();
+
+        if (!animate) {
             border.get_parent().remove_child(border);
+            return;
+        }
+
+        border.ease({
+            opacity: 0,
+            duration: BORDER_FADE_MS,
+            mode: Clutter.AnimationMode.EASE_IN_QUAD,
+            onComplete: () => {
+                if (border.get_parent())
+                    border.get_parent().remove_child(border);
+            },
+        });
     }
 
-    // FIX: new — disconnects every per-window signal and destroys the
-    // border. Called whenever a window is fully untagged or the extension
-    // is disabled. Nothing in the original ever did this.
     _teardown_actor(actor) {
         const info = windowData.get(actor);
         if (!info)
             return;
 
-        this._remove_border(actor);
+        this._remove_border(actor, { animate: false });
 
         if (info.border) {
             info.border.destroy();
@@ -268,38 +289,19 @@ export class TaggedWindowFunctions {
         }
     }
 
-    // ========= Mark/Pin functions ================ //
+    // ========= Tag functions ================ //
 
-    // FIX: handlers close over `actor`/`win` directly instead of
-    // re-deriving `actor` from `win.get_compositor_private()` on every
-    // event — that call can return null once the window starts unmanaging,
-    // and there was never a reason to look it up again when it was already
-    // in scope.
-    //
-    // FIX (the leak): this used to run again on every re-mark/re-pin cycle,
-    // stacking a fresh set of four signal connections on the same MetaWindow
-    // each time, because nothing ever disconnected the previous set before
-    // the actor was deleted from the registry. Now _teardown_actor() always
-    // runs before an actor leaves the registry (see _unmark_window /
-    // _unpin_window below), so re-initializing is safe.
     _initialize_actor(actor) {
         const win = actor.get_meta_window();
 
         const positionChangedId = win.connect('position-changed', () => this._add_border(actor));
         const sizeChangedId = win.connect('size-changed', () => this._add_border(actor));
         const workspaceChangedId = win.connect('workspace-changed', () => this._add_border(actor));
-        const unmanagedId = win.connect('unmanaging', () => {
-            if (this._is_pinned(actor))
-                this._unpin_window(actor);
-
-            if (this._is_marked(actor))
-                this._unmark_window(actor);
-        });
+        const unmanagedId = win.connect('unmanaging', () => this._set_tag(actor, null));
 
         windowData.set(actor, {
             win,
-            isMarked: false,
-            isPinned: false,
+            tag: null,
             border: null,
             positionChangedId,
             sizeChangedId,
@@ -308,90 +310,79 @@ export class TaggedWindowFunctions {
         });
     }
 
-    // ========= Flag functions ================ //
-    // FIX: single choke point for isMarked/isPinned mutation. Nothing else
-    // touches these two keys directly, so it's structurally impossible to
-    // change a flag without the border (or teardown) being refreshed to match.
-    _set_flag(actor, key, value) {
-        if (value) {
-            if (!windowData.has(actor))
-                this._initialize_actor(actor);
+    // FIX: the single choke point for changing a window's tag. Setting a
+    // new tag always replaces the old one — onRemove runs for whatever tag
+    // was there before onApply runs for the new one — so a window can never
+    // end up in two tag states at once.
+    _set_tag(actor, tagName) {
+        const current = this._get_data(actor, 'tag');
+        if (current === tagName)
+            return;
 
-            this._set_data(actor, key, value);
-            this._add_border(actor);
-        } else {
-            if (!this._get_data(actor, key))
-                return;
+        if (tagName !== null && !windowData.has(actor))
+            this._initialize_actor(actor);
 
-            this._set_data(actor, key, value);
+        const win = actor.get_meta_window();
 
-            if (this._is_neither_marked_pinned(actor)) {
+        this._settingTag = true;
+        try {
+            if (current)
+                TAGS[current].onRemove(win);
+
+            this._set_data(actor, 'tag', tagName);
+
+            if (tagName === null) {
                 this._teardown_actor(actor);
                 windowData.delete(actor);
             } else {
+                TAGS[tagName].onApply(win);
                 this._add_border(actor);
             }
+        } finally {
+            this._settingTag = false;
         }
     }
 
-    _pin_window(actor) {
-        this._set_flag(actor, 'isPinned', true);
+    _toggle_tag(actor, tagName) {
+        const current = this._get_data(actor, 'tag');
+        this._set_tag(actor, current === tagName ? null : tagName);
     }
 
-    _unpin_window(actor) {
-        this._set_flag(actor, 'isPinned', false);
-    }
+    _pin_window(actor) { this._set_tag(actor, 'pinned'); }
+    _unpin_window(actor) { if (this._is_pinned(actor)) this._set_tag(actor, null); }
+    _mark_window(actor) { this._set_tag(actor, 'marked'); }
+    _unmark_window(actor) { if (this._is_marked(actor)) this._set_tag(actor, null); }
 
-    _mark_window(actor) {
-        this._set_flag(actor, 'isMarked', true);
-    }
+    _toggle_pin(actor) { this._toggle_tag(actor, 'pinned'); }
+    _toggle_mark(actor) { this._toggle_tag(actor, 'marked'); }
 
-    _unmark_window(actor) {
-        this._set_flag(actor, 'isMarked', false);
-    }
-
-    _toggle_pin(actor) {
-        if (this._is_pinned(actor))
-            this._unpin_window(actor);
-        else
-            this._pin_window(actor);
+    _clear_tag(tagName) {
+        // FIX: snapshot the keys first — _set_tag deletes from windowData
+        // mid-loop when it clears the tag.
+        for (const actor of [...windowData.keys()]) {
+            if (this._get_data(actor, 'tag') === tagName)
+                this._set_tag(actor, null);
+        }
     }
 
     _unmark_windows() {
-        // FIX: snapshot the keys first — the original iterated windowData
-        // with forEach while _unmark_window deleted entries mid-iteration.
-        for (const actor of [...windowData.keys()]) {
-            if (this._is_marked(actor))
-                this._unmark_window(actor);
-        }
+        this._clear_tag('marked');
     }
 
-    _toggle_mark(actor) {
-        if (this._is_marked(actor))
-            this._unmark_window(actor);
-        else
-            this._mark_window(actor);
-    }
-
-    // FIX: these two used to return the exact same unfiltered list of every
-    // tracked actor, regardless of which flag was asked for.
-    _get_pinned_windows() {
+    _get_windows_by_tag(tagName) {
         return [...windowData.entries()]
-            .filter(([, info]) => info.isPinned)
+            .filter(([, info]) => info.tag === tagName)
             .map(([actor]) => actor.get_meta_window());
     }
 
-    _get_marked_windows() {
-        return [...windowData.entries()]
-            .filter(([, info]) => info.isMarked)
-            .map(([actor]) => actor.get_meta_window());
-    }
+    _get_pinned_windows() { return this._get_windows_by_tag('pinned'); }
+    _get_marked_windows() { return this._get_windows_by_tag('marked'); }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/TaggedWindows io.github.blueray453.GnomeUtils.TaggedWindows.ActivatePinnedWindows
 
     ActivatePinnedWindows() {
         windowData.forEach((info, actor) => {
-            if (info.isPinned) {
+            if (info.tag === 'pinned') {
                 const winWorkspace = info.win.get_workspace();
                 winWorkspace.activate_with_focus(info.win, 0);
             }
@@ -434,8 +425,6 @@ export class TaggedWindowFunctions {
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/TaggedWindows io.github.blueray453.GnomeUtils.TaggedWindows.TogglePinsFocusedWindow
 
     TogglePinsFocusedWindow() {
-        // FIX: get_focus_window() can return null; the original crashed
-        // calling get_window_type() on it.
         const win = Display.get_focus_window();
 
         if (win?.get_window_type() === Meta.WindowType.NORMAL) {
@@ -454,8 +443,9 @@ export class TaggedWindowFunctions {
                 return;
 
             const actor = w.get_compositor_private();
+            const tag = this._get_data(actor, 'tag');
 
-            if (this._is_marked(actor) || this._is_pinned(actor))
+            if (tag && TAGS[tag].exemptFromClose)
                 return;
 
             w.delete(0);
