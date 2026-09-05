@@ -1,4 +1,3 @@
-import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Meta from 'gi://Meta';
 
@@ -13,387 +12,35 @@ const WindowManager = global.get_window_manager();
 const WindowTracker = global.get_window_tracker();
 const WorkspaceManager = global.get_workspace_manager();
 
-// -----------------------------------------------------------------------------
-// Window state
-// -----------------------------------------------------------------------------
-// Bit flags make adding more state cheap:
-//   1  = marked
-//   2  = pinned
-//
-// The CSS class for the single border is built from every active flag.
-const MARKED = 1;
-const PINNED = 2;
-
-const FLAG_TO_CLASS = new Map([
-    [MARKED, 'marked'],
-    [PINNED, 'pinned'],
-]);
-
-const ALL_STATE_FLAGS = [...FLAG_TO_CLASS.keys()]
-    .reduce((flags, flag) => flags | flag, 0);
+// windowData[actor] = {
+//     win,                              // the MetaWindow, cached so we never
+//                                        // have to re-derive it from a
+//                                        // possibly-dying actor
+//     isMarked, isPinned,
+//     border,                           // single St.Bin, class computed from flags
+//     positionChangedId, sizeChangedId,
+//     workspaceChangedId, unmanagedId,
+// }
+let windowData = new Map();
 
 // -----------------------------------------------------------------------------
-// WindowData
+// Border style
 // -----------------------------------------------------------------------------
-// WindowData is both the model for one MetaWindow and the registry of all
-// WindowData instances, so TaggedWindowFunctions doesn't need lookup/creation
-// helpers, state helpers, border helpers, or lifecycle plumbing of its own.
+// Adding a new flag means adding one line here, not a new combinatorial
+// St.Bin for every possible flag combination.
 // -----------------------------------------------------------------------------
-const WindowData = GObject.registerClass({
-    GTypeName: 'GnomeUtilsTaggedWindowData',
+const FLAG_CLASSES = [
+    ['isMarked', 'marked'],
+    ['isPinned', 'pinned'],
+];
+
+function borderStyleClass(info) {
+    return FLAG_CLASSES
+        .filter(([key]) => info[key])
+        .map(([, cls]) => `${cls}-border`)
+        .join(' ');
+}
 
-    Properties: {
-        'state': GObject.ParamSpec.uint(
-            'state',
-            'State',
-            'Window state bitmask',
-            GObject.ParamFlags.READWRITE,
-            0,
-            ALL_STATE_FLAGS,
-            0,
-        ),
-    },
-}, class WindowData extends GObject.Object {
-    static _instances = new Map();
-
-    // -------------------------------------------------------------------------
-    // Registry
-    // -------------------------------------------------------------------------
-
-    static get(actor) {
-        return actor ? WindowData._instances.get(actor) : undefined;
-    }
-
-    static getOrCreate(actor) {
-        if (!actor)
-            return null;
-
-        return WindowData.get(actor) ?? new WindowData(actor);
-    }
-
-    static getMarked() {
-        return [...WindowData._instances.values()].filter(data => data.is_marked);
-    }
-
-    static getPinned() {
-        return [...WindowData._instances.values()].filter(data => data.is_pinned);
-    }
-
-    static unmarkAll() {
-        for (const data of WindowData.getMarked())
-            data.unmark();
-    }
-
-    static activatePinned() {
-        for (const data of WindowData.getPinned())
-            data.activate();
-    }
-
-    static toggleFocusedPin(display) {
-        const win = display.get_focus_window();
-
-        if (win?.get_window_type() !== Meta.WindowType.NORMAL)
-            return;
-
-        WindowData.getOrCreate(win.get_compositor_private())?.toggle_pin();
-    }
-
-    static toggleFocusedMark(display) {
-        const win = display.get_focus_window();
-
-        if (win?.get_window_type() !== Meta.WindowType.NORMAL)
-            return;
-
-        WindowData.getOrCreate(win.get_compositor_private())?.toggle_mark();
-    }
-
-    // -------------------------------------------------------------------------
-    // Global Shell lifecycle
-    // -------------------------------------------------------------------------
-
-    static initialize() {
-        if (WindowData._initialized)
-            return;
-
-        WindowData._initialized = true;
-
-        WindowData._workspaceChangedId = WorkspaceManager.connect(
-            'active-workspace-changed',
-            () => WindowData._instances.forEach(data => data.syncWorkspace())
-        );
-
-        WindowData._minimizeId = WindowManager.connect(
-            'minimize',
-            (wm, actor) => WindowData.get(actor)?.removeBorder()
-        );
-
-        WindowData._unminimizeId = WindowManager.connect(
-            'unminimize',
-            (wm, actor) => WindowData.get(actor)?.syncWorkspace()
-        );
-
-        WindowData._restackedId = Display.connect('restacked', () => {
-            const group = global.get_window_group();
-            WindowData._instances.forEach(data => data.raiseBorder(group));
-        });
-    }
-
-    static shutdown() {
-        if (!WindowData._initialized)
-            return;
-
-        WindowData._initialized = false;
-
-        for (const [object, id] of [
-            [WorkspaceManager, WindowData._workspaceChangedId],
-            [WindowManager, WindowData._minimizeId],
-            [WindowManager, WindowData._unminimizeId],
-            [Display, WindowData._restackedId],
-        ]) {
-            if (id)
-                object.disconnect(id);
-        }
-
-        WindowData._workspaceChangedId = null;
-        WindowData._minimizeId = null;
-        WindowData._unminimizeId = null;
-        WindowData._restackedId = null;
-
-        for (const data of [...WindowData._instances.values()])
-            data.destroy();
-
-        WindowData._instances.clear();
-    }
-
-    // -------------------------------------------------------------------------
-    // Instance
-    // -------------------------------------------------------------------------
-
-    constructor(actor) {
-        super();
-
-        this.actor = actor;
-        this.win = actor.get_meta_window();
-        this._border = null;
-        this._destroyed = false;
-
-        WindowData._instances.set(actor, this);
-
-        // A state change is the single source of truth for border updates.
-        // When state becomes empty, the object destroys and removes itself.
-        this.connect('notify::state', () => {
-            if (this.state === 0) {
-                this.destroy();
-                return;
-            }
-
-            this.syncBorder();
-        });
-
-        this._positionChangedId = this.win.connect('position-changed', () => this.syncBorder());
-        this._sizeChangedId = this.win.connect('size-changed', () => this.syncBorder());
-        this._workspaceChangedId = this.win.connect('workspace-changed', () => this.syncWorkspace());
-        this._unmanagedId = this.win.connect('unmanaging', () => this.destroy());
-    }
-
-    // -------------------------------------------------------------------------
-    // State property
-    // -------------------------------------------------------------------------
-    // Custom accessors so that no-op writes (e.g. unmark() on an already
-    // unmarked window) don't emit notify::state and trigger a needless
-    // syncBorder() pass. See:
-    // https://gjs.guide/guides/gobject/subclassing.html#property-change-notification
-    // -------------------------------------------------------------------------
-
-    get state() {
-        return this._state ?? 0;
-    }
-
-    set state(value) {
-        if (this._state === value)
-            return;
-
-        this._state = value;
-        this.notify('state');
-    }
-
-    // -------------------------------------------------------------------------
-    // Derived state
-    // -------------------------------------------------------------------------
-
-    get is_marked() {
-        return !!(this.state & MARKED);
-    }
-
-    get is_pinned() {
-        return !!(this.state & PINNED);
-    }
-
-    get is_tagged() {
-        return this.state !== 0;
-    }
-
-    // -------------------------------------------------------------------------
-    // State transitions
-    // -------------------------------------------------------------------------
-
-    mark() {
-        this.state |= MARKED;
-    }
-
-    unmark() {
-        this.state &= ~MARKED;
-    }
-
-    toggle_mark() {
-        this.state ^= MARKED;
-    }
-
-    pin() {
-        this.state |= PINNED;
-    }
-
-    unpin() {
-        this.state &= ~PINNED;
-    }
-
-    toggle_pin() {
-        this.state ^= PINNED;
-    }
-
-    // -------------------------------------------------------------------------
-    // Window actions
-    // -------------------------------------------------------------------------
-
-    activate() {
-        if (this.win)
-            this.win.get_workspace().activate_with_focus(this.win, 0);
-    }
-
-    keepOnCurrentWorkspace() {
-        if (!this.win)
-            return;
-
-        const currentWorkspace = WorkspaceManager.get_active_workspace();
-
-        if (this.win.get_workspace() !== currentWorkspace) {
-            this.win.change_workspace(currentWorkspace);
-            this.activate();
-        }
-    }
-
-    syncWorkspace() {
-        if (!this.win)
-            return;
-
-        const currentWorkspace = WorkspaceManager.get_active_workspace();
-
-        if (this.is_pinned) {
-            this.keepOnCurrentWorkspace();
-            return;
-        }
-
-        if (this.is_marked && this.win.get_workspace() !== currentWorkspace) {
-            this.removeBorder();
-            return;
-        }
-
-        this.syncBorder();
-    }
-
-    // -------------------------------------------------------------------------
-    // Single dynamic border
-    // -------------------------------------------------------------------------
-
-    get border() {
-        if (this.state === 0)
-            return null;
-
-        const styleClass = [...FLAG_TO_CLASS.entries()]
-            .filter(([flag]) => this.state & flag)
-            .map(([, className]) => `${className}-border`)
-            .join(' ');
-
-        if (!this._border)
-            this._border = new St.Bin({ style_class: styleClass });
-        else if (this._border.style_class !== styleClass)
-            this._border.style_class = styleClass;
-
-        return this._border;
-    }
-
-    syncBorder() {
-        if (!this.actor || !this.win || this.state === 0 || this.win.minimized) {
-            this.removeBorder();
-            return;
-        }
-
-        const parent = this.actor.get_parent();
-        const border = this.border;
-
-        if (!parent || !border)
-            return;
-
-        if (border.get_parent() !== parent) {
-            if (border.get_parent())
-                border.get_parent().remove_child(border);
-
-            parent.add_child(border);
-        }
-
-        const rect = this.win.get_frame_rect();
-        border.set_position(rect.x, rect.y);
-        border.set_size(rect.width, rect.height);
-    }
-
-    removeBorder() {
-        if (this._border?.get_parent())
-            this._border.get_parent().remove_child(this._border);
-    }
-
-    raiseBorder(group) {
-        if (this._border?.get_parent())
-            group.set_child_above_sibling(this._border, this.actor);
-    }
-
-    // -------------------------------------------------------------------------
-    // Cleanup
-    // -------------------------------------------------------------------------
-
-    destroy() {
-        if (this._destroyed)
-            return;
-
-        this._destroyed = true;
-
-        for (const [object, id] of [
-            [this.win, this._positionChangedId],
-            [this.win, this._sizeChangedId],
-            [this.win, this._workspaceChangedId],
-            [this.win, this._unmanagedId],
-        ]) {
-            if (object && id)
-                object.disconnect(id);
-        }
-
-        this.removeBorder();
-
-        if (this._border) {
-            this._border.destroy();
-            this._border = null;
-        }
-
-        if (this.actor && WindowData._instances.get(this.actor) === this)
-            WindowData._instances.delete(this.actor);
-
-        this.actor = null;
-        this.win = null;
-    }
-});
-
-// -----------------------------------------------------------------------------
-// D-Bus interface
-// -----------------------------------------------------------------------------
 export const MR_DBUS_IFACE = `
 <node>
    <interface name="io.github.blueray453.GnomeUtils.TaggedWindows">
@@ -417,94 +64,422 @@ export const MR_DBUS_IFACE = `
    </interface>
 </node>`;
 
-// -----------------------------------------------------------------------------
-// D-Bus façade
-// -----------------------------------------------------------------------------
-// Everything window-specific belongs to WindowData. These are intentionally
-// little more than the methods exposed by MR_DBUS_IFACE.
-// -----------------------------------------------------------------------------
 export class TaggedWindowFunctions {
+
     constructor() {
-        WindowData.initialize();
+        // FIX: the marked&&pinned branch and the pinned-only branch were
+        // byte-identical in the original. Pinned always wins regardless of
+        // marked, so there's only one branch to take per window.
+        this._workspaceChangedId = WorkspaceManager.connect('active-workspace-changed', () => {
+            const currentWorkspace = WorkspaceManager.get_active_workspace();
+
+            windowData.forEach((info, actor) => {
+                const win = info.win;
+                if (!win)
+                    return;
+
+                if (info.isPinned) {
+                    if (win.get_workspace() !== currentWorkspace) {
+                        win.change_workspace(currentWorkspace);
+                        win.get_workspace().activate_with_focus(win, 0);
+                        this._add_border(actor);
+                    }
+                } else if (info.isMarked) {
+                    if (win.get_workspace() !== currentWorkspace) {
+                        this._remove_border(actor);
+                    } else {
+                        this._add_border(actor);
+                    }
+                }
+            });
+        });
+
+        this._minimizeId = WindowManager.connect('minimize', (wm, actor) => {
+            if (windowData.has(actor))
+                this._remove_border(actor);
+        });
+
+        this._unminimizeId = WindowManager.connect('unminimize', (wm, actor) => {
+            if (windowData.has(actor))
+                this._add_border(actor);
+        });
+
+        this._restackedId = Display.connect('restacked', () => {
+            windowData.forEach((info, actor) => {
+                if (info.border?.get_parent()) {
+                    const wg = global.get_window_group();
+                    wg.set_child_above_sibling(info.border, actor);
+                }
+            });
+        });
+
         this.windowFunctions = new windowFunctions.WindowFunctions();
     }
 
+    // FIX: original only disconnected the four global Shell signals and
+    // left every per-window signal connection, every border actor, and the
+    // whole registry behind. Now every tracked window is torn down too.
     destroy() {
-        WindowData.shutdown();
+        if (this._workspaceChangedId) {
+            WorkspaceManager.disconnect(this._workspaceChangedId);
+            this._workspaceChangedId = null;
+        }
+        if (this._minimizeId) {
+            WindowManager.disconnect(this._minimizeId);
+            this._minimizeId = null;
+        }
+        if (this._unminimizeId) {
+            WindowManager.disconnect(this._unminimizeId);
+            this._unminimizeId = null;
+        }
+        if (this._restackedId) {
+            Display.disconnect(this._restackedId);
+            this._restackedId = null;
+        }
+
+        for (const actor of [...windowData.keys()])
+            this._teardown_actor(actor);
+
+        windowData.clear();
+    }
+
+    // ========= Utility functions ================ //
+
+    _set_data(actor, key, value) {
+        const info = windowData.get(actor) || {};
+        info[key] = value;
+        windowData.set(actor, info);
+    }
+
+    _get_data(actor, key) {
+        const info = windowData.get(actor);
+        return info ? info[key] : undefined;
+    }
+
+    _is_marked(actor) {
+        return this._get_data(actor, 'isMarked') === true;
+    }
+
+    _is_pinned(actor) {
+        return this._get_data(actor, 'isPinned') === true;
+    }
+
+    _is_neither_marked_pinned(actor) {
+        return !this._is_marked(actor) && !this._is_pinned(actor);
+    }
+
+    // ========= Border functions ================ //
+    // FIX: one St.Bin per window instead of three pre-allocated ones
+    // (border_marked, border_pinned, border_marked_pinned). The CSS class
+    // is computed from whichever flags are active, so a third flag later
+    // needs one new entry in FLAG_CLASSES, not a new combinatorial border.
+
+    _get_border(actor) {
+        const info = windowData.get(actor);
+        if (!info)
+            return null;
+
+        if (!info.isMarked && !info.isPinned)
+            return null;
+
+        const styleClass = borderStyleClass(info);
+
+        if (!info.border)
+            info.border = new St.Bin({ style_class: styleClass });
+        else if (info.border.style_class !== styleClass)
+            info.border.style_class = styleClass;
+
+        return info.border;
+    }
+
+    _add_border(actor) {
+        const border = this._get_border(actor);
+        if (!border)
+            return;
+
+        const parent = actor.get_parent();
+        if (!parent)
+            return;
+
+        if (border.get_parent() !== parent) {
+            if (border.get_parent())
+                border.get_parent().remove_child(border);
+
+            parent.add_child(border);
+        }
+
+        const win = actor.get_meta_window();
+        if (!win)
+            return;
+
+        const rect = win.get_frame_rect();
+        border.set_position(rect.x, rect.y);
+        border.set_size(rect.width, rect.height);
+    }
+
+    // FIX: removal reads info.border directly rather than going through
+    // _get_border(), which returns null once both flags are already
+    // cleared — the original code path this replaces would have lost the
+    // reference right when it needed it to remove the border from its parent.
+    _remove_border(actor) {
+        const info = windowData.get(actor);
+        const border = info?.border;
+
+        if (border?.get_parent())
+            border.get_parent().remove_child(border);
+    }
+
+    // FIX: new — disconnects every per-window signal and destroys the
+    // border. Called whenever a window is fully untagged or the extension
+    // is disabled. Nothing in the original ever did this.
+    _teardown_actor(actor) {
+        const info = windowData.get(actor);
+        if (!info)
+            return;
+
+        this._remove_border(actor);
+
+        if (info.border) {
+            info.border.destroy();
+            info.border = null;
+        }
+
+        const win = info.win;
+        if (win) {
+            for (const id of [
+                info.positionChangedId,
+                info.sizeChangedId,
+                info.workspaceChangedId,
+                info.unmanagedId,
+            ]) {
+                if (id)
+                    win.disconnect(id);
+            }
+        }
+    }
+
+    // ========= Mark/Pin functions ================ //
+
+    // FIX: handlers close over `actor`/`win` directly instead of
+    // re-deriving `actor` from `win.get_compositor_private()` on every
+    // event — that call can return null once the window starts unmanaging,
+    // and there was never a reason to look it up again when it was already
+    // in scope.
+    //
+    // FIX (the leak): this used to run again on every re-mark/re-pin cycle,
+    // stacking a fresh set of four signal connections on the same MetaWindow
+    // each time, because nothing ever disconnected the previous set before
+    // the actor was deleted from the registry. Now _teardown_actor() always
+    // runs before an actor leaves the registry (see _unmark_window /
+    // _unpin_window below), so re-initializing is safe.
+    _initialize_actor(actor) {
+        const win = actor.get_meta_window();
+
+        const positionChangedId = win.connect('position-changed', () => this._add_border(actor));
+        const sizeChangedId = win.connect('size-changed', () => this._add_border(actor));
+        const workspaceChangedId = win.connect('workspace-changed', () => this._add_border(actor));
+        const unmanagedId = win.connect('unmanaging', () => {
+            if (this._is_pinned(actor))
+                this._unpin_window(actor);
+
+            if (this._is_marked(actor))
+                this._unmark_window(actor);
+        });
+
+        windowData.set(actor, {
+            win,
+            isMarked: false,
+            isPinned: false,
+            border: null,
+            positionChangedId,
+            sizeChangedId,
+            workspaceChangedId,
+            unmanagedId,
+        });
+    }
+
+    _unpin_window(actor) {
+        if (!this._is_pinned(actor))
+            return;
+
+        this._set_data(actor, 'isPinned', false);
+
+        if (this._is_neither_marked_pinned(actor)) {
+            this._teardown_actor(actor);
+            windowData.delete(actor);
+        } else {
+            this._add_border(actor); // refreshes the CSS class, dropping pinned-border
+        }
+    }
+
+    _pin_window(actor) {
+        if (!windowData.has(actor))
+            this._initialize_actor(actor);
+
+        this._set_data(actor, 'isPinned', true);
+        this._add_border(actor);
+    }
+
+    _toggle_pin(actor) {
+        if (this._is_pinned(actor))
+            this._unpin_window(actor);
+        else
+            this._pin_window(actor);
+    }
+
+    _unmark_windows() {
+        // FIX: snapshot the keys first — the original iterated windowData
+        // with forEach while _unmark_window deleted entries mid-iteration.
+        for (const actor of [...windowData.keys()]) {
+            if (this._is_marked(actor))
+                this._unmark_window(actor);
+        }
+    }
+
+    _unmark_window(actor) {
+        if (!this._is_marked(actor))
+            return;
+
+        this._set_data(actor, 'isMarked', false);
+
+        if (this._is_neither_marked_pinned(actor)) {
+            this._teardown_actor(actor);
+            windowData.delete(actor);
+        } else {
+            this._add_border(actor);
+        }
+    }
+
+    _mark_window(actor) {
+        if (!windowData.has(actor))
+            this._initialize_actor(actor);
+
+        this._set_data(actor, 'isMarked', true);
+        this._add_border(actor);
+    }
+
+    _toggle_mark(actor) {
+        if (this._is_marked(actor))
+            this._unmark_window(actor);
+        else
+            this._mark_window(actor);
+    }
+
+    // FIX: these two used to return the exact same unfiltered list of every
+    // tracked actor, regardless of which flag was asked for.
+    _get_pinned_windows() {
+        return [...windowData.entries()]
+            .filter(([, info]) => info.isPinned)
+            .map(([actor]) => actor.get_meta_window());
+    }
+
+    _get_marked_windows() {
+        return [...windowData.entries()]
+            .filter(([, info]) => info.isMarked)
+            .map(([actor]) => actor.get_meta_window());
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/TaggedWindows io.github.blueray453.GnomeUtils.TaggedWindows.ActivatePinnedWindows
 
     ActivatePinnedWindows() {
-        WindowData.activatePinned();
+        windowData.forEach((info, actor) => {
+            if (info.isPinned) {
+                const winWorkspace = info.win.get_workspace();
+                winWorkspace.activate_with_focus(info.win, 0);
+            }
+        });
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/TaggedWindows io.github.blueray453.GnomeUtils.TaggedWindows.GetAppDetailsMarkedWindows
 
     GetAppDetailsMarkedWindows() {
-        const result = WindowData.getMarked().map(data => {
-            const app = WindowTracker.get_window_app(data.win);
-            return this.windowFunctions._get_properties_brief_given_app_id(app.get_id());
-        });
+        const results = [];
 
-        WindowData.unmarkAll();
-        return JSON.stringify(result);
+        for (const actor of [...windowData.keys()]) {
+            if (this._is_marked(actor)) {
+                const win = actor.get_meta_window();
+                const app = WindowTracker.get_window_app(win);
+                results.push(this.windowFunctions._get_properties_brief_given_app_id(app.get_id()));
+                this._unmark_window(actor);
+            }
+        }
+
+        return JSON.stringify(results);
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/TaggedWindows io.github.blueray453.GnomeUtils.TaggedWindows.GetPinnedWindows | jq .
 
     GetPinnedWindows() {
-        const pinned = WindowData.getPinned();
-        const result = pinned.map(data =>
-            this.windowFunctions._get_properties_brief_given_meta_window(data.win));
+        const results = [];
 
-        for (const data of pinned)
-            data.unpin();
+        for (const actor of [...windowData.keys()]) {
+            if (this._is_pinned(actor)) {
+                const win = actor.get_meta_window();
+                results.push(this.windowFunctions._get_properties_brief_given_meta_window(win));
+                this._unpin_window(actor);
+            }
+        }
 
-        return JSON.stringify(result);
+        return JSON.stringify(results);
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/TaggedWindows io.github.blueray453.GnomeUtils.TaggedWindows.TogglePinsFocusedWindow
 
     TogglePinsFocusedWindow() {
-        WindowData.toggleFocusedPin(Display);
+        // FIX: get_focus_window() can return null; the original crashed
+        // calling get_window_type() on it.
+        const win = Display.get_focus_window();
+
+        if (win?.get_window_type() === Meta.WindowType.NORMAL) {
+            const actor = win.get_compositor_private();
+            this._toggle_pin(actor);
+        }
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/TaggedWindows io.github.blueray453.GnomeUtils.TaggedWindows.CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass
 
     CloseOtherNotMarkedWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-        const wins = this.windowFunctions
-            ._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
+        const wins = this.windowFunctions._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
 
-        for (const win of wins) {
-            if (win.get_wm_class_instance() === 'file_progress')
-                continue;
+        wins.forEach((w) => {
+            if (w.get_wm_class_instance() === 'file_progress')
+                return;
 
-            if (WindowData.get(win.get_compositor_private())?.is_tagged)
-                continue;
+            const actor = w.get_compositor_private();
 
-            win.delete(0);
-        }
+            if (this._is_marked(actor) || this._is_pinned(actor))
+                return;
 
-        WindowData.unmarkAll();
+            w.delete(0);
+        });
+
+        this._unmark_windows();
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/TaggedWindows io.github.blueray453.GnomeUtils.TaggedWindows.GetMarkedWindows | jq .
 
     GetMarkedWindows() {
-        const marked = WindowData.getMarked();
-        const result = marked.map(data =>
-            this.windowFunctions._get_properties_brief_given_meta_window(data.win));
+        const results = [];
 
-        for (const data of marked)
-            data.unmark();
+        for (const actor of [...windowData.keys()]) {
+            if (this._is_marked(actor)) {
+                const win = actor.get_meta_window();
+                results.push(this.windowFunctions._get_properties_brief_given_meta_window(win));
+                this._unmark_window(actor);
+            }
+        }
 
-        return JSON.stringify(result);
+        return JSON.stringify(results);
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/TaggedWindows io.github.blueray453.GnomeUtils.TaggedWindows.ToggleMarksFocusedWindow
 
     ToggleMarksFocusedWindow() {
-        WindowData.toggleFocusedMark(Display);
+        const win = Display.get_focus_window();
+
+        if (win?.get_window_type() === Meta.WindowType.NORMAL) {
+            const actor = win.get_compositor_private();
+            this._toggle_mark(actor);
+        }
     }
 }
