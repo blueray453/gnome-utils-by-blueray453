@@ -298,26 +298,46 @@ export class TaggedWindowFunctions {
         });
     }
 
-    _unpin_window(actor) {
-        if (!this._is_pinned(actor))
-            return;
+    // ========= Flag functions ================ //
+    // FIX: single choke point for isMarked/isPinned mutation. Nothing else
+    // touches these two keys directly, so it's structurally impossible to
+    // change a flag without the border (or teardown) being refreshed to match.
+    _set_flag(actor, key, value) {
+        if (value) {
+            if (!windowData.has(actor))
+                this._initialize_actor(actor);
 
-        this._set_data(actor, 'isPinned', false);
-
-        if (this._is_neither_marked_pinned(actor)) {
-            this._teardown_actor(actor);
-            windowData.delete(actor);
+            this._set_data(actor, key, value);
+            this._add_border(actor);
         } else {
-            this._add_border(actor); // refreshes the CSS class, dropping pinned-border
+            if (!this._get_data(actor, key))
+                return;
+
+            this._set_data(actor, key, value);
+
+            if (this._is_neither_marked_pinned(actor)) {
+                this._teardown_actor(actor);
+                windowData.delete(actor);
+            } else {
+                this._add_border(actor);
+            }
         }
     }
 
     _pin_window(actor) {
-        if (!windowData.has(actor))
-            this._initialize_actor(actor);
+        this._set_flag(actor, 'isPinned', true);
+    }
 
-        this._set_data(actor, 'isPinned', true);
-        this._add_border(actor);
+    _unpin_window(actor) {
+        this._set_flag(actor, 'isPinned', false);
+    }
+
+    _mark_window(actor) {
+        this._set_flag(actor, 'isMarked', true);
+    }
+
+    _unmark_window(actor) {
+        this._set_flag(actor, 'isMarked', false);
     }
 
     _toggle_pin(actor) {
@@ -334,28 +354,6 @@ export class TaggedWindowFunctions {
             if (this._is_marked(actor))
                 this._unmark_window(actor);
         }
-    }
-
-    _unmark_window(actor) {
-        if (!this._is_marked(actor))
-            return;
-
-        this._set_data(actor, 'isMarked', false);
-
-        if (this._is_neither_marked_pinned(actor)) {
-            this._teardown_actor(actor);
-            windowData.delete(actor);
-        } else {
-            this._add_border(actor);
-        }
-    }
-
-    _mark_window(actor) {
-        if (!windowData.has(actor))
-            this._initialize_actor(actor);
-
-        this._set_data(actor, 'isMarked', true);
-        this._add_border(actor);
     }
 
     _toggle_mark(actor) {
