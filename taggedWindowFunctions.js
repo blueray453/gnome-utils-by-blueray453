@@ -93,6 +93,7 @@ export class TaggedWindowFunctions {
                         win.change_workspace(currentWorkspace);
                         win.get_workspace().activate_with_focus(win, 0);
                         this._add_border(actor);
+                        this._animate_tag_applied(actor);
                     }
                 } else if (win.get_workspace() !== currentWorkspace) {
                     this._remove_border(actor);
@@ -294,6 +295,8 @@ export class TaggedWindowFunctions {
     _initialize_actor(actor) {
         const win = actor.get_meta_window();
 
+        actor.set_pivot_point(0.5, 0.5);
+
         const positionChangedId = win.connect('position-changed', () => this._add_border(actor));
         const sizeChangedId = win.connect('size-changed', () => this._add_border(actor));
         const workspaceChangedId = win.connect('workspace-changed', () => this._add_border(actor));
@@ -307,6 +310,45 @@ export class TaggedWindowFunctions {
             sizeChangedId,
             workspaceChangedId,
             unmanagedId,
+        });
+    }
+
+    _animate_tag_applied(actor) {
+        actor.remove_all_transitions();
+        actor.set_scale(0.96, 0.96);
+        actor.ease({
+            scale_x: 1,
+            scale_y: 1,
+            duration: 220,
+            mode: Clutter.AnimationMode.EASE_OUT_BACK, // slight overshoot past 1.0 before settling
+        });
+    }
+
+    _animate_tag_removed(actor) {
+        actor.remove_all_transitions();
+        actor.ease({
+            scale_x: 0.97,
+            scale_y: 0.97,
+            duration: 150,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                actor.ease({
+                    scale_x: 1,
+                    scale_y: 1,
+                    duration: 150,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                });
+            },
+        });
+    }
+
+    _animate_workspace_follow(actor) {
+        actor.remove_all_transitions();
+        actor.opacity = 0;
+        actor.ease({
+            opacity: 255,
+            duration: 200,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
     }
 
@@ -332,11 +374,13 @@ export class TaggedWindowFunctions {
             this._set_data(actor, 'tag', tagName);
 
             if (tagName === null) {
+                this._animate_tag_removed(actor);
                 this._teardown_actor(actor);
                 windowData.delete(actor);
             } else {
                 TAGS[tagName].onApply(win);
                 this._add_border(actor);
+                this._animate_tag_applied(actor);
             }
         } finally {
             this._settingTag = false;
