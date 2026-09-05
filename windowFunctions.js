@@ -393,7 +393,7 @@ export class WindowFunctions {
         };
 
         if (show_is_covered) {
-            obj.is_covered = this._is_covered(win);
+            obj.is_covered = this._is_covered_fully(win);
         }
 
         return obj;
@@ -589,7 +589,7 @@ export class WindowFunctions {
         return false;
     }
 
-    _is_covered(window) {
+    _is_covered_fully(window) {
         return this._window_matches(window, (target, top) =>
             top.x <= target.x &&
             top.y <= target.y &&
@@ -598,7 +598,7 @@ export class WindowFunctions {
         );
     }
 
-    _is_covered_partially(window) {
+    _is_covered_fully_or_partially(window) {
         return this._window_matches(window, (target, top) =>
             target.x < top.x + top.width &&
             target.x + target.width > top.x &&
@@ -909,7 +909,7 @@ export class WindowFunctions {
             return true;
         }
 
-        let covered = windows.find(w => this._is_covered_partially(w));
+        let covered = windows.find(w => this._is_covered_fully_or_partially(w));
 
         if (!covered)
             return false;
