@@ -717,14 +717,6 @@ export class WindowFunctions {
         if (maxState & Meta.MaximizeFlags.BOTH) {
             window.unmaximize(Meta.MaximizeFlags.BOTH);
         }
-
-        if (maxState & Meta.MaximizeFlags.HORIZONTAL) {
-            window.unmaximize(Meta.MaximizeFlags.HORIZONTAL);
-        }
-
-        if (maxState & Meta.MaximizeFlags.VERTICAL) {
-            window.unmaximize(Meta.MaximizeFlags.VERTICAL);
-        }
     }
 
     _move_resize_window(meta_window, x_coordinate, y_coordinate, width, height, onComplete = null) {
