@@ -158,9 +158,6 @@ export const MR_DBUS_IFACE = `
             <arg type="s" direction="in" name="wm_class" />
             <arg type="u" direction="in" name="workspace_num" />
         </method>
-        <method name="WindowUnmaximizeGivenWinID">
-            <arg type="u" direction="in" name="win_id" />
-        </method>
         <method name="WindowUnminimizeGivenWinID">
             <arg type="u" direction="in" name="win_id" />
         </method>
@@ -709,18 +706,13 @@ export class WindowFunctions {
         return app;
     }
 
-    _make_window_movable_and_resizable(window) {
-        // w.get_maximized() === Meta.MaximizeFlags.BOTH, checks if window is fullscreen
-
-        const maxState = window.get_maximized();
+    _move_resize_window(meta_window, x_coordinate, y_coordinate, width, height, onComplete = null) {
+        // Changing max state to make the window movable
+        const maxState = meta_window.get_maximized();
 
         if (maxState & Meta.MaximizeFlags.BOTH) {
-            window.unmaximize(Meta.MaximizeFlags.BOTH);
+            meta_window.unmaximize(Meta.MaximizeFlags.BOTH);
         }
-    }
-
-    _move_resize_window(meta_window, x_coordinate, y_coordinate, width, height, onComplete = null) {
-        this._make_window_movable_and_resizable(meta_window);
 
         let windowReadyId = 0;
 
@@ -1129,11 +1121,14 @@ export class WindowFunctions {
 
     WindowMoveGivenWinID(win_id, x, y) {
         let win = this._get_normal_window_given_window_id(win_id);
-        if (win !== null) {
-            this._make_window_movable_and_resizable(win);
-            win.move_frame(1, x, y);
-            win.activate(0);
-        }
+
+        const rect = win.get_frame_rect();
+
+        // 2. Extract properties (rect.x, rect.y, rect.width, rect.height)
+        const width = rect.width;
+        const height = rect.height;
+
+        this._move_resize_window(win, x, y, width, height);
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveResizeGivenWinID uint32:44129093 uint32:0 uint32:0 uint32:0 uint32:0
@@ -1244,18 +1239,6 @@ export class WindowFunctions {
 
     WindowsMoveToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
         this._move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowUnmaximizeGivenWinID uint32:44129093
-
-    WindowUnmaximizeGivenWinID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-
-        if (win !== null) {
-            this._make_window_movable_and_resizable(win);
-            win.unmaximize(3);
-            win.activate(0);
-        }
     }
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowUnminimizeGivenWinID uint32:44129093
