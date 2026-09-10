@@ -97,6 +97,8 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="ToggleLookingGlass">
         </method>
+        <method name="Restart">
+        </method>
         <method name="MinimizeOtherWindowsOfFocusedWindowWMClass">
         </method>
         <method name="WindowActivateGivenWinID">
@@ -1053,6 +1055,13 @@ export class WindowFunctions {
         }
         Main.lookingGlass.toggle();
     }
+
+    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.Restart
+
+    Restart() {
+        Meta.restart("Restarting…", global.get_context());
+    }
+
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.MinimizeOtherWindowsOfFocusedWindowWMClass
 
