@@ -207,12 +207,20 @@ class SharedEdgeChain {
             const onChanged = () => this._onGeometryChanged(idx);
             const onBreak = () => this.destroy();
 
-            this._signals.push([win, win.connect('size-changed', onChanged)]);
-            this._signals.push([win, win.connect('position-changed', onChanged)]);
-            this._signals.push([win, win.connect('unmanaging', onBreak)]);
-            this._signals.push([win, win.connect('notify::maximized-horizontally', onBreak)]);
-            this._signals.push([win, win.connect('notify::maximized-vertically', onBreak)]);
-            this._signals.push([win, win.connect('notify::minimized', onBreak)]);
+            win.connectObject('size-changed', onChanged, this);
+            win.connectObject('position-changed', onChanged, this);
+            win.connectObject('unmanaging', onBreak, this);
+            win.connectObject('notify::maximized-horizontally', onBreak, this);
+            win.connectObject('notify::maximized-vertically', onBreak, this);
+            win.connectObject('notify::minimized', onBreak, this);
+        });
+    }
+
+    destroy() {
+        if (this._destroyed) return;
+        this._destroyed = true;
+        this.windows.forEach(win => {
+            try { win.disconnectObject(this); } catch (e) { /* already gone */ }
         });
     }
 
@@ -326,15 +334,6 @@ class SharedEdgeChain {
         } finally {
             this._processing = false;
         }
-    }
-
-    destroy() {
-        if (this._destroyed) return;
-        this._destroyed = true;
-        this._signals.forEach(([win, id]) => {
-            try { win.disconnect(id); } catch (e) { /* already gone */ }
-        });
-        this._signals = [];
     }
 }
 
