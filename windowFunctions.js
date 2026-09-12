@@ -88,16 +88,11 @@ export const MR_DBUS_IFACE = `
             <arg type="as" direction="in" name="wm_classes" />
             <arg type="s" direction="out" name="win" />
         </method>
-        <method name="GetWindowsForRofi">
-            <arg type="s" direction="out" name="win" />
-        </method>
         <method name="GetWindowsGivenWMClass">
             <arg type="s" direction="in" name="wm_class" />
             <arg type="s" direction="out" name="wins" />
         </method>
         <method name="ToggleLookingGlass">
-        </method>
-        <method name="Restart">
         </method>
         <method name="MinimizeOtherWindowsOfFocusedWindowWMClass">
         </method>
@@ -861,7 +856,7 @@ export class WindowFunctions {
 
     GetAppGivenWindowID(win_id) {
         let win = this._get_normal_window_given_window_id(win_id);
-        let app = WindowTracker.get_window_app(win.meta_window);
+        let app = WindowTracker.get_window_app(win);
         return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
     }
 
@@ -1005,37 +1000,6 @@ export class WindowFunctions {
         return JSON.stringify(winPropertiesArr);
     }
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsForRofi | jq .
-
-    GetWindowsForRofi() {
-        let wins = this._get_normal_windows();
-
-        const classOrder = {
-            [FSEARCH]: 1,
-            [VSCODIUM]: 2,
-            [FIREFOX]: 3,
-            [NEMO]: 4,
-            [ALACRITTY]: 5,
-        };
-
-        wins.sort((winA, winB) => {
-            let orderA = classOrder[winA.wm_class] || Number.MAX_SAFE_INTEGER;
-            let orderB = classOrder[winB.wm_class] || Number.MAX_SAFE_INTEGER;
-
-            if (orderA === orderB) {
-                let userTimeA = winA.get_stable_sequence();
-                let userTimeB = winB.get_stable_sequence();
-                return userTimeB - userTimeA;
-            }
-
-            return orderA - orderB;
-        });
-
-        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
-
-        return JSON.stringify(winPropertiesArr);
-    }
-
     //  dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsGivenWMClass string:"firefox-esr" | jq -r '.[].id'
 
     GetWindowsGivenWMClass(wm_class) {
@@ -1054,13 +1018,6 @@ export class WindowFunctions {
         }
         Main.lookingGlass.toggle();
     }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.Restart
-
-    Restart() {
-        Meta.restart("Restarting…", global.get_context());
-    }
-
 
     // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.MinimizeOtherWindowsOfFocusedWindowWMClass
 
