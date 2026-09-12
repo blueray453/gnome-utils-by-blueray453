@@ -19,13 +19,13 @@ const ALACRITTY = "Alacritty";
 
 const FILE_PROGRESS_INSTANCE = 'file_progress';
 
-// privamive global variables can not be passed by reference that is why using objects. Array also work.
+// "privamive" global state that needs to be passed by reference.
+const alignWindowsState = { value: 0 };
 
-let align_windows_state_all_windows = { value: 0 };
-
-// distinguish which functions just return window id and which return details. We can extract id from details. so specific id is not needed
-
-// those functions which have output will output as json error
+const state = {
+    alignmentEdgeRatios: new Map(),
+    sharedEdgeChains: [],
+};
 
 export const MR_DBUS_IFACE = `
 <node>
@@ -161,26 +161,24 @@ export const MR_DBUS_IFACE = `
     </interface>
 </node>`;
 
-/**
- * Manages a shared-edge relationship between two or more side-by-side
- * tiled Meta.Windows. Resizing the boundary between any two adjacent
- * windows in the chain automatically resizes the neighbor across that
- * boundary, keeping the whole row filled.
- *
- * A chain owns every window passed to it exclusively - each window is
- * registered with exactly one chain at a time, so a synthetic resize
- * can never be misread as a user action by an unrelated tracker.
- */
+// ---------------------------------------------------------------------------
+// SharedEdgeChain.
+//
+// Genuine stateful object with per-instance lifecycle: multiple chains can
+// be alive at once (one per aligned row), each owning its own signal
+// handlers keyed on `this` as the connectObject context. This is the "OOP
+// strictly needed" case.
+// ---------------------------------------------------------------------------
+
 class SharedEdgeChain {
     constructor(windows, areaLeft, areaRight, minWidth = 150, onEdgeChanged = null) {
-        this.windows = windows; // ordered array, length >= 2
+        this.windows = windows;
         this._areaLeft = areaLeft;
         this._areaRight = areaRight;
         this._minWidth = minWidth;
-        this._onEdgeChanged = onEdgeChanged; // (boundaryIdx, newEdgeX) => void
+        this._onEdgeChanged = onEdgeChanged;
         this._destroyed = false;
         this._processing = false;
-        this._signals = [];
         this._expected = new Array(windows.length).fill(null);
         this._tolerance = 2;
 
@@ -228,12 +226,6 @@ class SharedEdgeChain {
         return Math.abs(a - b) <= this._tolerance;
     }
 
-    // A chain is only "shared-edge live" while: no window is maximized
-    // or minimized, the outer left/right edges of the whole row are
-    // still pinned to the tiled area, and every window keeps its
-    // original vertical span. (Deliberately no "still touching" check
-    // between adjacent windows - that is momentarily false during
-    // every legitimate resize and gets restored by the resize itself.)
     _stillValid() {
         for (const win of this.windows) {
             if (win.maximized_horizontally || win.maximized_vertically || win.minimized)
@@ -261,7 +253,6 @@ class SharedEdgeChain {
 
         let rect = this.windows[idx].get_frame_rect();
 
-        // Ignore our own synthetic change to this window.
         if (this._rectsEqual(rect, this._expected[idx])) return;
 
         if (!this._stillValid()) {
@@ -279,7 +270,6 @@ class SharedEdgeChain {
 
         this._processing = true;
         try {
-            // This window's left boundary moved -> resize its left neighbor.
             if (idx > 0 && !this._near(newLeft, leftEdgePrev)) {
                 let lowerBound = (idx - 1 === 0 ? this._areaLeft : this._edges[idx - 2]) + this._minWidth;
                 let clamped = Math.max(lowerBound, Math.min(rightEdgePrev - this._minWidth, newLeft));
@@ -303,7 +293,6 @@ class SharedEdgeChain {
                 if (this._onEdgeChanged) this._onEdgeChanged(idx - 1, clamped);
             }
 
-            // This window's right boundary moved -> resize its right neighbor.
             if (idx < n - 1 && !this._near(newRight, rightEdgePrev)) {
                 let upperBound = (idx + 1 === n - 1 ? this._areaRight : this._edges[idx + 1]) - this._minWidth;
                 let clamped = Math.max(leftEdgePrev + this._minWidth, Math.min(upperBound, newRight));
@@ -332,888 +321,786 @@ class SharedEdgeChain {
     }
 }
 
-export class WindowFunctions {
+// ---------------------------------------------------------------------------
+// Pure helpers.
+// ---------------------------------------------------------------------------
 
-    /* Get Properties */
+export function getPropertiesBriefGivenAppId(app_id) {
+    let shell_apps = AppSystem.lookup_app(app_id);
+    let desktop_apps = shell_apps.get_app_info();
 
-    _get_properties_brief_given_app_id(app_id) {
-        let shell_apps = AppSystem.lookup_app(app_id);
-        let desktop_apps = shell_apps.get_app_info();
+    let windows_array = [];
+    shell_apps.get_windows().forEach(w => windows_array.push(w.get_id()));
 
-        // NOTE: GioUnix.DesktopAppInfo inherited Gio.AppInfo
-        // get_display_name is a function of AppInfo which is DesktopAppInfo inherited
+    if (!app_id)
+        throw new Error('Not found');
 
-        let windows_array = [];
+    return {
+        app_name: desktop_apps.get_name(),
+        app_file_name: desktop_apps.get_filename(),
+        app_display_name: desktop_apps.get_display_name(),
+        app_id: desktop_apps.get_id(),
+        wm_class: desktop_apps.get_startup_wm_class(),
+        app_pids: shell_apps.get_pids(),
+        app_icon: shell_apps.get_icon()?.to_string(),
+        app_windows_number: shell_apps.get_n_windows(),
+        app_windows: windows_array,
+        state: shell_apps.get_state(),
+        description: shell_apps.get_description(),
+        commandline: desktop_apps.get_commandline(),
+        executable: desktop_apps.get_executable(),
+    };
+}
 
-        shell_apps.get_windows().forEach(function (w) {
-            windows_array.push(w.get_id());
-        })
+export function getPropertiesBriefGivenMetaWindow(win, show_is_covered = false) {
+    let workspace_id = win.get_workspace().index();
 
-        if (app_id) {
-            return {
-                app_name: desktop_apps.get_name(),
-                app_file_name: desktop_apps.get_filename(),
-                app_display_name: desktop_apps.get_display_name(),
-                app_id: desktop_apps.get_id(),
-                wm_class: desktop_apps.get_startup_wm_class(),
-                app_pids: shell_apps.get_pids(),
-                app_icon: shell_apps.get_icon()?.to_string(),
-                app_windows_number: shell_apps.get_n_windows(),
-                app_windows: windows_array,
-                state: shell_apps.get_state(),
-                description: shell_apps.get_description(),
-                commandline: desktop_apps.get_commandline(),
-                executable: desktop_apps.get_executable(),
-            };
+    let obj = {
+        id: win.get_id(),
+        type: win.get_window_type(),
+        title: win.get_title(),
+        pid: win.get_pid(),
+        wm_class: win.get_wm_class(),
+        wm_class_instance: win.get_wm_class_instance(),
+        workspace_id,
+        workspace_name: Meta.prefs_get_workspace_name(workspace_id),
+        monitor: win.get_monitor(),
+    };
+
+    if (show_is_covered)
+        obj.is_covered = isCoveredFully(win);
+
+    return obj;
+}
+
+/*
+   Difference between getNormalWindow* and getNormalWindows*:
+   find returns first match, filter returns all.
+*/
+function getNormalWindows() {
+    return Display.list_all_windows()
+        .filter(win =>
+            win.get_window_type() === Meta.WindowType.NORMAL ||
+            win.get_window_type() === Meta.WindowType.DIALOG
+        )
+        .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence());
+}
+
+function getNormalWindowsCurrentWorkspace() {
+    let current_workspace = WorkspaceManager.get_active_workspace();
+    return getNormalWindows().filter(win =>
+        win.is_on_all_workspaces() || win.get_workspace() === current_workspace
+    );
+}
+
+function getNormalWindowsCurrentWorkspaceCurrentMonitor() {
+    let current_monitor = Display.get_current_monitor();
+    return getNormalWindowsCurrentWorkspace().filter(w => w.get_monitor() === current_monitor);
+}
+
+function getNormalWindowsCurrentWorkspaceOfFocusedWindowWmClass() {
+    let win = Display.get_focus_window();
+    return getNormalWindowsCurrentWorkspaceGivenWmClass(win.get_wm_class());
+}
+
+function getNormalWindowsCurrentWorkspaceGivenWmClass(wm_class) {
+    return getNormalWindowsCurrentWorkspace().filter(w => w.get_wm_class() == wm_class);
+}
+
+function getNormalWindowsExcludingGivenWmClasses(wm_classes) {
+    return getNormalWindows().filter(w => !wm_classes.includes(w.get_wm_class()));
+}
+
+function getNormalWindowGivenWindowId(win_id) {
+    let win = getNormalWindows().find(w => w?.get_id() == win_id);
+    return win ?? null;
+}
+
+function getNormalWindowsGivenWmClass(wm_class) {
+    return getNormalWindows().filter(w => w.get_wm_class() == wm_class);
+}
+
+export function getOtherNormalWindowsCurrentWorkspaceOfFocusedWindowWmClass() {
+    let win = Display.get_focus_window();
+    return getNormalWindowsCurrentWorkspaceGivenWmClass(win.get_wm_class()).filter(w => win != w);
+}
+
+function isCoveredFully(window) {
+    if (window.minimized) return false;
+
+    let windows = Display.sort_windows_by_stacking(getNormalWindowsCurrentWorkspace());
+
+    let targetIndex = windows.indexOf(window);
+    if (targetIndex === -1) return false;
+
+    let targetRect = window.get_frame_rect();
+    let monitor = window.get_monitor();
+    let workArea = WorkspaceManager.get_active_workspace().get_work_area_for_monitor(monitor);
+
+    let clippedTarget = {
+        x: Math.max(targetRect.x, workArea.x),
+        y: Math.max(targetRect.y, workArea.y),
+        width: 0,
+        height: 0,
+    };
+    let targetRight = Math.min(targetRect.x + targetRect.width, workArea.x + workArea.width);
+    let targetBottom = Math.min(targetRect.y + targetRect.height, workArea.y + workArea.height);
+    clippedTarget.width = targetRight - clippedTarget.x;
+    clippedTarget.height = targetBottom - clippedTarget.y;
+
+    if (clippedTarget.width <= 0 || clippedTarget.height <= 0) return false;
+
+    let unionRect = null;
+
+    for (let i = targetIndex + 1; i < windows.length; i++) {
+        let topWin = windows[i];
+        if (topWin.minimized) continue;
+
+        let topRect = topWin.get_frame_rect();
+
+        let clippedTop = {
+            x: Math.max(topRect.x, workArea.x),
+            y: Math.max(topRect.y, workArea.y),
+            width: 0,
+            height: 0,
+        };
+        let topRight = Math.min(topRect.x + topRect.width, workArea.x + workArea.width);
+        let topBottom = Math.min(topRect.y + topRect.height, workArea.y + workArea.height);
+        clippedTop.width = topRight - clippedTop.x;
+        clippedTop.height = topBottom - clippedTop.y;
+
+        if (clippedTop.width <= 0 || clippedTop.height <= 0) continue;
+
+        if (unionRect === null) {
+            unionRect = { ...clippedTop };
         } else {
-            throw new Error('Not found');
-        }
-    }
-
-    _get_properties_brief_given_meta_window(win, show_is_covered = false) {
-        let workspace_id = win.get_workspace().index();
-
-        let obj = {
-            id: win.get_id(),
-            type: win.get_window_type(),
-            title: win.get_title(),
-            pid: win.get_pid(),
-            wm_class: win.get_wm_class(),
-            wm_class_instance: win.get_wm_class_instance(),
-            workspace_id: workspace_id,
-            workspace_name: Meta.prefs_get_workspace_name(workspace_id),
-            monitor: win.get_monitor()
-        };
-
-        if (show_is_covered) {
-            obj.is_covered = this._is_covered_fully(win);
+            let x1 = Math.min(unionRect.x, clippedTop.x);
+            let y1 = Math.min(unionRect.y, clippedTop.y);
+            let x2 = Math.max(unionRect.x + unionRect.width, clippedTop.x + clippedTop.width);
+            let y2 = Math.max(unionRect.y + unionRect.height, clippedTop.y + clippedTop.height);
+            unionRect = { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
         }
 
-        return obj;
-    }
-
-    /* Get Normal Windows */
-
-    /*
-       There is a difference between _get_normal_window and _get_normal_windows
-
-       _get_normal_window use find
-       _get_normal_windows use filter
-
-       find returns first element of the array that satisfies the condition specified in the callback function.
-       filter returns all the elements of the array that satisfy the condition specified in the callback function.
-    */
-
-    _get_normal_windows() {
-        let wins = Display.list_all_windows()
-            .filter(win =>
-                win.get_window_type() === Meta.WindowType.NORMAL ||
-                win.get_window_type() === Meta.WindowType.DIALOG
-            )
-            .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence()); // ascending order
-
-        return wins;
-    }
-
-    _get_normal_windows_current_workspace() {
-        let current_workspace = WorkspaceManager.get_active_workspace();
-
-        let wins = this._get_normal_windows().filter(win =>
-            win.is_on_all_workspaces() || win.get_workspace() === current_workspace
-        );
-
-        return wins;
-    }
-
-    _get_normal_windows_current_workspace_current_monitor() {
-        // Get the current monitor (in focus)
-        let current_monitor = Display.get_current_monitor();
-
-        // Filter windows based on both workspace and monitor
-        let wins = this._get_normal_windows_current_workspace().filter(w => w.get_monitor() === current_monitor);
-
-        return wins;
-    }
-
-    _get_normal_windows_current_workspace_of_focused_window_wm_class() {
-        let win = Display.get_focus_window();
-        let win_wm_class = win.get_wm_class();
-
-        return this._get_normal_windows_current_workspace_given_wm_class(win_wm_class);
-    }
-
-    _get_normal_windows_current_workspace_given_wm_class(wm_class) {
-        return this._get_normal_windows_current_workspace().filter(w => w.get_wm_class() == wm_class);
-    }
-
-    _get_normal_windows_excluding_given_wm_classes(wm_classes) {
-        return this._get_normal_windows().filter(w => !wm_classes.includes(w.get_wm_class()))
-    }
-
-    _get_normal_window_given_window_id(win_id) {
-        // find does not need filtered window. As it return one result. However keeping it for readability
-        let win = this._get_normal_windows().find(w => w?.get_id() == win_id);
-        return win ?? null;
-    }
-
-    _get_normal_windows_given_wm_class(wm_class) {
-        return this._get_normal_windows().filter(w => w.get_wm_class() == wm_class);
-    }
-
-    _get_other_normal_windows_current_workspace_of_focused_window_wm_class() {
-        let win = Display.get_focus_window();
-        return this._get_normal_windows_current_workspace_given_wm_class(win.get_wm_class()).filter(w => win != w);
-    }
-
-    /* Utility Functions */
-
-    _align_windows(windows_array, windows_per_container, global_object) {
-        let number_of_windows = windows_array.length;
-        let number_of_states = Math.ceil(number_of_windows / windows_per_container);
-
-        let state = global_object.value;
-
-        if (state >= number_of_states) {
-            state = 0;
-        }
-
-        let current_workspace = WorkspaceManager.get_active_workspace();
-        let work_area = current_workspace.get_work_area_all_monitors();
-        let work_area_width = work_area.width;
-        let window_height = work_area.height;
-
-        // minimize all the windows
-        windows_array.forEach(win => win?.minimize());
-
-        let group = [];
-        for (let i = state * windows_per_container; i < windows_array.length && group.length < windows_per_container; i++) {
-            group.push(windows_array[i]);
-        }
-
-        let n = group.length;
-        if (n === 0) {
-            global_object.value = state + 1;
-            return;
-        }
-
-        if (this._alignmentEdgeRatios === undefined) {
-            this._alignmentEdgeRatios = new Map();
-        }
-
-        const minWidth = 150;
-        let equalWidth = work_area_width / n;
-
-        // n-1 internal boundaries; default to equal split, then
-        // substitute any remembered ratio for that specific window pair.
-        let edges = [];
-        for (let j = 0; j < n - 1; j++) {
-            edges.push((j + 1) * equalWidth);
-        }
-        for (let j = 0; j < n - 1; j++) {
-            let winA = group[j], winB = group[j + 1];
-            if (!winA || !winB) continue;
-            let key = this._edge_ratio_key(winA, winB);
-            if (this._alignmentEdgeRatios.has(key)) {
-                edges[j] = this._alignmentEdgeRatios.get(key) * work_area_width;
-            }
-        }
-
-        // Clamp so every window keeps at least minWidth, preserving order.
-        for (let j = 0; j < edges.length; j++) {
-            let lower = (j === 0 ? 0 : edges[j - 1]) + minWidth;
-            edges[j] = Math.max(edges[j], lower);
-        }
-        for (let j = edges.length - 1; j >= 0; j--) {
-            let upper = (j === edges.length - 1 ? work_area_width : edges[j + 1]) - minWidth;
-            edges[j] = Math.min(edges[j], upper);
-        }
-
-        let readyCount = { value: 0 };
-
-        for (let j = 0; j < n; j++) {
-            let win = group[j];
-            if (!win) continue;
-
-            let x = j === 0 ? 0 : edges[j - 1];
-            let right = j === n - 1 ? work_area_width : edges[j];
-
-            this._move_resize_window(win, x, 0, right - x, window_height, () => {
-                readyCount.value++;
-                if (readyCount.value === n) {
-                    // All windows in this page finished their async
-                    // placement - safe to start shared-edge tracking now.
-                    this._enable_alignment_shared_edges(group, work_area_width);
-                }
-            });
-
-            win.activate(0);
-        }
-
-        global_object.value = state + 1;
-    }
-
-    _is_covered_fully(window) {
-        if (window.minimized) return false;
-
-        let windows = Display.sort_windows_by_stacking(
-            this._get_normal_windows_current_workspace()
-        );
-
-        let targetIndex = windows.indexOf(window);
-        if (targetIndex === -1) return false;
-
-        let targetRect = window.get_frame_rect();
-        let monitor = window.get_monitor();
-        let workArea = WorkspaceManager.get_active_workspace().get_work_area_for_monitor(monitor);
-
-        // Clip target rect to monitor
-        let clippedTarget = {
-            x: Math.max(targetRect.x, workArea.x),
-            y: Math.max(targetRect.y, workArea.y),
-            width: 0,
-            height: 0
-        };
-        let targetRight = Math.min(targetRect.x + targetRect.width, workArea.x + workArea.width);
-        let targetBottom = Math.min(targetRect.y + targetRect.height, workArea.y + workArea.height);
-        clippedTarget.width = targetRight - clippedTarget.x;
-        clippedTarget.height = targetBottom - clippedTarget.y;
-
-        if (clippedTarget.width <= 0 || clippedTarget.height <= 0) return false;
-
-        let unionRect = null;
-
-        for (let i = targetIndex + 1; i < windows.length; i++) {
-            let topWin = windows[i];
-            if (topWin.minimized) continue;
-
-            let topRect = topWin.get_frame_rect();
-
-            // Clip top rect to monitor
-            let clippedTop = {
-                x: Math.max(topRect.x, workArea.x),
-                y: Math.max(topRect.y, workArea.y),
-                width: 0,
-                height: 0
-            };
-            let topRight = Math.min(topRect.x + topRect.width, workArea.x + workArea.width);
-            let topBottom = Math.min(topRect.y + topRect.height, workArea.y + workArea.height);
-            clippedTop.width = topRight - clippedTop.x;
-            clippedTop.height = topBottom - clippedTop.y;
-
-            if (clippedTop.width <= 0 || clippedTop.height <= 0) continue;
-
-            // Expand union
-            if (unionRect === null) {
-                unionRect = { ...clippedTop };
-            } else {
-                let x1 = Math.min(unionRect.x, clippedTop.x);
-                let y1 = Math.min(unionRect.y, clippedTop.y);
-                let x2 = Math.max(unionRect.x + unionRect.width, clippedTop.x + clippedTop.width);
-                let y2 = Math.max(unionRect.y + unionRect.height, clippedTop.y + clippedTop.height);
-                unionRect = { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
-            }
-
-            // Check if the union now fully covers the clipped target
-            if (unionRect.x <= clippedTarget.x &&
-                unionRect.y <= clippedTarget.y &&
-                unionRect.x + unionRect.width >= clippedTarget.x + clippedTarget.width &&
-                unionRect.y + unionRect.height >= clippedTarget.y + clippedTarget.height) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    _is_covered_fully_or_partially(window) {
-        if (window.minimized) return false;
-
-        let windows = Display.sort_windows_by_stacking(
-            this._get_normal_windows_current_workspace()
-        );
-
-        let targetIndex = windows.indexOf(window);
-        if (targetIndex === -1) return false;
-
-        let targetRect = window.get_frame_rect();
-
-        // Get the work area of the monitor where the target window resides
-        let monitor = window.get_monitor();
-        let workArea = WorkspaceManager.get_active_workspace().get_work_area_for_monitor(monitor);
-
-        // Clip target rect to the visible work area
-        let clippedTarget = {
-            x: Math.max(targetRect.x, workArea.x),
-            y: Math.max(targetRect.y, workArea.y),
-            width: 0,
-            height: 0
-        };
-        let targetRight = Math.min(targetRect.x + targetRect.width, workArea.x + workArea.width);
-        let targetBottom = Math.min(targetRect.y + targetRect.height, workArea.y + workArea.height);
-        clippedTarget.width = targetRight - clippedTarget.x;
-        clippedTarget.height = targetBottom - clippedTarget.y;
-
-        // If the target is completely outside the monitor, it's not relevant
-        if (clippedTarget.width <= 0 || clippedTarget.height <= 0) return false;
-
-        for (let i = targetIndex + 1; i < windows.length; i++) {
-            let topWin = windows[i];
-            if (topWin.minimized) continue;
-
-            let topRect = topWin.get_frame_rect();
-
-            // Clip the top window to the same work area
-            let clippedTop = {
-                x: Math.max(topRect.x, workArea.x),
-                y: Math.max(topRect.y, workArea.y),
-                width: 0,
-                height: 0
-            };
-            let topRight = Math.min(topRect.x + topRect.width, workArea.x + workArea.width);
-            let topBottom = Math.min(topRect.y + topRect.height, workArea.y + workArea.height);
-            clippedTop.width = topRight - clippedTop.x;
-            clippedTop.height = topBottom - clippedTop.y;
-
-            // Skip if the top window is completely off-screen
-            if (clippedTop.width <= 0 || clippedTop.height <= 0) continue;
-
-            // Check overlap only on the visible portions
-            if (clippedTarget.x < clippedTop.x + clippedTop.width &&
-                clippedTarget.x + clippedTarget.width > clippedTop.x &&
-                clippedTarget.y < clippedTop.y + clippedTop.height &&
-                clippedTarget.y + clippedTarget.height > clippedTop.y) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    _is_file_progress_window(win) {
-        return win.get_wm_class_instance() === FILE_PROGRESS_INSTANCE;
-    }
-
-    _exclude_file_progress_windows(wins) {
-        return wins.filter(w => !this._is_file_progress_window(w));
-    }
-
-    _get_app_given_meta_window(win) {
-        let app = WindowTracker.get_window_app(win);
-        return app;
-    }
-
-    _move_resize_window(meta_window, x_coordinate, y_coordinate, width, height, onComplete = null) {
-        // Changing max state to make the window movable
-        const maxState = meta_window.get_maximized();
-
-        if (maxState & Meta.MaximizeFlags.BOTH) {
-            meta_window.unmaximize(Meta.MaximizeFlags.BOTH);
-        }
-
-        let windowReadyId = 0;
-
-        windowReadyId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            meta_window.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
-            journal(`Alhamdulillah, moved meta_window`);
-            windowReadyId = 0;
-            if (onComplete) {
-                onComplete();
-            }
-            return GLib.SOURCE_REMOVE;
-        });
-
-        meta_window.connect('unmanaging', () => {
-            if (windowReadyId)
-                GLib.Source.remove(windowReadyId);
-        });
-    }
-
-    _move_windows_side_by_side(win_id_1, win_id_2) {
-        let win1 = this._get_normal_window_given_window_id(win_id_1);
-        let win2 = this._get_normal_window_given_window_id(win_id_2);
-
-        if (win1 !== null && win2 !== null) {
-            let work_area = win1.get_work_area_current_monitor();
-
-            let work_area_width = work_area.width;
-            let work_area_height = work_area.height;
-
-            let window_height = work_area_height;
-            let window_width = work_area_width / 2;
-
-            let readyCount = { value: 0 };
-            const onTileComplete = () => {
-                readyCount.value++;
-                if (readyCount.value === 2) {
-                    // Both windows finished their async idle_add resize -
-                    // safe to start tracking shared-edge resizes now.
-                    this._enable_shared_edge_chain([win1, win2], 0, work_area_width);
-                }
-            };
-
-            this._move_resize_window(win1, 0, 0, window_width, window_height, onTileComplete);
-            this._move_resize_window(win2, window_width, 0, window_width, window_height, onTileComplete);
-        }
-    }
-
-    _move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num) {
-        let wins = this._get_normal_windows_given_wm_class(wm_class);
-
-        wins.forEach(win => {
-            const currentIndex = win.get_workspace().index?.() ?? workspace_num;
-            if (currentIndex !== workspace_num) {
-                win.change_workspace_by_index(workspace_num, false);
-            }
-        });
-    }
-
-    /* Shared-edge tiling */
-
-    _edge_ratio_key(winA, winB) {
-        return `${winA.get_id()}:${winB.get_id()}`;
-    }
-
-    _enable_shared_edge_chain(windows, areaLeft, areaRight, onEdgeChanged = null) {
-        if (windows.length < 2) return;
-        if (this._sharedEdgeChains === undefined) this._sharedEdgeChains = [];
-
-        // A window can only belong to one chain at a time - destroy
-        // any existing chain that overlaps with these windows first.
-        let windowSet = new Set(windows);
-        this._sharedEdgeChains = this._sharedEdgeChains.filter(chain => {
-            let overlaps = chain.windows.some(w => windowSet.has(w));
-            if (overlaps) chain.destroy();
-            return !overlaps;
-        });
-
-        let chain = new SharedEdgeChain(windows, areaLeft, areaRight, 150, onEdgeChanged);
-        chain.enable();
-        this._sharedEdgeChains.push(chain);
-    }
-
-    _enable_alignment_shared_edges(group, work_area_width) {
-        let windows = group.filter(w => w);
-        if (windows.length < 2) return;
-
-        if (this._alignmentEdgeRatios === undefined) this._alignmentEdgeRatios = new Map();
-
-        this._enable_shared_edge_chain(windows, 0, work_area_width, (idx, newEdgeX) => {
-            let key = this._edge_ratio_key(windows[idx], windows[idx + 1]);
-            this._alignmentEdgeRatios.set(key, newEdgeX / work_area_width);
-        });
-    }
-
-    destroy() {
-        if (this._sharedEdgeChains) {
-            this._sharedEdgeChains.forEach(chain => chain.destroy());
-            this._sharedEdgeChains = [];
-        }
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.AlignWindowsOfFocusedWindowWMClass | jq .
-
-    AlignWindowsOfFocusedWindowWMClass() {
-        let windows_array = this._get_normal_windows_current_workspace_of_focused_window_wm_class();
-
-        if (windows_array.length === 0) {
-            windows_array = this._get_normal_windows_current_workspace_given_wm_class(NEMO);
-        }
-
-        let windows_per_container = 2;
-
-        this._align_windows(windows_array, windows_per_container, align_windows_state_all_windows);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
-
-    CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-        let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
-
-        this._exclude_file_progress_windows(wins).forEach(w => w.delete(0));
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppFocusedWindow | jq .
-
-    GetAppFocusedWindow() {
-        let app = WindowTracker.get_focus_app();
-        return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenAppID string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
-
-    GetAppGivenAppID(app_id) {
-        return JSON.stringify(this._get_properties_brief_given_app_id(app_id));
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenPID uint32:3931313482 | jq .
-
-    GetAppGivenPID(pid) {
-        let app = WindowTracker.get_app_from_pid(pid);
-        return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenWindowID uint32:44129093 | jq .
-
-    GetAppGivenWindowID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-        let app = WindowTracker.get_window_app(win);
-        return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenWMClass string:"firefox-esr" | jq
-
-    GetAppGivenWMClass(wmclass) {
-        let app = AppSystem.lookup_desktop_wmclass(wmclass);
-        return JSON.stringify(this._get_properties_brief_given_app_id(app.get_id()));
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppsRunning | jq .
-
-    GetAppsRunning() {
-        let apps = AppSystem.get_running();
-        let results = [];
-
-        apps.forEach(app => {
-            let app_id = app.get_id();
-            try {
-                let info = this._get_properties_brief_given_app_id(app_id);
-                results.push(info);
-            } catch (err) {
-                results.push({ app_id, error: err.message });
-            }
-        });
-
-        return JSON.stringify(results);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppsRunningGivenWMClass string:"firefox-esr" | xargs
-
-    GetAppsRunningGivenWMClass(wm_class) {
-        let wins = this._get_normal_windows_given_wm_class(wm_class);
-        return JSON.stringify(wins.length > 0);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowFocused | jq -r '.[].id'
-
-    GetWindowFocused() {
-        let win = Display.get_focus_window();
-        let winPropertiesArr = this._get_properties_brief_given_meta_window(win);
-
-        return JSON.stringify(winPropertiesArr);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowGivenWindowID uint32:44129093
-
-    GetWindowGivenWindowID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-
-        return JSON.stringify(this._get_properties_brief_given_meta_window(win, true));
-    }
-
-    //  dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindows | jq .
-
-    GetWindows() {
-        let wins = this._get_normal_windows();
-
-        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
-
-        return JSON.stringify(winPropertiesArr);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowCountCurrentWorkspace
-
-    GetWindowCountCurrentWorkspace() {
-        return JSON.stringify(this._get_normal_windows_current_workspace().length);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspace | jq .
-
-    GetWindowsCurrentWorkspace() {
-        let wins = this._get_normal_windows_current_workspace();
-
-        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win, true));
-
-        return JSON.stringify(winPropertiesArr);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspaceCurrentMonitor | jq .
-
-    GetWindowsCurrentWorkspaceCurrentMonitor() {
-        let wins = this._get_normal_windows_current_workspace_current_monitor();
-
-        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win, true));
-
-        return JSON.stringify(winPropertiesArr);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq -r '.[].id'
-
-    GetWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
-        let wins = this._get_normal_windows_current_workspace_of_focused_window_wm_class();
-
-        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
-
-        return JSON.stringify(winPropertiesArr);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.ToggleWindowsCurrentWorkspace
-
-    ToggleWindowsCurrentWorkspace() {
-        let windows =
-            this._get_normal_windows_current_workspace();
-
-        if (windows.length !== 2)
-            return false;
-
-        let minimizedWindow = windows.find(w => w.minimized);
-
-        if (minimizedWindow) {
-            minimizedWindow.unminimize();
-
-            let workspace = minimizedWindow.get_workspace();
-
-            minimizedWindow.maximize(3);
-            workspace.activate_with_focus(minimizedWindow, 0);
-
+        if (unionRect.x <= clippedTarget.x &&
+            unionRect.y <= clippedTarget.y &&
+            unionRect.x + unionRect.width >= clippedTarget.x + clippedTarget.width &&
+            unionRect.y + unionRect.height >= clippedTarget.y + clippedTarget.height) {
             return true;
         }
+    }
 
-        let covered = windows.find(w => this._is_covered_fully_or_partially(w));
+    return false;
+}
 
-        if (!covered)
-            return false;
+function isCoveredFullyOrPartially(window) {
+    if (window.minimized) return false;
 
-        let workspace = covered.get_workspace();
+    let windows = Display.sort_windows_by_stacking(getNormalWindowsCurrentWorkspace());
 
-        workspace.activate_with_focus(covered, 0);
+    let targetIndex = windows.indexOf(window);
+    if (targetIndex === -1) return false;
+
+    let targetRect = window.get_frame_rect();
+    let monitor = window.get_monitor();
+    let workArea = WorkspaceManager.get_active_workspace().get_work_area_for_monitor(monitor);
+
+    let clippedTarget = {
+        x: Math.max(targetRect.x, workArea.x),
+        y: Math.max(targetRect.y, workArea.y),
+        width: 0,
+        height: 0,
+    };
+    let targetRight = Math.min(targetRect.x + targetRect.width, workArea.x + workArea.width);
+    let targetBottom = Math.min(targetRect.y + targetRect.height, workArea.y + workArea.height);
+    clippedTarget.width = targetRight - clippedTarget.x;
+    clippedTarget.height = targetBottom - clippedTarget.y;
+
+    if (clippedTarget.width <= 0 || clippedTarget.height <= 0) return false;
+
+    for (let i = targetIndex + 1; i < windows.length; i++) {
+        let topWin = windows[i];
+        if (topWin.minimized) continue;
+
+        let topRect = topWin.get_frame_rect();
+
+        let clippedTop = {
+            x: Math.max(topRect.x, workArea.x),
+            y: Math.max(topRect.y, workArea.y),
+            width: 0,
+            height: 0,
+        };
+        let topRight = Math.min(topRect.x + topRect.width, workArea.x + workArea.width);
+        let topBottom = Math.min(topRect.y + topRect.height, workArea.y + workArea.height);
+        clippedTop.width = topRight - clippedTop.x;
+        clippedTop.height = topBottom - clippedTop.y;
+
+        if (clippedTop.width <= 0 || clippedTop.height <= 0) continue;
+
+        if (clippedTarget.x < clippedTop.x + clippedTop.width &&
+            clippedTarget.x + clippedTarget.width > clippedTop.x &&
+            clippedTarget.y < clippedTop.y + clippedTop.height &&
+            clippedTarget.y + clippedTarget.height > clippedTop.y) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function isFileProgressWindow(win) {
+    return win.get_wm_class_instance() === FILE_PROGRESS_INSTANCE;
+}
+
+function excludeFileProgressWindows(wins) {
+    return wins.filter(w => !isFileProgressWindow(w));
+}
+
+function moveResizeWindow(meta_window, x_coordinate, y_coordinate, width, height, onComplete = null) {
+    const maxState = meta_window.get_maximized();
+    if (maxState & Meta.MaximizeFlags.BOTH)
+        meta_window.unmaximize(Meta.MaximizeFlags.BOTH);
+
+    let windowReadyId = 0;
+
+    windowReadyId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+        meta_window.move_resize_frame(1, x_coordinate, y_coordinate, width, height);
+        journal(`Alhamdulillah, moved meta_window`);
+        windowReadyId = 0;
+        if (onComplete)
+            onComplete();
+        return GLib.SOURCE_REMOVE;
+    });
+
+    meta_window.connect('unmanaging', () => {
+        if (windowReadyId)
+            GLib.Source.remove(windowReadyId);
+    });
+}
+
+function edgeRatioKey(winA, winB) {
+    return `${winA.get_id()}:${winB.get_id()}`;
+}
+
+function enableSharedEdgeChain(windows, areaLeft, areaRight, onEdgeChanged = null) {
+    if (windows.length < 2) return;
+
+    let windowSet = new Set(windows);
+    state.sharedEdgeChains = state.sharedEdgeChains.filter(chain => {
+        let overlaps = chain.windows.some(w => windowSet.has(w));
+        if (overlaps) chain.destroy();
+        return !overlaps;
+    });
+
+    let chain = new SharedEdgeChain(windows, areaLeft, areaRight, 150, onEdgeChanged);
+    chain.enable();
+    state.sharedEdgeChains.push(chain);
+}
+
+function enableAlignmentSharedEdges(group, work_area_width) {
+    let windows = group.filter(w => w);
+    if (windows.length < 2) return;
+
+    enableSharedEdgeChain(windows, 0, work_area_width, (idx, newEdgeX) => {
+        let key = edgeRatioKey(windows[idx], windows[idx + 1]);
+        state.alignmentEdgeRatios.set(key, newEdgeX / work_area_width);
+    });
+}
+
+function alignWindows(windows_array, windows_per_container, global_object) {
+    let number_of_windows = windows_array.length;
+    let number_of_states = Math.ceil(number_of_windows / windows_per_container);
+
+    let current_state = global_object.value;
+    if (current_state >= number_of_states)
+        current_state = 0;
+
+    let current_workspace = WorkspaceManager.get_active_workspace();
+    let work_area = current_workspace.get_work_area_all_monitors();
+    let work_area_width = work_area.width;
+    let window_height = work_area.height;
+
+    windows_array.forEach(win => win?.minimize());
+
+    let group = [];
+    for (let i = current_state * windows_per_container;
+        i < windows_array.length && group.length < windows_per_container;
+        i++) {
+        group.push(windows_array[i]);
+    }
+
+    let n = group.length;
+    if (n === 0) {
+        global_object.value = current_state + 1;
+        return;
+    }
+
+    const minWidth = 150;
+    let equalWidth = work_area_width / n;
+
+    let edges = [];
+    for (let j = 0; j < n - 1; j++)
+        edges.push((j + 1) * equalWidth);
+
+    for (let j = 0; j < n - 1; j++) {
+        let winA = group[j], winB = group[j + 1];
+        if (!winA || !winB) continue;
+        let key = edgeRatioKey(winA, winB);
+        if (state.alignmentEdgeRatios.has(key))
+            edges[j] = state.alignmentEdgeRatios.get(key) * work_area_width;
+    }
+
+    for (let j = 0; j < edges.length; j++) {
+        let lower = (j === 0 ? 0 : edges[j - 1]) + minWidth;
+        edges[j] = Math.max(edges[j], lower);
+    }
+    for (let j = edges.length - 1; j >= 0; j--) {
+        let upper = (j === edges.length - 1 ? work_area_width : edges[j + 1]) - minWidth;
+        edges[j] = Math.min(edges[j], upper);
+    }
+
+    let readyCount = { value: 0 };
+
+    for (let j = 0; j < n; j++) {
+        let win = group[j];
+        if (!win) continue;
+
+        let x = j === 0 ? 0 : edges[j - 1];
+        let right = j === n - 1 ? work_area_width : edges[j];
+
+        moveResizeWindow(win, x, 0, right - x, window_height, () => {
+            readyCount.value++;
+            if (readyCount.value === n)
+                enableAlignmentSharedEdges(group, work_area_width);
+        });
+
+        win.activate(0);
+    }
+
+    global_object.value = current_state + 1;
+}
+
+function moveWindowsSideBySide(win_id_1, win_id_2) {
+    let win1 = getNormalWindowGivenWindowId(win_id_1);
+    let win2 = getNormalWindowGivenWindowId(win_id_2);
+    if (win1 === null || win2 === null) return;
+
+    let work_area = win1.get_work_area_current_monitor();
+    let work_area_width = work_area.width;
+    let window_height = work_area.height;
+    let window_width = work_area_width / 2;
+
+    let readyCount = { value: 0 };
+    const onTileComplete = () => {
+        readyCount.value++;
+        if (readyCount.value === 2)
+            enableSharedEdgeChain([win1, win2], 0, work_area_width);
+    };
+
+    moveResizeWindow(win1, 0, 0, window_width, window_height, onTileComplete);
+    moveResizeWindow(win2, window_width, 0, window_width, window_height, onTileComplete);
+}
+
+function moveWindowsToGivenWorkspaceGivenWmClass(wm_class, workspace_num) {
+    let wins = getNormalWindowsGivenWmClass(wm_class);
+
+    wins.forEach(win => {
+        const currentIndex = win.get_workspace().index?.() ?? workspace_num;
+        if (currentIndex !== workspace_num)
+            win.change_workspace_by_index(workspace_num, false);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// DBus methods.
+// ---------------------------------------------------------------------------
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.AlignWindowsOfFocusedWindowWMClass | jq .
+
+function AlignWindowsOfFocusedWindowWMClass() {
+    let windows_array = getNormalWindowsCurrentWorkspaceOfFocusedWindowWmClass();
+
+    if (windows_array.length === 0)
+        windows_array = getNormalWindowsCurrentWorkspaceGivenWmClass(NEMO);
+
+    alignWindows(windows_array, 2, alignWindowsState);
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass
+
+function CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
+    let wins = getOtherNormalWindowsCurrentWorkspaceOfFocusedWindowWmClass();
+    excludeFileProgressWindows(wins).forEach(w => w.delete(0));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppFocusedWindow | jq .
+
+function GetAppFocusedWindow() {
+    let app = WindowTracker.get_focus_app();
+    return JSON.stringify(getPropertiesBriefGivenAppId(app.get_id()));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenAppID string:"io.github.cboxdoerfer.FSearch.desktop" | jq .
+
+function GetAppGivenAppID(app_id) {
+    return JSON.stringify(getPropertiesBriefGivenAppId(app_id));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenPID uint32:3931313482 | jq .
+
+function GetAppGivenPID(pid) {
+    let app = WindowTracker.get_app_from_pid(pid);
+    return JSON.stringify(getPropertiesBriefGivenAppId(app.get_id()));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenWindowID uint32:44129093 | jq .
+
+function GetAppGivenWindowID(win_id) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    let app = WindowTracker.get_window_app(win);
+    return JSON.stringify(getPropertiesBriefGivenAppId(app.get_id()));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppGivenWMClass string:"firefox-esr" | jq
+
+function GetAppGivenWMClass(wmclass) {
+    let app = AppSystem.lookup_desktop_wmclass(wmclass);
+    return JSON.stringify(getPropertiesBriefGivenAppId(app.get_id()));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppsRunning | jq .
+
+function GetAppsRunning() {
+    let apps = AppSystem.get_running();
+    let results = [];
+
+    apps.forEach(app => {
+        let app_id = app.get_id();
+        try {
+            results.push(getPropertiesBriefGivenAppId(app_id));
+        } catch (err) {
+            results.push({ app_id, error: err.message });
+        }
+    });
+
+    return JSON.stringify(results);
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetAppsRunningGivenWMClass string:"firefox-esr" | xargs
+
+function GetAppsRunningGivenWMClass(wm_class) {
+    let wins = getNormalWindowsGivenWmClass(wm_class);
+    return JSON.stringify(wins.length > 0);
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowFocused | jq -r '.[].id'
+
+function GetWindowFocused() {
+    let win = Display.get_focus_window();
+    return JSON.stringify(getPropertiesBriefGivenMetaWindow(win));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowGivenWindowID uint32:44129093
+
+function GetWindowGivenWindowID(win_id) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    return JSON.stringify(getPropertiesBriefGivenMetaWindow(win, true));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindows | jq .
+
+function GetWindows() {
+    let wins = getNormalWindows();
+    return JSON.stringify(wins.map(win => getPropertiesBriefGivenMetaWindow(win)));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowCountCurrentWorkspace
+
+function GetWindowCountCurrentWorkspace() {
+    return JSON.stringify(getNormalWindowsCurrentWorkspace().length);
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspace | jq .
+
+function GetWindowsCurrentWorkspace() {
+    let wins = getNormalWindowsCurrentWorkspace();
+    return JSON.stringify(wins.map(win => getPropertiesBriefGivenMetaWindow(win, true)));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspaceCurrentMonitor | jq .
+
+function GetWindowsCurrentWorkspaceCurrentMonitor() {
+    let wins = getNormalWindowsCurrentWorkspaceCurrentMonitor();
+    return JSON.stringify(wins.map(win => getPropertiesBriefGivenMetaWindow(win, true)));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspaceOfFocusedWindowWMClass | jq -r '.[].id'
+
+function GetWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
+    let wins = getNormalWindowsCurrentWorkspaceOfFocusedWindowWmClass();
+    return JSON.stringify(wins.map(win => getPropertiesBriefGivenMetaWindow(win)));
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.ToggleWindowsCurrentWorkspace
+
+function ToggleWindowsCurrentWorkspace() {
+    let windows = getNormalWindowsCurrentWorkspace();
+    if (windows.length !== 2) return false;
+
+    let minimizedWindow = windows.find(w => w.minimized);
+    if (minimizedWindow) {
+        minimizedWindow.unminimize();
+
+        let workspace = minimizedWindow.get_workspace();
+        minimizedWindow.maximize(3);
+        workspace.activate_with_focus(minimizedWindow, 0);
 
         return true;
     }
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsExcludingGivenWMClass array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" | jq .
+    let covered = windows.find(w => isCoveredFullyOrPartially(w));
+    if (!covered) return false;
 
-    GetWindowsExcludingGivenWMClass(wm_classes) {
-        let wins = this._get_normal_windows_excluding_given_wm_classes(wm_classes);
+    let workspace = covered.get_workspace();
+    workspace.activate_with_focus(covered, 0);
 
-        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
+    return true;
+}
 
-        return JSON.stringify(winPropertiesArr);
-    }
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsExcludingGivenWMClass array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" | jq .
 
-    //  dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsGivenWMClass string:"firefox-esr" | jq -r '.[].id'
+function GetWindowsExcludingGivenWMClass(wm_classes) {
+    let wins = getNormalWindowsExcludingGivenWmClasses(wm_classes);
+    return JSON.stringify(wins.map(win => getPropertiesBriefGivenMetaWindow(win)));
+}
 
-    GetWindowsGivenWMClass(wm_class) {
-        let wins = this._get_normal_windows_given_wm_class(wm_class);
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsGivenWMClass string:"firefox-esr" | jq -r '.[].id'
 
-        let winPropertiesArr = wins.map(win => this._get_properties_brief_given_meta_window(win));
+function GetWindowsGivenWMClass(wm_class) {
+    let wins = getNormalWindowsGivenWmClass(wm_class);
+    return JSON.stringify(wins.map(win => getPropertiesBriefGivenMetaWindow(win)));
+}
 
-        return JSON.stringify(winPropertiesArr);
-    }
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.ToggleLookingGlass
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.ToggleLookingGlass
+function ToggleLookingGlass() {
+    if (Main.lookingGlass === null)
+        Main.createLookingGlass();
+    Main.lookingGlass.toggle();
+}
 
-    ToggleLookingGlass() {
-        if (Main.lookingGlass === null) {
-            Main.createLookingGlass();
-        }
-        Main.lookingGlass.toggle();
-    }
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.MinimizeOtherWindowsOfFocusedWindowWMClass
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.MinimizeOtherWindowsOfFocusedWindowWMClass
+function MinimizeOtherWindowsOfFocusedWindowWMClass() {
+    getOtherNormalWindowsCurrentWorkspaceOfFocusedWindowWmClass().map(w => w.minimize());
+}
 
-    MinimizeOtherWindowsOfFocusedWindowWMClass() {
-        let wins = this._get_other_normal_windows_current_workspace_of_focused_window_wm_class();
-        wins.map(w => w.minimize());
-    }
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowActivateGivenWinID uint32:44129093
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowActivateGivenWinID uint32:44129093
+function WindowActivateGivenWinID(win_id) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    if (win === null) return;
+    win.get_workspace().activate_with_focus(win, 0);
+}
 
-    WindowActivateGivenWinID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-        if (win !== null) {
-            let win_workspace = win.get_workspace();
-            win_workspace.activate_with_focus(win, 0);
-        }
-    }
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowCloseGivenWinID uint32:44129093
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowCloseGivenWinID uint32:44129093
+function WindowCloseGivenWinID(win_id) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    if (win !== null) win.delete(0);
+}
 
-    WindowCloseGivenWinID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowFullScreenGivenWinID uint32:44129093
 
-        if (win !== null) {
-            win.delete(0);
-        }
-    }
+function WindowFullScreenGivenWinID(win_id) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    if (win === null) return;
+    let win_workspace = win.get_workspace();
+    win.maximize(3);
+    win_workspace.activate_with_focus(win, 0);
+}
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowFullScreenGivenWinID uint32:44129093
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMaximizeGivenWinID uint32:3931313482
 
-    WindowFullScreenGivenWinID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
+function WindowMaximizeGivenWinID(win_id) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    if (win === null) return;
+    if (win.minimized) win.unminimize();
+    win.maximize(3);
+    win.activate(0);
+}
 
-        if (win !== null) {
-            let win_workspace = win.get_workspace();
-            win.maximize(3);
-            win_workspace.activate_with_focus(win, 0);
-        }
-    }
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMinimizeGivenWinID uint32:3931313482
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMaximizeGivenWinID uint32:3931313482
+function WindowMinimizeGivenWinID(win_id) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    if (win !== null) win.minimize();
+}
 
-    WindowMaximizeGivenWinID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveGivenWinID uint32:44129093 uint32:100 uint32:200
 
-        if (win !== null) {
-            if (win.minimized) {
-                win.unminimize();
-            }
+function WindowMoveGivenWinID(win_id, x, y) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    const rect = win.get_frame_rect();
+    moveResizeWindow(win, x, y, rect.width, rect.height);
+}
 
-            win.maximize(3);
-            win.activate(0);
-        }
-    }
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveResizeGivenWinID uint32:44129093 uint32:0 uint32:0 uint32:0 uint32:0
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMinimizeGivenWinID uint32:3931313482
+function WindowMoveResizeGivenWinID(win_id, x, y, width, height) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    if (win === null) return;
+    moveResizeWindow(win, x, y, width, height);
+    win.activate(0);
+}
 
-    WindowMinimizeGivenWinID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-        if (win !== null) {
-            win.minimize();
-        }
-    }
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToCurrentWorkspace uint32:44129093
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveGivenWinID uint32:44129093 uint32:100 uint32:200
+function WindowMoveToCurrentWorkspace(win_id) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    if (win === null) return;
+    win.change_workspace(WorkspaceManager.get_active_workspace());
+}
 
-    WindowMoveGivenWinID(win_id, x, y) {
-        let win = this._get_normal_window_given_window_id(win_id);
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToExcludingGivenWMClasses array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" uint32:7
 
-        const rect = win.get_frame_rect();
-
-        // 2. Extract properties (rect.x, rect.y, rect.width, rect.height)
-        const width = rect.width;
-        const height = rect.height;
-
-        this._move_resize_window(win, x, y, width, height);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveResizeGivenWinID uint32:44129093 uint32:0 uint32:0 uint32:0 uint32:0
-
-    WindowMoveResizeGivenWinID(win_id, x, y, width, height) {
-        let win = this._get_normal_window_given_window_id(win_id);
-
-        if (win !== null) {
-            this._move_resize_window(win, x, y, width, height);
-
-            win.activate(0);
-        }
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToCurrentWorkspace uint32:44129093
-
-    WindowMoveToCurrentWorkspace(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-
-        if (win !== null) {
-            let current_workspace = WorkspaceManager.get_active_workspace();
-            win.change_workspace(current_workspace);
-        }
-    }
-
-    //  dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToExcludingGivenWMClasses array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" uint32:7
-
-    WindowMoveToExcludingGivenWMClasses(wm_classes, workspace_num) {
-        let wins = this._get_normal_windows_excluding_given_wm_classes(wm_classes);
-        wins.forEach(win => {
-            if (win !== null) {
-                win.change_workspace_by_index(workspace_num, false);
-            }
-        });
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToGivenWorkspaceGivenWinID uint32:44129093 uint32:0
-
-    WindowMoveToGivenWorkspaceGivenWinID(win_id, workspace_num) {
-        let win = this._get_normal_window_given_window_id(win_id);
-
-        if (win !== null) {
+function WindowMoveToExcludingGivenWMClasses(wm_classes, workspace_num) {
+    let wins = getNormalWindowsExcludingGivenWmClasses(wm_classes);
+    wins.forEach(win => {
+        if (win !== null)
             win.change_workspace_by_index(workspace_num, false);
-        }
+    });
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToGivenWorkspaceGivenWinID uint32:44129093 uint32:0
+
+function WindowMoveToGivenWorkspaceGivenWinID(win_id, workspace_num) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    if (win !== null)
+        win.change_workspace_by_index(workspace_num, false);
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowRaiseGivenWinID uint32:44129093
+
+function WindowRaiseGivenWinID(win_id) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    if (win !== null) {
+        win.raise();
+        win.raise_and_make_recent();
     }
+}
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowRaiseGivenWinID uint32:44129093
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowResizeGivenWinID uint32:44129093 uint32:800 uint32:600
 
-    WindowRaiseGivenWinID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-        if (win !== null) {
-            win.raise();
-            win.raise_and_make_recent();
-        }
-    }
+function WindowResizeGivenWinID(win_id, width, height) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    if (win === null) return;
+    moveResizeWindow(win, win.get_x(), win.get_y(), width, height);
+    win.activate(0);
+}
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowResizeGivenWinID uint32:44129093 uint32:800 uint32:600
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsActivateGivenWMClass string:"firefox-esr"
 
-    WindowResizeGivenWinID(win_id, width, height) {
-        let win = this._get_normal_window_given_window_id(win_id);
-        if (win !== null) {
-            this._move_resize_window(win, win.get_x(), win.get_y(), width, height);
-            win.activate(0);
-        }
-    }
+function WindowsActivateGivenWMClass(wm_class) {
+    let wins = getNormalWindowsGivenWmClass(wm_class);
+    wins.forEach(win => {
+        win.get_workspace().activate_with_focus(win, 0);
+    });
+}
 
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsActivateGivenWMClass string:"firefox-esr"
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsCloseDuplicateNemo
 
-    WindowsActivateGivenWMClass(wm_class) {
-        let wins = this._get_normal_windows_given_wm_class(wm_class);
+function WindowsCloseDuplicateNemo() {
+    let wins = excludeFileProgressWindows(
+        getNormalWindowsCurrentWorkspaceGivenWmClass(NEMO)
+    );
 
-        wins.forEach(win => {
-            let win_workspace = win.get_workspace();
-            win_workspace.activate_with_focus(win, 0);
-        });
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsCloseDuplicateNemo
-
-    WindowsCloseDuplicateNemo() {
-        let wins = this._exclude_file_progress_windows(
-            this._get_normal_windows_current_workspace_given_wm_class(NEMO)
-        );
-
-        let seen = {};
-        wins.forEach(win => {
-            let key = win.get_title();
-            if (!seen[key]) {
-                seen[key] = win;
+    let seen = {};
+    wins.forEach(win => {
+        let key = win.get_title();
+        if (!seen[key]) {
+            seen[key] = win;
+        } else {
+            if (win.get_user_time() < seen[key].get_user_time()) {
+                win.delete(0);
             } else {
-                if (win.get_user_time() < seen[key].get_user_time()) {
-                    win.delete(0);
-                } else {
-                    seen[key].delete(0);
-                    seen[key] = win;
-                }
-            }
-        });
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsMoveSideBySide uint32:win_id_1 uint32:win_id_2
-
-    WindowsMoveSideBySide(win_id_1, win_id_2) {
-        this._move_windows_side_by_side(win_id_1, win_id_2);
-    }
-
-    //  dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsMoveToGivenWorkspaceGivenWMClass string:"firefox-esr" uint32:0
-
-    WindowsMoveToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
-        this._move_windows_to_given_workspace_given_wm_class(wm_class, workspace_num);
-    }
-
-    // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowUnminimizeGivenWinID uint32:44129093
-
-    WindowUnminimizeGivenWinID(win_id) {
-        let win = this._get_normal_window_given_window_id(win_id);
-        if (win !== null) {
-            if (win.minimized) {
-                win.unminimize();
+                seen[key].delete(0);
+                seen[key] = win;
             }
         }
-    }
+    });
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsMoveSideBySide uint32:win_id_1 uint32:win_id_2
+
+function WindowsMoveSideBySide(win_id_1, win_id_2) {
+    moveWindowsSideBySide(win_id_1, win_id_2);
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsMoveToGivenWorkspaceGivenWMClass string:"firefox-esr" uint32:0
+
+export function WindowsMoveToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
+    moveWindowsToGivenWorkspaceGivenWmClass(wm_class, workspace_num);
+}
+
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowUnminimizeGivenWinID uint32:44129093
+
+function WindowUnminimizeGivenWinID(win_id) {
+    let win = getNormalWindowGivenWindowId(win_id);
+    if (win !== null && win.minimized)
+        win.unminimize();
+}
+
+// ---------------------------------------------------------------------------
+// Exports.
+// ---------------------------------------------------------------------------
+
+export const dbusObject = {
+    AlignWindowsOfFocusedWindowWMClass,
+    CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass,
+    GetAppFocusedWindow,
+    GetAppGivenAppID,
+    GetAppGivenPID,
+    GetAppGivenWindowID,
+    GetAppGivenWMClass,
+    GetAppsRunning,
+    GetAppsRunningGivenWMClass,
+    GetWindowFocused,
+    GetWindowGivenWindowID,
+    GetWindows,
+    GetWindowCountCurrentWorkspace,
+    GetWindowsCurrentWorkspace,
+    GetWindowsCurrentWorkspaceCurrentMonitor,
+    GetWindowsCurrentWorkspaceOfFocusedWindowWMClass,
+    ToggleWindowsCurrentWorkspace,
+    GetWindowsExcludingGivenWMClass,
+    GetWindowsGivenWMClass,
+    ToggleLookingGlass,
+    MinimizeOtherWindowsOfFocusedWindowWMClass,
+    WindowActivateGivenWinID,
+    WindowCloseGivenWinID,
+    WindowFullScreenGivenWinID,
+    WindowMaximizeGivenWinID,
+    WindowMinimizeGivenWinID,
+    WindowMoveGivenWinID,
+    WindowMoveResizeGivenWinID,
+    WindowMoveToCurrentWorkspace,
+    WindowMoveToExcludingGivenWMClasses,
+    WindowMoveToGivenWorkspaceGivenWinID,
+    WindowRaiseGivenWinID,
+    WindowResizeGivenWinID,
+    WindowsActivateGivenWMClass,
+    WindowsCloseDuplicateNemo,
+    WindowsMoveSideBySide,
+    WindowsMoveToGivenWorkspaceGivenWMClass,
+    WindowUnminimizeGivenWinID,
+};
+
+export function init() {
+    state.alignmentEdgeRatios = new Map();
+    state.sharedEdgeChains = [];
+}
+
+export function destroy() {
+    state.sharedEdgeChains.forEach(chain => chain.destroy());
+    state.sharedEdgeChains = [];
 }
