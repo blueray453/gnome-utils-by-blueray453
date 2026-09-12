@@ -1038,7 +1038,7 @@ function WindowsMoveSideBySide(win_id_1, win_id_2) {
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsMoveToGivenWorkspaceGivenWMClass string:"firefox-esr" uint32:0
 
-export function WindowsMoveToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
+function WindowsMoveToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
     moveWindowsToGivenWorkspaceGivenWmClass(wm_class, workspace_num);
 }
 

@@ -95,7 +95,7 @@ function setData(actor, key, value) {
     // a call site that mutates the tag directly, and the border can now
     // silently go stale. Fix the call site to go through setTag.
     if (key === 'tag' && !state.settingTag)
-        journal.warn(`setData('tag') called outside setTag — border may be stale`);
+        journal(`setData('tag') called outside setTag — border may be stale`);
 
     const info = state.windowData.get(actor) || {};
     info[key] = value;

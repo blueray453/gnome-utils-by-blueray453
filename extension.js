@@ -52,17 +52,26 @@ const state = {
 
 function exportAll(connection) {
     for (const iface of INTERFACES) {
+        // Order matters: wrap and export first, only then call the module's
+        // init(). If wrap or export throws, we never enter the half-inited
+        // state where init() has run but the entry is missing from
+        // state.exported — which would leak signal handlers because
+        // unexportAll() would never find the module to call destroy() on.
         try {
-            iface.module.init?.();
             const exported = Gio.DBusExportedObject.wrapJSObject(
                 iface.module.MR_DBUS_IFACE,
                 iface.module.dbusObject,
             );
-            state.exported.set(iface.ifaceName, { exported, module: iface.module });
             exported.export(connection, iface.path);
+
+            iface.module.init?.();
+            state.exported.set(iface.ifaceName, { exported, module: iface.module });
+
             journal(`Exported ${iface.ifaceName} on ${iface.path}`);
         } catch (e) {
             journal(`Failed to export ${iface.ifaceName}: ${e.message}`, true);
+            // Undo a partial init() if it ran before the failure.
+            try { iface.module.destroy?.(); } catch (_) { /* nothing to clean */ }
         }
     }
 }
