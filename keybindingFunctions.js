@@ -133,7 +133,7 @@ function rearrangeToWorkspaces(config) {
 
 // Crowded target (> DIRECT_MODE_MAX_WINDOWS) → show TopNotchWorkspaces'
 // search overlay for that workspace INSTEAD OF switching to it directly.
-// (The overlay's own ShowWorkspaceWindows handler calls
+// (The overlay's own ToggleWorkspaceWindows handler calls
 // workspace.activate() on TopNotchWorkspaces' side, so the real GNOME
 // workspace switch still happens — just via that extension, and
 // asynchronously over DBus rather than synchronously here.)
@@ -144,7 +144,7 @@ function switchOrShowOverlay(workspaceNum) {
         journal(`Workspace ${workspaceNum} has ${windowCount} windows — showing overlay instead of switching`);
         callDBusMethod(
             TOPNOTCH_BUS_NAME, TOPNOTCH_OVERLAY_PATH, TOPNOTCH_OVERLAY_IFACE,
-            'ShowWorkspaceWindows',
+            'ToggleWorkspaceWindows',
             new GLib.Variant('(u)', [workspaceNum]),
         );
         return;
