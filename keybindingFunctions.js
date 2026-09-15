@@ -138,7 +138,7 @@ function rearrangeToWorkspaces(config) {
 // workspace switch still happens — just via that extension, and
 // asynchronously over DBus rather than synchronously here.)
 function switchOrShowOverlay(workspaceNum) {
-    const windowCount = JSON.parse(windowFunctions.dbusObject.WindowMoveToGivenWorkspaceGivenWinID(workspaceNum));
+    const windowCount = JSON.parse(windowFunctions.dbusObject.GetWindowCountGivenWorkspace(workspaceNum));
 
     if (windowCount > DIRECT_MODE_MAX_WINDOWS) {
         journal(`Workspace ${workspaceNum} has ${windowCount} windows — showing overlay instead of switching`);
