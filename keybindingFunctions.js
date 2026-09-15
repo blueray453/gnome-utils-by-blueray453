@@ -150,6 +150,15 @@ function switchOrShowOverlay(workspaceNum) {
         return;
     }
 
+    // This workspace isn't crowded — no overflow overlay exists for it.
+    // If TopNotchWorkspaces has one open from a PREVIOUS crowded
+    // workspace, tell it to close. CloseOverlay is safe to call even
+    // when nothing's open — it checks first and no-ops.
+    callDBusMethod(
+        TOPNOTCH_BUS_NAME, TOPNOTCH_OVERLAY_PATH, TOPNOTCH_OVERLAY_IFACE,
+        'CloseOverlay',
+    );
+
     goToWorkspace(workspaceNum);
 }
 
