@@ -3,10 +3,22 @@ import GLib from 'gi://GLib';
 
 import * as windowFunctions from './windowFunctions.js';
 import * as keyboardSimulatorFunctions from './keyboardSimulatorFunctions.js';
+import { callDBusMethod } from './dbusClient.js';
 
 import { createLogger } from './logger.js';
 
 const journal = createLogger(import.meta.url);
+
+// Cross-extension: TopNotchWorkspaces' overlay service. Used to show its
+// "windows on this workspace" search overlay instead of a bare workspace
+// switch when the target workspace is crowded.
+const TOPNOTCH_BUS_NAME = 'io.github.blueray453.TopNotchWorkspaces';
+const TOPNOTCH_OVERLAY_PATH = '/io/github/blueray453/TopNotchWorkspaces/Overlay';
+const TOPNOTCH_OVERLAY_IFACE = 'io.github.blueray453.TopNotchWorkspaces.Overlay';
+
+// Must match TopNotchWorkspaces' own DIRECT_MODE_MAX_WINDOWS — above this
+// many windows, its thumbnail shows an overflow button instead of icons.
+const DIRECT_MODE_MAX_WINDOWS = 5;
 
 const WORKSPACE_CONFIG = {
     "0": {
@@ -119,12 +131,34 @@ function rearrangeToWorkspaces(config) {
     journal(`Rearranged windows: moved known apps to their workspaces, others to workspace 7`);
 }
 
+// Crowded target (> DIRECT_MODE_MAX_WINDOWS) → show TopNotchWorkspaces'
+// search overlay for that workspace INSTEAD OF switching to it directly.
+// (The overlay's own ShowWorkspaceWindows handler calls
+// workspace.activate() on TopNotchWorkspaces' side, so the real GNOME
+// workspace switch still happens — just via that extension, and
+// asynchronously over DBus rather than synchronously here.)
+function switchOrShowOverlay(workspaceNum) {
+    const windowCount = JSON.parse(windowFunctions.dbusObject.WindowMoveToGivenWorkspaceGivenWinID(workspaceNum));
+
+    if (windowCount > DIRECT_MODE_MAX_WINDOWS) {
+        journal(`Workspace ${workspaceNum} has ${windowCount} windows — showing overlay instead of switching`);
+        callDBusMethod(
+            TOPNOTCH_BUS_NAME, TOPNOTCH_OVERLAY_PATH, TOPNOTCH_OVERLAY_IFACE,
+            'ShowWorkspaceWindows',
+            new GLib.Variant('(u)', [workspaceNum]),
+        );
+        return;
+    }
+
+    goToWorkspace(workspaceNum);
+}
+
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Keybinding io.github.blueray453.GnomeUtils.Keybinding.SwitchToWorkspace uint32:0
 
 function SwitchToWorkspace(workspaceNum) {
     if (workspaceNum === 7) {
         rearrangeToWorkspaces(WORKSPACE_CONFIG);
-        goToWorkspace(workspaceNum);
+        switchOrShowOverlay(workspaceNum);
         return;
     }
 
@@ -145,7 +179,7 @@ function SwitchToWorkspace(workspaceNum) {
     if (toggle_if_current && currentIndex === workspaceNum) {
         windowFunctions.dbusObject.ToggleWindowsCurrentWorkspace();
     } else {
-        goToWorkspace(workspaceNum);
+        switchOrShowOverlay(workspaceNum);
         for (const wmClass of apps)
             windowFunctions.dbusObject.WindowsMoveToGivenWorkspaceGivenWMClass(wmClass, workspaceNum);
     }
