@@ -129,7 +129,7 @@ function removeSpecCache() {
 
 export default class GnomeUtils extends Extension {
     enable() {
-        initLogging(this.uuid, 'file', true);
+        initLogging(this.uuid, 'file', false);
         journal(`Enabled`);
 
         state.ownerId = Gio.bus_own_name(
