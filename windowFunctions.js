@@ -75,6 +75,7 @@ export const MR_DBUS_IFACE = `
         </method>
         <method name="GetWindowCountGivenWorkspace">
             <arg type="u" direction="in" name="workspace_num" />
+            <arg type="s" direction="out" name="count" />
         </method>
         <method name="GetWindowsCurrentWorkspace">
             <arg type="s" direction="out" name="win" />
@@ -399,8 +400,7 @@ function getNormalWindowsCurrentWorkspace() {
 function getNormalWindowsGivenWorkspace(index) {
     let workspace = WorkspaceManager.get_workspace_by_index(index);
     return getNormalWindows().filter(win =>
-        win.is_on_all_workspaces() || win.get_workspace() === workspace
-    );
+        win.is_on_all_workspaces() || win.get_workspace() === workspace);
 }
 
 function getNormalWindowsCurrentWorkspaceCurrentMonitor() {
@@ -829,10 +829,10 @@ function GetWindowCountCurrentWorkspace() {
     return JSON.stringify(getNormalWindowsCurrentWorkspace().length);
 }
 
-// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowCountGivenWorkspace
+// dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowCountGivenWorkspace uint32:0
 
-function GetWindowCountGivenWorkspace() {
-    return JSON.stringify(getNormalWindowsGivenWorkspace().length);
+function GetWindowCountGivenWorkspace(index) {
+    return JSON.stringify(getNormalWindowsGivenWorkspace(index).length);
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowsCurrentWorkspace | jq .
