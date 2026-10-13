@@ -438,122 +438,94 @@ export function getOtherNormalWindowsCurrentWorkspaceOfFocusedWindowWmClass() {
 function isCoveredFully(window) {
     if (window.minimized) return false;
 
-    let windows = Display.sort_windows_by_stacking(getNormalWindowsCurrentWorkspace());
+    const workspace = WorkspaceManager.get_active_workspace();
+    const stacked = Display.sort_windows_by_stacking(getNormalWindowsCurrentWorkspace());
 
-    let targetIndex = windows.indexOf(window);
-    if (targetIndex === -1) return false;
+    const index = stacked.indexOf(window);
+    if (index === -1) return false;
 
-    let targetRect = window.get_frame_rect();
-    let monitor = window.get_monitor();
-    let workArea = WorkspaceManager.get_active_workspace().get_work_area_for_monitor(monitor);
+    const area = workspace.get_work_area_for_monitor(window.get_monitor());
 
-    let clippedTarget = {
-        x: Math.max(targetRect.x, workArea.x),
-        y: Math.max(targetRect.y, workArea.y),
-        width: 0,
-        height: 0,
-    };
-    let targetRight = Math.min(targetRect.x + targetRect.width, workArea.x + workArea.width);
-    let targetBottom = Math.min(targetRect.y + targetRect.height, workArea.y + workArea.height);
-    clippedTarget.width = targetRight - clippedTarget.x;
-    clippedTarget.height = targetBottom - clippedTarget.y;
+    // Frame rect clipped to the work area, as {l, t, r, b}.
+    const clip = rect => ({
+        l: Math.max(rect.x, area.x),
+        t: Math.max(rect.y, area.y),
+        r: Math.min(rect.x + rect.width, area.x + area.width),
+        b: Math.min(rect.y + rect.height, area.y + area.height),
+    });
 
-    if (clippedTarget.width <= 0 || clippedTarget.height <= 0) return false;
+    const t = clip(window.get_frame_rect());
+    if (t.r <= t.l || t.b <= t.t) return false;
 
-    let unionRect = null;
+    // Clipped rects of every visible window above the target that
+    // actually intersects it.
+    const covers = [];
+    for (let i = index + 1; i < stacked.length; i++) {
+        const other = stacked[i];
+        if (other.minimized) continue;
+        if (other.get_transient_for() === window) continue;
 
-    for (let i = targetIndex + 1; i < windows.length; i++) {
-        let topWin = windows[i];
-        if (topWin.minimized) continue;
+        const o = clip(other.get_frame_rect());
+        if (o.r <= o.l || o.b <= o.t) continue;
+        if (o.l >= t.r || o.r <= t.l || o.t >= t.b || o.b <= t.t) continue;
 
-        let topRect = topWin.get_frame_rect();
+        covers.push(o);
+    }
+    if (covers.length === 0) return false;
 
-        let clippedTop = {
-            x: Math.max(topRect.x, workArea.x),
-            y: Math.max(topRect.y, workArea.y),
-            width: 0,
-            height: 0,
-        };
-        let topRight = Math.min(topRect.x + topRect.width, workArea.x + workArea.width);
-        let topBottom = Math.min(topRect.y + topRect.height, workArea.y + workArea.height);
-        clippedTop.width = topRight - clippedTop.x;
-        clippedTop.height = topBottom - clippedTop.y;
+    // Grid lines: the target's edges plus every covering edge that falls
+    // inside the target. Between consecutive lines, each cell is either
+    // entirely inside or entirely outside any given covering rect.
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const xs = [...new Set([t.l, t.r, ...covers.flatMap(o => [clamp(o.l, t.l, t.r), clamp(o.r, t.l, t.r)])])]
+        .sort((a, b) => a - b);
+    const ys = [...new Set([t.t, t.b, ...covers.flatMap(o => [clamp(o.t, t.t, t.b), clamp(o.b, t.t, t.b)])])]
+        .sort((a, b) => a - b);
 
-        if (clippedTop.width <= 0 || clippedTop.height <= 0) continue;
-
-        if (unionRect === null) {
-            unionRect = { ...clippedTop };
-        } else {
-            let x1 = Math.min(unionRect.x, clippedTop.x);
-            let y1 = Math.min(unionRect.y, clippedTop.y);
-            let x2 = Math.max(unionRect.x + unionRect.width, clippedTop.x + clippedTop.width);
-            let y2 = Math.max(unionRect.y + unionRect.height, clippedTop.y + clippedTop.height);
-            unionRect = { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
-        }
-
-        if (unionRect.x <= clippedTarget.x &&
-            unionRect.y <= clippedTarget.y &&
-            unionRect.x + unionRect.width >= clippedTarget.x + clippedTarget.width &&
-            unionRect.y + unionRect.height >= clippedTarget.y + clippedTarget.height) {
-            return true;
+    for (let xi = 0; xi < xs.length - 1; xi++) {
+        const cx = (xs[xi] + xs[xi + 1]) / 2;
+        for (let yi = 0; yi < ys.length - 1; yi++) {
+            const cy = (ys[yi] + ys[yi + 1]) / 2;
+            const covered = covers.some(o => cx > o.l && cx < o.r && cy > o.t && cy < o.b);
+            if (!covered) return false; // found a visible cell
         }
     }
-
-    return false;
+    return true;
 }
 
 function isCoveredFullyOrPartially(window) {
     if (window.minimized) return false;
 
-    let windows = Display.sort_windows_by_stacking(getNormalWindowsCurrentWorkspace());
+    const workspace = WorkspaceManager.get_active_workspace();
+    const stacked = Display.sort_windows_by_stacking(getNormalWindowsCurrentWorkspace());
 
-    let targetIndex = windows.indexOf(window);
-    if (targetIndex === -1) return false;
+    const index = stacked.indexOf(window);
+    if (index === -1) return false;
 
-    let targetRect = window.get_frame_rect();
-    let monitor = window.get_monitor();
-    let workArea = WorkspaceManager.get_active_workspace().get_work_area_for_monitor(monitor);
+    const area = workspace.get_work_area_for_monitor(window.get_monitor());
 
-    let clippedTarget = {
-        x: Math.max(targetRect.x, workArea.x),
-        y: Math.max(targetRect.y, workArea.y),
-        width: 0,
-        height: 0,
-    };
-    let targetRight = Math.min(targetRect.x + targetRect.width, workArea.x + workArea.width);
-    let targetBottom = Math.min(targetRect.y + targetRect.height, workArea.y + workArea.height);
-    clippedTarget.width = targetRight - clippedTarget.x;
-    clippedTarget.height = targetBottom - clippedTarget.y;
+    // Frame rect clipped to the work area, as {l, t, r, b}.
+    const clip = rect => ({
+        l: Math.max(rect.x, area.x),
+        t: Math.max(rect.y, area.y),
+        r: Math.min(rect.x + rect.width, area.x + area.width),
+        b: Math.min(rect.y + rect.height, area.y + area.height),
+    });
 
-    if (clippedTarget.width <= 0 || clippedTarget.height <= 0) return false;
+    const t = clip(window.get_frame_rect());
+    if (t.r <= t.l || t.b <= t.t) return false;
 
-    for (let i = targetIndex + 1; i < windows.length; i++) {
-        let topWin = windows[i];
-        if (topWin.minimized) continue;
+    for (let i = index + 1; i < stacked.length; i++) {
+        const other = stacked[i];
+        if (other.minimized) continue;
+        if (other.get_transient_for() === window) continue;
 
-        let topRect = topWin.get_frame_rect();
+        const o = clip(other.get_frame_rect());
+        if (o.r <= o.l || o.b <= o.t) continue;
 
-        let clippedTop = {
-            x: Math.max(topRect.x, workArea.x),
-            y: Math.max(topRect.y, workArea.y),
-            width: 0,
-            height: 0,
-        };
-        let topRight = Math.min(topRect.x + topRect.width, workArea.x + workArea.width);
-        let topBottom = Math.min(topRect.y + topRect.height, workArea.y + workArea.height);
-        clippedTop.width = topRight - clippedTop.x;
-        clippedTop.height = topBottom - clippedTop.y;
-
-        if (clippedTop.width <= 0 || clippedTop.height <= 0) continue;
-
-        if (clippedTarget.x < clippedTop.x + clippedTop.width &&
-            clippedTarget.x + clippedTarget.width > clippedTop.x &&
-            clippedTarget.y < clippedTop.y + clippedTop.height &&
-            clippedTarget.y + clippedTarget.height > clippedTop.y) {
+        if (t.l < o.r && t.r > o.l && t.t < o.b && t.b > o.t)
             return true;
-        }
     }
-
     return false;
 }
 
