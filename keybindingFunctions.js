@@ -10,6 +10,8 @@ import { createLogger } from './logger.js';
 
 const journal = createLogger(import.meta.url);
 
+const WorkspaceManager = global.get_workspace_manager();
+
 // Cross-extension: TopNotchWorkspaces' overlay service. Used to show its
 // "windows on this workspace" search overlay instead of a bare workspace
 // switch when the target workspace is crowded.
@@ -84,7 +86,6 @@ export const MR_DBUS_IFACE = `
 </node>`;
 
 function goToWorkspace(workspaceNum) {
-    const WorkspaceManager = global.get_workspace_manager();
     const current = WorkspaceManager.get_active_workspace();
     const target = WorkspaceManager.get_workspace_by_index(workspaceNum);
     if (target && target.index() !== current.index())
@@ -94,7 +95,7 @@ function goToWorkspace(workspaceNum) {
 // Focus the previous window on the current workspace in a stable order
 // (creation order), so repeated presses go 4,3,2,1,4,3,2...
 function cycleWindowsCurrentWorkspace() {
-    const workspace = global.get_workspace_manager().get_active_workspace();
+    const workspace = WorkspaceManager.get_active_workspace();
 
     const windows = workspace.list_windows()
         .filter(w => w.get_window_type() === Meta.WindowType.NORMAL && !w.is_skip_taskbar())
@@ -186,7 +187,6 @@ function switchOrShowOverlay(workspaceNum) {
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Keybinding io.github.blueray453.GnomeUtils.Keybinding.SwitchToWorkspace uint32:0
 
 function SwitchToWorkspace(workspaceNum) {
-    const WorkspaceManager = global.get_workspace_manager();
     const currentIndex = WorkspaceManager.get_active_workspace().index();
     const alreadyHere = currentIndex === workspaceNum;
 
