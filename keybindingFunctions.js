@@ -1,5 +1,6 @@
 // keybindingFunctions.js
 import GLib from 'gi://GLib';
+import Meta from 'gi://Meta';
 
 import * as windowFunctions from './windowFunctions.js';
 import * as keyboardSimulatorFunctions from './keyboardSimulatorFunctions.js';
@@ -25,25 +26,21 @@ const WORKSPACE_CONFIG = {
         apps: ["Alacritty"],
         launch: { "Alacritty": "alacritty" },
         extra: [],
-        toggle_if_current: false,
     },
     "1": {
         apps: ["Nemo"],
         launch: { "Nemo": "nemo" },
         extra: ["close_duplicate_nemo"],
-        toggle_if_current: false,
     },
     "2": {
         apps: ["Io.github.cboxdoerfer.FSearch"],
         launch: { "Io.github.cboxdoerfer.FSearch": "fsearch" },
         extra: ["select_all_fsearch"],
-        toggle_if_current: false,
     },
     "3": {
         apps: ["VSCodium"],
         launch: { "VSCodium": "codium --reuse-window" },
         extra: [],
-        toggle_if_current: false,
     },
     "4": {
         apps: ["firefox-esr", "Chromium", "Epiphany", "Tor Browser"],
@@ -54,7 +51,6 @@ const WORKSPACE_CONFIG = {
             "Tor Browser": "tor-browser",
         },
         extra: [],
-        toggle_if_current: true,
         primary_launch: "firefox-esr",
     },
     "5": {
@@ -65,7 +61,6 @@ const WORKSPACE_CONFIG = {
             "mpv": "mpv",
         },
         extra: [],
-        toggle_if_current: false,
     },
     "6": {
         apps: ["calibre", "Evince", "xchm"],
@@ -75,7 +70,6 @@ const WORKSPACE_CONFIG = {
             "xchm": "xchm",
         },
         extra: [],
-        toggle_if_current: false,
     },
     // Workspace 7 is handled separately below – no config entry needed
 };
@@ -95,6 +89,33 @@ function goToWorkspace(workspaceNum) {
     const target = WorkspaceManager.get_workspace_by_index(workspaceNum);
     if (target && target.index() !== current.index())
         target.activate(global.get_current_time());
+}
+
+// Focus the previous window on the current workspace in a stable order
+// (creation order), so repeated presses go 4,3,2,1,4,3,2...
+function cycleWindowsCurrentWorkspace() {
+    const workspace = global.get_workspace_manager().get_active_workspace();
+
+    const windows = workspace.list_windows()
+        .filter(w => w.get_window_type() === Meta.WindowType.NORMAL && !w.is_skip_taskbar())
+        .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence());
+
+    if (windows.length === 0)
+        return;
+
+    const focused = global.display.get_focus_window();
+    const idx = windows.indexOf(focused); // -1 if none of these is focused
+
+    // Step backwards, wrapping from the first window to the last.
+    // If nothing is focused, start at the last window.
+    const prevIdx = idx === -1
+        ? windows.length - 1
+        : (idx - 1 + windows.length) % windows.length;
+    const next = windows[prevIdx];
+
+    if (next.minimized)
+        next.unminimize();
+    next.activate(global.get_current_time());
 }
 
 function rearrangeToWorkspaces(config) {
@@ -165,9 +186,16 @@ function switchOrShowOverlay(workspaceNum) {
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Keybinding io.github.blueray453.GnomeUtils.Keybinding.SwitchToWorkspace uint32:0
 
 function SwitchToWorkspace(workspaceNum) {
+    const WorkspaceManager = global.get_workspace_manager();
+    const currentIndex = WorkspaceManager.get_active_workspace().index();
+    const alreadyHere = currentIndex === workspaceNum;
+
     if (workspaceNum === 7) {
         rearrangeToWorkspaces(WORKSPACE_CONFIG);
-        switchOrShowOverlay(workspaceNum);
+        if (alreadyHere)
+            cycleWindowsCurrentWorkspace();
+        else
+            switchOrShowOverlay(workspaceNum);
         return;
     }
 
@@ -177,23 +205,18 @@ function SwitchToWorkspace(workspaceNum) {
         return;
     }
 
-    const { apps, launch, extra, toggle_if_current, primary_launch } = wsConfig;
+    const { apps, launch, extra, primary_launch } = wsConfig;
 
-    // 1. Check current workspace
-    const WorkspaceManager = global.get_workspace_manager();
-    const currentWorkspace = WorkspaceManager.get_active_workspace();
-    const currentIndex = currentWorkspace.index();
-
-    // 2. Toggle or switch
-    if (toggle_if_current && currentIndex === workspaceNum) {
-        windowFunctions.dbusObject.ToggleWindowsCurrentWorkspace();
+    // 1. Cycle if already on this workspace, otherwise switch to it
+    if (alreadyHere) {
+        cycleWindowsCurrentWorkspace();
     } else {
         switchOrShowOverlay(workspaceNum);
         for (const wmClass of apps)
             windowFunctions.dbusObject.WindowsMoveToGivenWorkspaceGivenWMClass(wmClass, workspaceNum);
     }
 
-    // 3. Launch apps only if the workspace has NO windows at all (any wm_class)
+    // 2. Launch apps only if the workspace has NO windows at all (any wm_class)
     let windowCount = 0;
     try {
         windowCount = JSON.parse(windowFunctions.dbusObject.GetWindowCountCurrentWorkspace());
@@ -214,7 +237,7 @@ function SwitchToWorkspace(workspaceNum) {
             journal(`No launch command for workspace ${workspaceNum}`, true);
     }
 
-    // 4. Extra actions
+    // 3. Extra actions
     for (const action of extra) {
         switch (action) {
             case 'select_all_fsearch':
