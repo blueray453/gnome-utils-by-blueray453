@@ -95,28 +95,33 @@ function goToWorkspace(workspaceNum) {
 // Focus the previous window on the current workspace in a stable order
 // (creation order), so repeated presses go 4,3,2,1,4,3,2...
 function cycleWindowsCurrentWorkspace() {
-    const workspace = WorkspaceManager.get_active_workspace();
+    callDBusMethod(
+        TOPNOTCH_BUS_NAME, TOPNOTCH_OVERLAY_PATH, TOPNOTCH_OVERLAY_IFACE,
+        'CycleWindowsOnWorkspace',
+        new GLib.Variant('(u)', [WorkspaceManager.get_active_workspace().index()]),
+    );
+    // const workspace = WorkspaceManager.get_active_workspace();
 
-    const windows = workspace.list_windows()
-        .filter(w => w.get_window_type() === Meta.WindowType.NORMAL && !w.is_skip_taskbar())
-        .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence());
+    // const windows = workspace.list_windows()
+    //     .filter(w => w.get_window_type() === Meta.WindowType.NORMAL && !w.is_skip_taskbar())
+    //     .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence());
 
-    if (windows.length === 0)
-        return;
+    // if (windows.length === 0)
+    //     return;
 
-    const focused = global.display.get_focus_window();
-    const idx = windows.indexOf(focused); // -1 if none of these is focused
+    // const focused = global.display.get_focus_window();
+    // const idx = windows.indexOf(focused); // -1 if none of these is focused
 
-    // Step backwards, wrapping from the first window to the last.
-    // If nothing is focused, start at the last window.
-    const prevIdx = idx === -1
-        ? windows.length - 1
-        : (idx - 1 + windows.length) % windows.length;
-    const next = windows[prevIdx];
+    // // Step backwards, wrapping from the first window to the last.
+    // // If nothing is focused, start at the last window.
+    // const prevIdx = idx === -1
+    //     ? windows.length - 1
+    //     : (idx - 1 + windows.length) % windows.length;
+    // const next = windows[prevIdx];
 
-    if (next.minimized)
-        next.unminimize();
-    next.activate(global.get_current_time());
+    // if (next.minimized)
+    //     next.unminimize();
+    // next.activate(global.get_current_time());
 }
 
 function rearrangeToWorkspaces(config) {
