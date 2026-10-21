@@ -12,16 +12,11 @@ const journal = createLogger(import.meta.url);
 
 const WorkspaceManager = global.get_workspace_manager();
 
-// Cross-extension: TopNotchWorkspaces' overlay service. Used to show its
-// "windows on this workspace" search overlay instead of a bare workspace
-// switch when the target workspace is crowded.
+// Cross-extension: TopNotchWorkspaces' overlay service. Used to cycle
+// windows on a workspace and to close a leftover overlay when switching.
 const TOPNOTCH_BUS_NAME = 'io.github.blueray453.TopNotchWorkspaces';
 const TOPNOTCH_OVERLAY_PATH = '/io/github/blueray453/TopNotchWorkspaces/Overlay';
 const TOPNOTCH_OVERLAY_IFACE = 'io.github.blueray453.TopNotchWorkspaces.Overlay';
-
-// Must match TopNotchWorkspaces' own DIRECT_MODE_MAX_WINDOWS — above this
-// many windows, its thumbnail shows an overflow button instead of icons.
-const DIRECT_MODE_MAX_WINDOWS = 5;
 
 const WORKSPACE_CONFIG = {
     "0": {
@@ -158,29 +153,11 @@ function rearrangeToWorkspaces(config) {
     journal(`Rearranged windows: moved known apps to their workspaces, others to workspace 7`);
 }
 
-// Crowded target (> DIRECT_MODE_MAX_WINDOWS) → show TopNotchWorkspaces'
-// search overlay for that workspace INSTEAD OF switching to it directly.
-// (The overlay's own ToggleWorkspaceWindows handler calls
-// workspace.activate() on TopNotchWorkspaces' side, so the real GNOME
-// workspace switch still happens — just via that extension, and
-// asynchronously over DBus rather than synchronously here.)
+// Switch to the workspace. This never opens the window overlay: that is
+// opened only by clicking a group button in the TopNotch indicator.
+// CloseOverlay is safe to call when nothing is open (it checks first and
+// no-ops), so any overlay left over from before is dismissed.
 function switchOrShowOverlay(workspaceNum) {
-    const windowCount = JSON.parse(windowFunctions.dbusObject.GetWindowCountGivenWorkspace(workspaceNum));
-
-    if (windowCount > DIRECT_MODE_MAX_WINDOWS) {
-        journal(`Workspace ${workspaceNum} has ${windowCount} windows — showing overlay instead of switching`);
-        callDBusMethod(
-            TOPNOTCH_BUS_NAME, TOPNOTCH_OVERLAY_PATH, TOPNOTCH_OVERLAY_IFACE,
-            'ToggleWorkspaceWindows',
-            new GLib.Variant('(u)', [workspaceNum]),
-        );
-        return;
-    }
-
-    // This workspace isn't crowded — no overflow overlay exists for it.
-    // If TopNotchWorkspaces has one open from a PREVIOUS crowded
-    // workspace, tell it to close. CloseOverlay is safe to call even
-    // when nothing's open — it checks first and no-ops.
     callDBusMethod(
         TOPNOTCH_BUS_NAME, TOPNOTCH_OVERLAY_PATH, TOPNOTCH_OVERLAY_IFACE,
         'CloseOverlay',
