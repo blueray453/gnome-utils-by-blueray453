@@ -40,7 +40,7 @@ const WORKSPACE_CONFIG = {
         extra: [],
     },
     "4": {
-        apps: ["firefox-esr", "Chromium", "Epiphany", "Tor Browser"],
+        apps: ["firefox-esr", "Chromium", "Epiphany", "Tor Browser", "Brave-browser"],
         launch: {
             "firefox-esr": "firefox",
             "Chromium": "chromium",
