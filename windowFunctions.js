@@ -27,6 +27,45 @@ const state = {
     sharedEdgeChains: [],
 };
 
+// ---------------------------------------------------------------------------
+// MRU contract (the whole file obeys it):
+//
+//   ONLY the following calls mutate Mutter's MRU / focus-recency:
+//     Window.activate()
+//     Window.activate_with_workspace()
+//     Window.focus()
+//     Window.raise_and_make_recent_on_workspace()
+//     Window.stick()
+//
+//   Everything else — raise(), change_workspace(), change_workspace_by_index(),
+//   move_resize_frame(), minimize(), unminimize(), maximize(), delete(), and
+//   Workspace.activate() — is MRU-neutral.
+//
+// `focusWindow` is the single entry point for "bring this window to the
+// front". It funnels through Window.activate(), which handles unminimize +
+// workspace switch + focus in one approved call. It replaces every
+// Workspace.activate_with_focus() / Workspace.activate + Window.focus()
+// pattern in the original file, so MRU mutations go through exactly one path.
+//
+// `moveToWorkspace` is the single entry point for "move this window to a
+// workspace". It refuses to re-touch a window that is already located there
+// (which includes sticky windows — located_on_workspace is true on every
+// workspace for a sticky window), so it never fires change_workspace on a
+// window that doesn't actually need to move.
+// ---------------------------------------------------------------------------
+
+function focusWindow(win) {
+    if (!win) return;
+    win.activate(0);
+}
+
+function moveToWorkspace(win, target, workspaceNum) {
+    if (!win || !target) return false;
+    if (win.located_on_workspace(target)) return false;
+    win.change_workspace_by_index(workspaceNum, false);
+    return true;
+}
+
 export const MR_DBUS_IFACE = `
 <node>
     <interface name="io.github.blueray453.GnomeUtils.Windows">
@@ -172,6 +211,11 @@ export const MR_DBUS_IFACE = `
 // be alive at once (one per aligned row), each owning its own signal
 // handlers keyed on `this` as the connectObject context. This is the "OOP
 // strictly needed" case.
+//
+// MRU note: _stillValid uses showing_on_its_workspace() instead of the
+// raw `minimized` flag, so a window that is not currently drawable for any
+// reason (minimized, unmapped mid-restack, …) drops the chain. No MRU
+// mutations happen inside this class — move_resize_frame is neutral.
 // ---------------------------------------------------------------------------
 
 class SharedEdgeChain {
@@ -232,7 +276,9 @@ class SharedEdgeChain {
 
     _stillValid() {
         for (const win of this.windows) {
-            if (win.maximized_horizontally || win.maximized_vertically || win.minimized)
+            if (win.maximized_horizontally || win.maximized_vertically)
+                return false;
+            if (!win.showing_on_its_workspace())
                 return false;
         }
 
@@ -380,6 +426,11 @@ export function getPropertiesBriefGivenMetaWindow(win, show_is_covered = false) 
 /*
    Difference between getNormalWindow* and getNormalWindows*:
    find returns first match, filter returns all.
+
+   MRU note: the "current workspace" and "given workspace" filters use
+   located_on_workspace(), which treats sticky windows as being on every
+   workspace. That's exactly the original `is_on_all_workspaces() ||
+   get_workspace() === ws` logic, expressed with the canonical predicate.
 */
 function getNormalWindows() {
     return Display.list_all_windows()
@@ -391,16 +442,14 @@ function getNormalWindows() {
 }
 
 function getNormalWindowsCurrentWorkspace() {
-    let current_workspace = WorkspaceManager.get_active_workspace();
-    return getNormalWindows().filter(win =>
-        win.is_on_all_workspaces() || win.get_workspace() === current_workspace
-    );
+    const current = WorkspaceManager.get_active_workspace();
+    return getNormalWindows().filter(win => win.located_on_workspace(current));
 }
 
 function getNormalWindowsGivenWorkspace(index) {
-    let workspace = WorkspaceManager.get_workspace_by_index(index);
-    return getNormalWindows().filter(win =>
-        win.is_on_all_workspaces() || win.get_workspace() === workspace);
+    const workspace = WorkspaceManager.get_workspace_by_index(index);
+    if (!workspace) return [];
+    return getNormalWindows().filter(win => win.located_on_workspace(workspace));
 }
 
 function getNormalWindowsCurrentWorkspaceCurrentMonitor() {
@@ -409,7 +458,8 @@ function getNormalWindowsCurrentWorkspaceCurrentMonitor() {
 }
 
 function getNormalWindowsCurrentWorkspaceOfFocusedWindowWmClass() {
-    let win = Display.get_focus_window();
+    const win = Display.get_focus_window();
+    if (!win) return [];
     return getNormalWindowsCurrentWorkspaceGivenWmClass(win.get_wm_class());
 }
 
@@ -431,12 +481,21 @@ function getNormalWindowsGivenWmClass(wm_class) {
 }
 
 export function getOtherNormalWindowsCurrentWorkspaceOfFocusedWindowWmClass() {
-    let win = Display.get_focus_window();
-    return getNormalWindowsCurrentWorkspaceGivenWmClass(win.get_wm_class()).filter(w => win != w);
+    const win = Display.get_focus_window();
+    if (!win) return [];
+    return getNormalWindowsCurrentWorkspaceGivenWmClass(win.get_wm_class())
+        .filter(w => win !== w);
 }
 
+/*
+   MRU note: showing_on_its_workspace() replaces the raw `minimized` check
+   here. Both describe the same set for windows returned by
+   getNormalWindowsCurrentWorkspace(), but showing_on_its_workspace() also
+   covers the transient "not mapped yet" state and reads as the actual
+   question the algorithm asks ("would this draw right now?").
+*/
 function isCoveredFully(window) {
-    if (window.minimized) return false;
+    if (!window.showing_on_its_workspace()) return false;
 
     const workspace = WorkspaceManager.get_active_workspace();
     const stacked = Display.sort_windows_by_stacking(getNormalWindowsCurrentWorkspace());
@@ -462,7 +521,7 @@ function isCoveredFully(window) {
     const covers = [];
     for (let i = index + 1; i < stacked.length; i++) {
         const other = stacked[i];
-        if (other.minimized) continue;
+        if (!other.showing_on_its_workspace()) continue;
         if (other.get_transient_for() === window) continue;
 
         const o = clip(other.get_frame_rect());
@@ -494,7 +553,7 @@ function isCoveredFully(window) {
 }
 
 function isCoveredFullyOrPartially(window) {
-    if (window.minimized) return false;
+    if (!window.showing_on_its_workspace()) return false;
 
     const workspace = WorkspaceManager.get_active_workspace();
     const stacked = Display.sort_windows_by_stacking(getNormalWindowsCurrentWorkspace());
@@ -504,7 +563,6 @@ function isCoveredFullyOrPartially(window) {
 
     const area = workspace.get_work_area_for_monitor(window.get_monitor());
 
-    // Frame rect clipped to the work area, as {l, t, r, b}.
     const clip = rect => ({
         l: Math.max(rect.x, area.x),
         t: Math.max(rect.y, area.y),
@@ -517,7 +575,7 @@ function isCoveredFullyOrPartially(window) {
 
     for (let i = index + 1; i < stacked.length; i++) {
         const other = stacked[i];
-        if (other.minimized) continue;
+        if (!other.showing_on_its_workspace()) continue;
         if (other.get_transient_for() === window) continue;
 
         const o = clip(other.get_frame_rect());
@@ -655,6 +713,8 @@ function alignWindows(windows_array, windows_per_container, global_object) {
                 enableAlignmentSharedEdges(group, work_area_width);
         });
 
+        // MRU-affecting on purpose: the tile that's placed last becomes the
+        // most-recent window on this workspace. Approved method: activate().
         win.activate(0);
     }
 
@@ -683,13 +743,12 @@ function moveWindowsSideBySide(win_id_1, win_id_2) {
 }
 
 function moveWindowsToGivenWorkspaceGivenWmClass(wm_class, workspace_num) {
-    let wins = getNormalWindowsGivenWmClass(wm_class);
+    const target = WorkspaceManager.get_workspace_by_index(workspace_num);
+    if (!target) return;
 
-    wins.forEach(win => {
-        const currentIndex = win.get_workspace().index?.() ?? workspace_num;
-        if (currentIndex !== workspace_num)
-            win.change_workspace_by_index(workspace_num, false);
-    });
+    let wins = getNormalWindowsGivenWmClass(wm_class);
+    for (const win of wins)
+        moveToWorkspace(win, target, workspace_num);
 }
 
 // ---------------------------------------------------------------------------
@@ -718,6 +777,7 @@ function CloseOtherWindowsCurrentWorkspaceOfFocusedWindowWMClass() {
 
 function GetAppFocusedWindow() {
     let app = WindowTracker.get_focus_app();
+    if (!app) return JSON.stringify(null);
     return JSON.stringify(getPropertiesBriefGivenAppId(app.get_id()));
 }
 
@@ -731,6 +791,7 @@ function GetAppGivenAppID(app_id) {
 
 function GetAppGivenPID(pid) {
     let app = WindowTracker.get_app_from_pid(pid);
+    if (!app) return JSON.stringify(null);
     return JSON.stringify(getPropertiesBriefGivenAppId(app.get_id()));
 }
 
@@ -738,7 +799,9 @@ function GetAppGivenPID(pid) {
 
 function GetAppGivenWindowID(win_id) {
     let win = getNormalWindowGivenWindowId(win_id);
+    if (!win) return JSON.stringify(null);
     let app = WindowTracker.get_window_app(win);
+    if (!app) return JSON.stringify(null);
     return JSON.stringify(getPropertiesBriefGivenAppId(app.get_id()));
 }
 
@@ -746,6 +809,7 @@ function GetAppGivenWindowID(win_id) {
 
 function GetAppGivenWMClass(wmclass) {
     let app = AppSystem.lookup_desktop_wmclass(wmclass);
+    if (!app) return JSON.stringify(null);
     return JSON.stringify(getPropertiesBriefGivenAppId(app.get_id()));
 }
 
@@ -777,7 +841,8 @@ function GetAppsRunningGivenWMClass(wm_class) {
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.GetWindowFocused | jq -r '.[].id'
 
 function GetWindowFocused() {
-    let win = Display.get_focus_window();
+    const win = Display.get_focus_window();
+    if (!win) return JSON.stringify(null);
     return JSON.stringify(getPropertiesBriefGivenMetaWindow(win));
 }
 
@@ -785,6 +850,7 @@ function GetWindowFocused() {
 
 function GetWindowGivenWindowID(win_id) {
     let win = getNormalWindowGivenWindowId(win_id);
+    if (!win) return JSON.stringify(null);
     return JSON.stringify(getPropertiesBriefGivenMetaWindow(win, true));
 }
 
@@ -834,23 +900,19 @@ function ToggleWindowsCurrentWorkspace() {
     let windows = getNormalWindowsCurrentWorkspace();
     if (windows.length !== 2) return false;
 
-    let minimizedWindow = windows.find(w => w.minimized);
-    if (minimizedWindow) {
-        minimizedWindow.unminimize();
-
-        let workspace = minimizedWindow.get_workspace();
-        minimizedWindow.maximize(3);
-        workspace.activate_with_focus(minimizedWindow, 0);
-
+    // showing_on_its_workspace() replaces the raw `minimized` check.
+    let hiddenWindow = windows.find(w => !w.showing_on_its_workspace());
+    if (hiddenWindow) {
+        hiddenWindow.unminimize();
+        hiddenWindow.maximize(3);
+        focusWindow(hiddenWindow);
         return true;
     }
 
     let covered = windows.find(w => isCoveredFullyOrPartially(w));
     if (!covered) return false;
 
-    let workspace = covered.get_workspace();
-    workspace.activate_with_focus(covered, 0);
-
+    focusWindow(covered);
     return true;
 }
 
@@ -885,49 +947,49 @@ function MinimizeOtherWindowsOfFocusedWindowWMClass() {
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowActivateGivenWinID uint32:44129093
 
 function WindowActivateGivenWinID(win_id) {
-    let win = getNormalWindowGivenWindowId(win_id);
+    const win = getNormalWindowGivenWindowId(win_id);
     if (win === null) return;
-    win.get_workspace().activate_with_focus(win, 0);
+    focusWindow(win);
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowCloseGivenWinID uint32:44129093
 
 function WindowCloseGivenWinID(win_id) {
-    let win = getNormalWindowGivenWindowId(win_id);
+    const win = getNormalWindowGivenWindowId(win_id);
     if (win !== null) win.delete(0);
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowFullScreenGivenWinID uint32:44129093
 
 function WindowFullScreenGivenWinID(win_id) {
-    let win = getNormalWindowGivenWindowId(win_id);
+    const win = getNormalWindowGivenWindowId(win_id);
     if (win === null) return;
-    let win_workspace = win.get_workspace();
     win.maximize(3);
-    win_workspace.activate_with_focus(win, 0);
+    focusWindow(win);
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMaximizeGivenWinID uint32:3931313482
 
 function WindowMaximizeGivenWinID(win_id) {
-    let win = getNormalWindowGivenWindowId(win_id);
+    const win = getNormalWindowGivenWindowId(win_id);
     if (win === null) return;
     if (win.minimized) win.unminimize();
     win.maximize(3);
-    win.activate(0);
+    focusWindow(win);
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMinimizeGivenWinID uint32:3931313482
 
 function WindowMinimizeGivenWinID(win_id) {
-    let win = getNormalWindowGivenWindowId(win_id);
+    const win = getNormalWindowGivenWindowId(win_id);
     if (win !== null) win.minimize();
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveGivenWinID uint32:44129093 uint32:100 uint32:200
 
 function WindowMoveGivenWinID(win_id, x, y) {
-    let win = getNormalWindowGivenWindowId(win_id);
+    const win = getNormalWindowGivenWindowId(win_id);
+    if (win === null) return;
     const rect = win.get_frame_rect();
     moveResizeWindow(win, x, y, rect.width, rect.height);
 }
@@ -935,64 +997,71 @@ function WindowMoveGivenWinID(win_id, x, y) {
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveResizeGivenWinID uint32:44129093 uint32:0 uint32:0 uint32:0 uint32:0
 
 function WindowMoveResizeGivenWinID(win_id, x, y, width, height) {
-    let win = getNormalWindowGivenWindowId(win_id);
+    const win = getNormalWindowGivenWindowId(win_id);
     if (win === null) return;
     moveResizeWindow(win, x, y, width, height);
-    win.activate(0);
+    focusWindow(win);
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToCurrentWorkspace uint32:44129093
 
 function WindowMoveToCurrentWorkspace(win_id) {
-    let win = getNormalWindowGivenWindowId(win_id);
+    const win = getNormalWindowGivenWindowId(win_id);
     if (win === null) return;
-    win.change_workspace(WorkspaceManager.get_active_workspace());
+    const current = WorkspaceManager.get_active_workspace();
+    if (!win.located_on_workspace(current))
+        win.change_workspace(current);
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToExcludingGivenWMClasses array:string:"Io.github.cboxdoerfer.FSearch","VSCodium","firefox-esr","Nemo","Alacritty" uint32:7
 
 function WindowMoveToExcludingGivenWMClasses(wm_classes, workspace_num) {
+    const target = WorkspaceManager.get_workspace_by_index(workspace_num);
+    if (!target) return;
     let wins = getNormalWindowsExcludingGivenWmClasses(wm_classes);
-    wins.forEach(win => {
-        if (win !== null)
-            win.change_workspace_by_index(workspace_num, false);
-    });
+    for (const win of wins)
+        moveToWorkspace(win, target, workspace_num);
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowMoveToGivenWorkspaceGivenWinID uint32:44129093 uint32:0
 
 function WindowMoveToGivenWorkspaceGivenWinID(win_id, workspace_num) {
-    let win = getNormalWindowGivenWindowId(win_id);
-    if (win !== null)
-        win.change_workspace_by_index(workspace_num, false);
+    const win = getNormalWindowGivenWindowId(win_id);
+    if (win === null) return;
+    const target = WorkspaceManager.get_workspace_by_index(workspace_num);
+    if (!target) return;
+    moveToWorkspace(win, target, workspace_num);
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowRaiseGivenWinID uint32:44129093
 
 function WindowRaiseGivenWinID(win_id) {
-    let win = getNormalWindowGivenWindowId(win_id);
-    if (win !== null) {
-        win.raise();
-        win.raise_and_make_recent();
-    }
+    const win = getNormalWindowGivenWindowId(win_id);
+    if (win === null) return;
+    // Approved MRU method. raise() alone is neutral; raise_and_make_recent_on_workspace
+    // is the canonical raise + recency bump. Focus is intentionally NOT touched
+    // (matches the original raise() + raise_and_make_recent() pair).
+    win.raise_and_make_recent_on_workspace(win.get_workspace());
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowResizeGivenWinID uint32:44129093 uint32:800 uint32:600
 
 function WindowResizeGivenWinID(win_id, width, height) {
-    let win = getNormalWindowGivenWindowId(win_id);
+    const win = getNormalWindowGivenWindowId(win_id);
     if (win === null) return;
-    moveResizeWindow(win, win.get_x(), win.get_y(), width, height);
-    win.activate(0);
+    const rect = win.get_frame_rect();
+    moveResizeWindow(win, rect.x, rect.y, width, height);
+    focusWindow(win);
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsActivateGivenWMClass string:"firefox-esr"
 
 function WindowsActivateGivenWMClass(wm_class) {
     let wins = getNormalWindowsGivenWmClass(wm_class);
-    wins.forEach(win => {
-        win.get_workspace().activate_with_focus(win, 0);
-    });
+    // Approved MRU method per window: activate() unminimizes + switches
+    // workspace + focuses, which is what the original
+    // workspace.activate_with_focus(win, 0) did per iteration.
+    for (const win of wins) focusWindow(win);
 }
 
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowsCloseDuplicateNemo
@@ -1033,7 +1102,7 @@ function WindowsMoveToGivenWorkspaceGivenWMClass(wm_class, workspace_num) {
 // dbus-send --print-reply=literal --session --dest=io.github.blueray453.GnomeUtils /io/github/blueray453/GnomeUtils/Windows io.github.blueray453.GnomeUtils.Windows.WindowUnminimizeGivenWinID uint32:44129093
 
 function WindowUnminimizeGivenWinID(win_id) {
-    let win = getNormalWindowGivenWindowId(win_id);
+    const win = getNormalWindowGivenWindowId(win_id);
     if (win !== null && win.minimized)
         win.unminimize();
 }
