@@ -1,6 +1,6 @@
 import Meta from 'gi://Meta';
 
-import { createLogger } from './logger.js';
+import { createLogger } from '../logger.js';
 
 const journal = createLogger(import.meta.url);
 

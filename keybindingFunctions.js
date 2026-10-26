@@ -6,7 +6,7 @@ import * as windowFunctions from './windowFunctions.js';
 import * as keyboardSimulatorFunctions from './keyboardSimulatorFunctions.js';
 import { callDBusMethod } from './dbusClient.js';
 
-import { createLogger } from './logger.js';
+import { createLogger } from '../logger.js';
 
 const journal = createLogger(import.meta.url);
 
