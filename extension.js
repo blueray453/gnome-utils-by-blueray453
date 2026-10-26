@@ -13,7 +13,6 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import * as keyboardSimulatorFunctions from './keyboardSimulatorFunctions.js';
-import * as taggedWindowFunctions from './taggedWindowFunctions.js';
 import * as windowFunctions from './windowFunctions.js';
 import * as workspaceFunctions from './workspaceFunctions.js';
 import * as keybindingFunctions from './keybindingFunctions.js';
@@ -23,17 +22,13 @@ import { initLogging, createLogger } from './logger.js';
 const journal = createLogger(import.meta.url);
 
 const BUS_NAME = 'io.github.blueray453.GnomeUtils';
-// Converts "io.github.blueray453.GnomeUtils" -> "/io/github/blueray453/GnomeUtils"
 const BUS_PATH = '/' + BUS_NAME.split('.').join('/');
 
 const SPEC_CACHE_DIR = GLib.build_filenamev([GLib.get_home_dir(), '.cache', 'gnome-dbus-spec']);
 const SPEC_CACHE_FILE = 'gnome-utils.json';
 
-// Centralized interface configuration. Each module is a structured module
-// exporting MR_DBUS_IFACE, dbusObject, and optionally init()/destroy().
 const BASE_INTERFACES = [
     { module: keyboardSimulatorFunctions, shortName: 'KeyboardSimulator' },
-    { module: taggedWindowFunctions, shortName: 'TaggedWindows' },
     { module: windowFunctions, shortName: 'Windows' },
     { module: workspaceFunctions, shortName: 'Workspaces' },
     { module: keybindingFunctions, shortName: 'Keybinding' },
@@ -47,16 +42,11 @@ const INTERFACES = BASE_INTERFACES.map(iface => ({
 
 const state = {
     ownerId: 0,
-    exported: new Map(), // ifaceName -> { exported, module }
+    exported: new Map(),
 };
 
 function exportAll(connection) {
     for (const iface of INTERFACES) {
-        // Order matters: wrap and export first, only then call the module's
-        // init(). If wrap or export throws, we never enter the half-inited
-        // state where init() has run but the entry is missing from
-        // state.exported — which would leak signal handlers because
-        // unexportAll() would never find the module to call destroy() on.
         try {
             const exported = Gio.DBusExportedObject.wrapJSObject(
                 iface.module.MR_DBUS_IFACE,
@@ -70,7 +60,6 @@ function exportAll(connection) {
             journal(`Exported ${iface.ifaceName} on ${iface.path}`);
         } catch (e) {
             journal(`Failed to export ${iface.ifaceName}: ${e.message}`, true);
-            // Undo a partial init() if it ran before the failure.
             try { iface.module.destroy?.(); } catch (_) { /* nothing to clean */ }
         }
     }
